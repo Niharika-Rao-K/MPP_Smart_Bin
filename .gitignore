@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 
-# Virtual environment
+# Virtual environments
 venv/
 .venv/
 env/
@@ -12,17 +12,14 @@ env/
 .env
 .env.*
 
-# Uploaded images
+# Uploaded files
 uploads/
 
-# ChromaDB
+# Local ChromaDB
 chroma_db/
 
 # YOLO model weights
 *.pt
-
-# Jupyter
-.ipynb_checkpoints/
 
 # VS Code
 .vscode/
@@ -33,3 +30,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Node
+node_modules/
+npm-debug.log*
