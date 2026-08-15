@@ -1,11 +1,9 @@
 from app.services.rag_client import evaluate_with_rag
 
-
 def sensor_fusion(label: str, real_weight_g: float):
-
     rag_result = evaluate_with_rag(
-        label,
-        real_weight_g
+        label=label,
+        real_weight_g=real_weight_g
     )
 
     final_decision = rag_result["final_decision"]
