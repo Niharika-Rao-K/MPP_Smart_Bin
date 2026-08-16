@@ -87,11 +87,12 @@ export default function App() {
   };
 
   // Helper to execute API call to /api/rag/evaluate
+  // Helper to execute API call to FastAPI
   const evaluateSensorFusion = async (label, weight, userWallet) => {
+    // Keys match FastAPI's Swagger schema: "label" and "real_weight_g"
     const payload = {
-      predicted_label: label,
-      stable_weight_g: parseFloat(weight),
-      wallet_address: userWallet || walletAddress
+      label: label,
+      real_weight_g: parseFloat(weight)
     };
 
     const response = await fetch(`${backendUrl}/api/rag/evaluate`, {
