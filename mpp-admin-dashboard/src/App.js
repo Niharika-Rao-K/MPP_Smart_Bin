@@ -12,8 +12,8 @@ export default function App() {
   // Navigation State: 'USER_TERMINAL' or 'OPERATOR_PORTAL'
   const [activeTab, setActiveTab] = useState('USER_TERMINAL');
 
-  // Backend Configuration
-  const [backendUrl, setBackendUrl] = useState('https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev');
+  // Backend Configuration (Port 8000 Codespace URL)
+  const backendUrl = 'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
 
   // Live System Execution Logs
   const [logs, setLogs] = useState([
@@ -65,12 +65,13 @@ export default function App() {
 
   // --- Customer Deposit Terminal State ---
   const [depositFile, setDepositFile] = useState(null);
+  const [detectedLabel, setDetectedLabel] = useState("coca_cola_can");
   const [depositWeight, setDepositWeight] = useState("13.5");
   const [walletAddress, setWalletAddress] = useState("0x71C7656EC7ab88b098defB751B7401B5f6d8976F");
   const [depositStatus, setDepositStatus] = useState("IDLE"); // IDLE | PROCESSING | SUCCESS | REJECTED
   const [latestResult, setLatestResult] = useState(null);
 
-  // --- Sandbox Sandbox Engine State ---
+  // --- Sandbox Engine State ---
   const [inputLabel, setInputLabel] = useState("coca_cola_can");
   const [inputWeight, setInputWeight] = useState(13.5);
   const [isTesting, setIsTesting] = useState(false);
@@ -85,35 +86,41 @@ export default function App() {
     }));
   };
 
-  // 1. Live Deposit API Handler (Multipart / File + Scale payload)
-  const handleUserDeposit = async (e) => {
-    e.preventDefault();
-    if (!depositFile) {
-      alert("Please select or capture an image snapshot first!");
-      return;
+  // Helper to execute API call to /api/rag/evaluate
+  const evaluateSensorFusion = async (label, weight, userWallet) => {
+    const payload = {
+      predicted_label: label,
+      stable_weight_g: parseFloat(weight),
+      wallet_address: userWallet || walletAddress
+    };
+
+    const response = await fetch(`${backendUrl}/api/rag/evaluate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server returned status ${response.status}`);
     }
 
+    return await response.json();
+  };
+
+  // 1. Live Deposit API Handler
+  const handleUserDeposit = async (e) => {
+    e.preventDefault();
     setDepositStatus("PROCESSING");
     setLatestResult(null);
 
-    const formData = new FormData();
-    formData.append("image", depositFile);
-    formData.append("weight", depositWeight);
-    formData.append("wallet_address", walletAddress);
-
     try {
-      const response = await fetch(`${backendUrl}/deposit`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Server returned an error status.");
-
-      const data = await response.json();
+      const data = await evaluateSensorFusion(detectedLabel, depositWeight, walletAddress);
       setLatestResult(data);
 
-      const route = data.hardware_route_signal;
-      const isClean = route !== "R";
+      const route = data.hardware_route_signal || (data.fusion_result?.decision === "REJECT" ? "R" : "M");
+      const isClean = route !== "R" && data.fusion_result?.decision !== "REJECT";
 
       setDepositStatus(isClean ? "SUCCESS" : "REJECTED");
 
@@ -121,20 +128,21 @@ export default function App() {
       incrementBinCapacity(route);
 
       // Award tokens if clean deposit
-      if (isClean && data.web3_reward?.tokens_minted) {
-        setTotalTokensMinted(prev => prev + data.web3_reward.tokens_minted);
+      const mintedTokens = data.web3_reward?.tokens_minted || (isClean ? 10 : 0);
+      if (isClean && mintedTokens > 0) {
+        setTotalTokensMinted(prev => prev + mintedTokens);
       }
 
       // Prepend to Live Logs
       const newLog = {
         id: Date.now(),
-        label: data.predicted_label || "unknown_item",
-        matched: data.fusion_result?.rag_result?.matched_label || data.predicted_label,
+        label: data.predicted_label || detectedLabel,
+        matched: data.fusion_result?.rag_result?.matched_label || data.predicted_label || detectedLabel,
         weight: data.stable_weight_g || parseFloat(depositWeight),
         status: data.fusion_result?.decision || (isClean ? "VERIFIED_CLEAN" : "CONTAMINATION_DETECTED"),
         route: route,
         action: data.fusion_result?.action || "Evaluated by sensor fusion.",
-        tokens: isClean ? (data.web3_reward?.tokens_minted || 10) : 0,
+        tokens: isClean ? mintedTokens : 0,
         timestamp: new Date().toLocaleTimeString()
       };
       setLogs(prev => [newLog, ...prev]);
@@ -142,7 +150,7 @@ export default function App() {
     } catch (err) {
       console.error("Deposit submission failed:", err);
       setDepositStatus("IDLE");
-      alert("Could not connect to FastAPI backend at " + backendUrl + ". Ensure server is running!");
+      alert(`Could not connect to FastAPI backend at ${backendUrl}/api/rag/evaluate. Ensure server is running and CORS is enabled!`);
     }
   };
 
@@ -152,43 +160,29 @@ export default function App() {
     setIsTesting(true);
 
     try {
-      // Create a dummy text file to test the multipart /deposit endpoint directly from the sandbox
-      const dummyFile = new File([inputLabel], "sandbox_test.jpg", { type: "image/jpeg" });
-      const formData = new FormData();
-      formData.append("image", dummyFile);
-      formData.append("weight", inputWeight);
-      formData.append("wallet_address", walletAddress);
+      const data = await evaluateSensorFusion(inputLabel, inputWeight, walletAddress);
+      const route = data.hardware_route_signal || (data.fusion_result?.decision === "REJECT" ? "R" : "M");
+      const isClean = route !== "R" && data.fusion_result?.decision !== "REJECT";
 
-      const response = await fetch(`${backendUrl}/deposit`, {
-        method: 'POST',
-        body: formData,
-      });
+      incrementBinCapacity(route);
+      const mintedTokens = data.web3_reward?.tokens_minted || (isClean ? 10 : 0);
+      if (isClean) setTotalTokensMinted(prev => prev + mintedTokens);
 
-      if (response.ok) {
-        const data = await response.json();
-        const route = data.hardware_route_signal;
-        const isClean = route !== "R";
-
-        incrementBinCapacity(route);
-        if (isClean) setTotalTokensMinted(prev => prev + 10);
-
-        const newLog = {
-          id: Date.now(),
-          label: inputLabel,
-          matched: data.fusion_result?.rag_result?.matched_label || inputLabel,
-          weight: parseFloat(inputWeight),
-          status: data.fusion_result?.decision || (isClean ? "VERIFIED_CLEAN" : "CONTAMINATION_DETECTED"),
-          route: route,
-          action: data.fusion_result?.action || "Sandbox manual evaluation complete.",
-          tokens: isClean ? 10 : 0,
-          timestamp: new Date().toLocaleTimeString()
-        };
-        setLogs(prev => [newLog, ...prev]);
-      } else {
-        alert("Server responded with an error. Verify that database seeding is complete.");
-      }
+      const newLog = {
+        id: Date.now(),
+        label: inputLabel,
+        matched: data.fusion_result?.rag_result?.matched_label || inputLabel,
+        weight: parseFloat(inputWeight),
+        status: data.fusion_result?.decision || (isClean ? "VERIFIED_CLEAN" : "CONTAMINATION_DETECTED"),
+        route: route,
+        action: data.fusion_result?.action || "Sandbox manual evaluation complete.",
+        tokens: isClean ? mintedTokens : 0,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setLogs(prev => [newLog, ...prev]);
     } catch (err) {
-      alert("Could not connect to FastAPI server at port 8000!");
+      console.error("Sandbox simulation failed:", err);
+      alert("Could not connect to FastAPI server endpoint at /api/rag/evaluate!");
     } finally {
       setIsTesting(false);
     }
@@ -292,24 +286,37 @@ export default function App() {
               />
             </div>
 
-            {/* Camera File Upload */}
+            {/* Detected Item Label */}
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>
+                🏷️ 1. Detected Item Label (Classification):
+              </label>
+              <input 
+                type="text" 
+                value={detectedLabel} 
+                onChange={(e) => setDetectedLabel(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e0', boxSizing: 'border-box' }}
+                required 
+              />
+            </div>
+
+            {/* Camera File Upload (Optional Simulation Image) */}
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>
-                <Upload size={16} color="#4CAF50" /> 1. Upload Item Snapshot (ESP32-CAM Simulation):
+                <Upload size={16} color="#4CAF50" /> 2. Upload Item Snapshot (Optional ESP32-CAM Image):
               </label>
               <input 
                 type="file" 
                 accept="image/*" 
                 onChange={(e) => setDepositFile(e.target.files[0])}
                 style={{ width: '100%', padding: '10px', background: '#f7fafc', border: '1px dashed #cbd5e0', borderRadius: '6px' }}
-                required 
               />
             </div>
 
             {/* Load Cell Weight Input */}
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>
-                ⚖️ 2. Physical Scale Weight Reading (grams):
+                ⚖️ 3. Physical Scale Weight Reading (grams):
               </label>
               <input 
                 type="number" 
@@ -330,7 +337,7 @@ export default function App() {
                 cursor: 'pointer', transition: '0.2s', marginTop: '10px'
               }}
             >
-              {depositStatus === "PROCESSING" ? "Evaluating YOLOv8 + ChromaDB RAG..." : "Submit Deposit Payload"}
+              {depositStatus === "PROCESSING" ? "Evaluating ChromaDB RAG Pipeline..." : "Submit Deposit Payload"}
             </button>
           </form>
 
@@ -347,20 +354,20 @@ export default function App() {
               </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px', marginBottom: '12px' }}>
-                <div><strong>Detected Item:</strong> <code style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px' }}>{latestResult.predicted_label}</code></div>
-                <div><strong>Scale Weight:</strong> {latestResult.stable_weight_g} g</div>
-                <div><strong>Actuator Route Code:</strong> <span style={{ fontWeight: 'bold', color: '#2563eb' }}>"{latestResult.hardware_route_signal}"</span></div>
-                <div><strong>YOLO Confidence:</strong> {latestResult.confidence ? (latestResult.confidence * 100).toFixed(1) + "%" : "N/A"}</div>
+                <div><strong>Detected Item:</strong> <code style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px' }}>{latestResult.predicted_label || detectedLabel}</code></div>
+                <div><strong>Scale Weight:</strong> {latestResult.stable_weight_g || depositWeight} g</div>
+                <div><strong>Actuator Route Code:</strong> <span style={{ fontWeight: 'bold', color: '#2563eb' }}>"{latestResult.hardware_route_signal || (depositStatus === 'SUCCESS' ? 'M' : 'R')}"</span></div>
+                <div><strong>Decision:</strong> {latestResult.fusion_result?.decision || depositStatus}</div>
               </div>
 
               <p style={{ margin: '8px 0', fontSize: '13px', color: '#4b5563' }}>
-                <strong>Decision Details:</strong> {latestResult.fusion_result?.action}
+                <strong>Decision Details:</strong> {latestResult.fusion_result?.action || "Processed through sensor fusion."}
               </p>
 
-              {latestResult.web3_reward && depositStatus === "SUCCESS" && (
+              {depositStatus === "SUCCESS" && (
                 <div style={{ marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '6px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontWeight: 'bold', color: '#166534' }}>🪙 Web3 Reward Tokens Minted:</span>
-                  <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#15803d' }}>+{latestResult.web3_reward.tokens_minted} $RECYCLE</span>
+                  <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#15803d' }}>+{latestResult.web3_reward?.tokens_minted || 10} $RECYCLE</span>
                 </div>
               )}
             </div>
