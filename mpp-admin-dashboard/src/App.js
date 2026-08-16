@@ -13,7 +13,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('USER_TERMINAL');
 
   // Backend Configuration
-  const [backendUrl, setBackendUrl] = useState('http://127.0.0.1:8000');
+  const [backendUrl, setBackendUrl] = useState('https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev');
 
   // Live System Execution Logs
   const [logs, setLogs] = useState([
