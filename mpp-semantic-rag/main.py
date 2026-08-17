@@ -187,22 +187,22 @@ CONTRACT_ABI = [
     "type": "error"
   },
   {
-    "anonymous": false,
+    "anonymous": False,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": True,
         "internalType": "address",
         "name": "owner",
         "type": "address"
       },
       {
-        "indexed": true,
+        "indexed": True,
         "internalType": "address",
         "name": "spender",
         "type": "address"
       },
       {
-        "indexed": false,
+        "indexed": False,
         "internalType": "uint256",
         "name": "value",
         "type": "uint256"
@@ -212,16 +212,16 @@ CONTRACT_ABI = [
     "type": "event"
   },
   {
-    "anonymous": false,
+    "anonymous": False,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": True,
         "internalType": "address",
         "name": "previousOwner",
         "type": "address"
       },
       {
-        "indexed": true,
+        "indexed": True,
         "internalType": "address",
         "name": "newOwner",
         "type": "address"
@@ -262,22 +262,22 @@ CONTRACT_ABI = [
     "type": "function"
   },
   {
-    "anonymous": false,
+    "anonymous": False,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": True,
         "internalType": "address",
         "name": "from",
         "type": "address"
       },
       {
-        "indexed": true,
+        "indexed": True,
         "internalType": "address",
         "name": "to",
         "type": "address"
       },
       {
-        "indexed": false,
+        "indexed": False,
         "internalType": "uint256",
         "name": "value",
         "type": "uint256"
