@@ -9,50 +9,29 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // Navigation State: 'USER_TERMINAL' or 'OPERATOR_PORTAL'
   const [activeTab, setActiveTab] = useState('USER_TERMINAL');
 
-  // Backend Configuration (Port 8000 Codespace URL)
-  const backendUrl = 'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
+  // Dynamic Backend URL with fallback to local development
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
 
-  // Live System Execution Logs
   const [logs, setLogs] = useState([
     { 
-      id: 1, 
-      label: "coca_cola_can", 
-      matched: "coca_cola_can", 
-      weight: 13.5, 
-      status: "VERIFIED_CLEAN", 
-      route: "M", 
-      action: "Accept item. Route to METAL bin.", 
-      tokens: 10, 
-      timestamp: "10:14:22 AM" 
+      id: 1, label: "coca_cola_can", matched: "coca_cola_can", weight: 13.5, 
+      status: "VERIFIED_CLEAN", route: "M", action: "Accept item. Route to METAL bin.", 
+      tokens: 10, timestamp: "10:14:22 AM" 
     },
     { 
-      id: 2, 
-      label: "snack_wrapper", 
-      matched: "snack_wrapper", 
-      weight: 5.2, 
-      status: "VERIFIED_CLEAN", 
-      route: "W", 
-      action: "Accept item. Route to WRAPPER bin.", 
-      tokens: 10, 
-      timestamp: "10:18:05 AM" 
+      id: 2, label: "snack_wrapper", matched: "snack_wrapper", weight: 5.2, 
+      status: "VERIFIED_CLEAN", route: "W", action: "Accept item. Route to WRAPPER bin.", 
+      tokens: 10, timestamp: "10:18:05 AM" 
     },
     { 
-      id: 3, 
-      label: "water_bottle", 
-      matched: "water_bottle", 
-      weight: 145.0, 
-      status: "CONTAMINATION_DETECTED", 
-      route: "R", 
-      action: "Reject item. Anomaly or liquid remaining inside.", 
-      tokens: 0, 
-      timestamp: "10:22:41 AM" 
+      id: 3, label: "water_bottle", matched: "water_bottle", weight: 145.0, 
+      status: "CONTAMINATION_DETECTED", route: "R", action: "Reject item. Anomaly or liquid remaining inside.", 
+      tokens: 0, timestamp: "10:22:41 AM" 
     }
   ]);
 
-  // Dynamic Bin Capacities (Updated on verified deposits)
   const [binCapacities, setBinCapacities] = useState([
     { name: 'Plastic/Wrappers (W)', current: 36, max: 100, color: '#4CAF50', signal: 'W' },
     { name: 'Metal Waste (M)', current: 63, max: 100, color: '#2196F3', signal: 'M' },
@@ -60,23 +39,21 @@ export default function App() {
     { name: 'Reject Tray (R)', current: 9, max: 50, color: '#F44336', signal: 'R' },
   ]);
 
-  // Total Web3 Rewards Minted Counter
   const [totalTokensMinted, setTotalTokensMinted] = useState(20);
 
-  // --- Customer Deposit Terminal State ---
+  // User Terminal State
   const [depositFile, setDepositFile] = useState(null);
   const [detectedLabel, setDetectedLabel] = useState("coca_cola_can");
   const [depositWeight, setDepositWeight] = useState("13.5");
   const [walletAddress, setWalletAddress] = useState("0x71C7656EC7ab88b098defB751B7401B5f6d8976F");
-  const [depositStatus, setDepositStatus] = useState("IDLE"); // IDLE | PROCESSING | SUCCESS | REJECTED
+  const [depositStatus, setDepositStatus] = useState("IDLE");
   const [latestResult, setLatestResult] = useState(null);
 
-  // --- Sandbox Engine State ---
+  // Sandbox State
   const [inputLabel, setInputLabel] = useState("coca_cola_can");
   const [inputWeight, setInputWeight] = useState(13.5);
   const [isTesting, setIsTesting] = useState(false);
 
-  // Helper to update bin capacity visually when items are deposited
   const incrementBinCapacity = (routeSignal) => {
     setBinCapacities(prev => prev.map(bin => {
       if (bin.signal === routeSignal && bin.current < bin.max) {
@@ -86,22 +63,34 @@ export default function App() {
     }));
   };
 
-  // Helper to execute API call to /api/rag/evaluate
-  // Helper to execute API call to FastAPI
-  const evaluateSensorFusion = async (label, weight, userWallet) => {
-    // Keys match FastAPI's Swagger schema: "label" and "real_weight_g"
-    const payload = {
-      label: label,
-      real_weight_g: parseFloat(weight)
-    };
+  // Sensor Fusion Evaluator with Support for Image Files (FormData / JSON)
+  const evaluateSensorFusion = async (label, weight, userWallet, file = null) => {
+    let response;
 
-    const response = await fetch(`${backendUrl}/api/rag/evaluate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    if (file) {
+      const formData = new FormData();
+      formData.append("label", label);
+      formData.append("real_weight_g", parseFloat(weight));
+      formData.append("wallet_address", userWallet);
+      formData.append("image", file);
+
+      response = await fetch(`${backendUrl}/api/rag/evaluate`, {
+        method: "POST",
+        body: formData, // Browser automatically sets Content-Type to multipart/form-data
+      });
+    } else {
+      const payload = {
+        label: label,
+        real_weight_g: parseFloat(weight),
+        wallet_address: userWallet
+      };
+
+      response = await fetch(`${backendUrl}/api/rag/evaluate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
 
     if (!response.ok) {
       throw new Error(`Server returned status ${response.status}`);
@@ -110,77 +99,59 @@ export default function App() {
     return await response.json();
   };
 
-  // 1. Live Deposit API Handler
+  const processEvaluationResult = (data, fallbackLabel, weight) => {
+    const route = data.hardware_route_signal || (data.fusion_result?.decision === "REJECT" ? "R" : "M");
+    const isClean = route !== "R" && data.fusion_result?.decision !== "REJECT";
+    const mintedTokens = data.web3_reward?.tokens_minted || (isClean ? 10 : 0);
+
+    incrementBinCapacity(route);
+
+    if (isClean && mintedTokens > 0) {
+      setTotalTokensMinted(prev => prev + mintedTokens);
+    }
+
+    const newLog = {
+      id: Date.now(),
+      label: data.predicted_label || fallbackLabel,
+      matched: data.fusion_result?.rag_result?.matched_label || data.predicted_label || fallbackLabel,
+      weight: data.stable_weight_g || parseFloat(weight),
+      status: data.fusion_result?.decision || (isClean ? "VERIFIED_CLEAN" : "CONTAMINATION_DETECTED"),
+      route: route,
+      action: data.fusion_result?.action || "Evaluated by sensor fusion.",
+      tokens: isClean ? mintedTokens : 0,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    setLogs(prev => [newLog, ...prev]);
+    return { isClean, route };
+  };
+
   const handleUserDeposit = async (e) => {
     e.preventDefault();
     setDepositStatus("PROCESSING");
     setLatestResult(null);
 
     try {
-      const data = await evaluateSensorFusion(detectedLabel, depositWeight, walletAddress);
+      const data = await evaluateSensorFusion(detectedLabel, depositWeight, walletAddress, depositFile);
       setLatestResult(data);
 
-      const route = data.hardware_route_signal || (data.fusion_result?.decision === "REJECT" ? "R" : "M");
-      const isClean = route !== "R" && data.fusion_result?.decision !== "REJECT";
-
+      const { isClean } = processEvaluationResult(data, detectedLabel, depositWeight);
       setDepositStatus(isClean ? "SUCCESS" : "REJECTED");
-
-      // Update Bin Capacity
-      incrementBinCapacity(route);
-
-      // Award tokens if clean deposit
-      const mintedTokens = data.web3_reward?.tokens_minted || (isClean ? 10 : 0);
-      if (isClean && mintedTokens > 0) {
-        setTotalTokensMinted(prev => prev + mintedTokens);
-      }
-
-      // Prepend to Live Logs
-      const newLog = {
-        id: Date.now(),
-        label: data.predicted_label || detectedLabel,
-        matched: data.fusion_result?.rag_result?.matched_label || data.predicted_label || detectedLabel,
-        weight: data.stable_weight_g || parseFloat(depositWeight),
-        status: data.fusion_result?.decision || (isClean ? "VERIFIED_CLEAN" : "CONTAMINATION_DETECTED"),
-        route: route,
-        action: data.fusion_result?.action || "Evaluated by sensor fusion.",
-        tokens: isClean ? mintedTokens : 0,
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setLogs(prev => [newLog, ...prev]);
 
     } catch (err) {
       console.error("Deposit submission failed:", err);
       setDepositStatus("IDLE");
-      alert(`Could not connect to FastAPI backend at ${backendUrl}/api/rag/evaluate. Ensure server is running and CORS is enabled!`);
+      alert(`Could not connect to FastAPI backend at ${backendUrl}/api/rag/evaluate. Check backend connection and CORS policies.`);
     }
   };
 
-  // 2. Local RAG Sandbox Engine Handler
   const handleSimulateScan = async (e) => {
     e.preventDefault();
     setIsTesting(true);
 
     try {
       const data = await evaluateSensorFusion(inputLabel, inputWeight, walletAddress);
-      const route = data.hardware_route_signal || (data.fusion_result?.decision === "REJECT" ? "R" : "M");
-      const isClean = route !== "R" && data.fusion_result?.decision !== "REJECT";
-
-      incrementBinCapacity(route);
-      const mintedTokens = data.web3_reward?.tokens_minted || (isClean ? 10 : 0);
-      if (isClean) setTotalTokensMinted(prev => prev + mintedTokens);
-
-      const newLog = {
-        id: Date.now(),
-        label: inputLabel,
-        matched: data.fusion_result?.rag_result?.matched_label || inputLabel,
-        weight: parseFloat(inputWeight),
-        status: data.fusion_result?.decision || (isClean ? "VERIFIED_CLEAN" : "CONTAMINATION_DETECTED"),
-        route: route,
-        action: data.fusion_result?.action || "Sandbox manual evaluation complete.",
-        tokens: isClean ? mintedTokens : 0,
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setLogs(prev => [newLog, ...prev]);
+      processEvaluationResult(data, inputLabel, inputWeight);
     } catch (err) {
       console.error("Sandbox simulation failed:", err);
       alert("Could not connect to FastAPI server endpoint at /api/rag/evaluate!");
@@ -192,7 +163,7 @@ export default function App() {
   return (
     <div style={{ padding: '24px', fontFamily: 'Segoe UI, Roboto, sans-serif', background: '#f4f6f9', minHeight: '100vh', color: '#333' }}>
       
-      {/* Navigation & Header Panel */}
+      {/* Header */}
       <header style={{ background: '#fff', padding: '16px 24px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -204,7 +175,6 @@ export default function App() {
             </p>
           </div>
 
-          {/* Mode Switcher Buttons */}
           <div style={{ display: 'flex', gap: '10px', background: '#edf2f7', padding: '4px', borderRadius: '8px' }}>
             <button 
               onClick={() => setActiveTab('USER_TERMINAL')}
@@ -232,7 +202,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Analytics KPI Summary Banner */}
+      {/* Analytics KPI Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div style={{ background: '#fff', padding: '16px 20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ background: '#e8f5e9', padding: '12px', borderRadius: '8px' }}><Activity color="#2e7d32" size={24} /></div>
@@ -261,7 +231,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* TAB 1: CUSTOMER ACTIVE DEPOSIT TERMINAL */}
+      {/* Customer Terminal */}
       {activeTab === 'USER_TERMINAL' && (
         <div style={{ maxWidth: '750px', margin: '0 auto', background: '#fff', padding: '28px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <h2 style={{ marginTop: 0, color: '#1a202c', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -272,8 +242,6 @@ export default function App() {
           </p>
 
           <form onSubmit={handleUserDeposit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            
-            {/* Wallet Integration Card */}
             <div style={{ background: '#f8fafc', padding: '14px 18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: '#4a5568', marginBottom: '6px' }}>
                 <Wallet size={16} color="#2196F3" /> Recipient Web3 Wallet Address:
@@ -287,7 +255,6 @@ export default function App() {
               />
             </div>
 
-            {/* Detected Item Label */}
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>
                 🏷️ 1. Detected Item Label (Classification):
@@ -301,7 +268,6 @@ export default function App() {
               />
             </div>
 
-            {/* Camera File Upload (Optional Simulation Image) */}
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>
                 <Upload size={16} color="#4CAF50" /> 2. Upload Item Snapshot (Optional ESP32-CAM Image):
@@ -314,7 +280,6 @@ export default function App() {
               />
             </div>
 
-            {/* Load Cell Weight Input */}
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>
                 ⚖️ 3. Physical Scale Weight Reading (grams):
@@ -342,7 +307,6 @@ export default function App() {
             </button>
           </form>
 
-          {/* Real-Time Result Banner */}
           {latestResult && (
             <div style={{ 
               marginTop: '24px', padding: '20px', borderRadius: '8px', 
@@ -376,12 +340,11 @@ export default function App() {
         </div>
       )}
 
-      {/* TAB 2: OPERATOR ANALYTICS & SANDBOX PORTAL */}
+      {/* Operator Portal */}
       {activeTab === 'OPERATOR_PORTAL' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px', marginBottom: '24px' }}>
             
-            {/* Module A: Live Sandbox Testing Console */}
             <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <RefreshCw size={20} color="#2196F3" /> RAG Database Sandbox Engine
@@ -422,7 +385,6 @@ export default function App() {
               </form>
             </div>
 
-            {/* Module B: Real-Time Bin Capacity Chart */}
             <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <HardDrive size={20} color="#4CAF50" /> Internal Bin Capacities
@@ -444,7 +406,6 @@ export default function App() {
 
           </div>
 
-          {/* Module C: System Execution Logs */}
           <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
             <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldAlert size={20} color="#F44336" /> Live System Execution Log
