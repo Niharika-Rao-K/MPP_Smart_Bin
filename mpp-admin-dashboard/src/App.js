@@ -8,47 +8,49 @@ const INITIAL_BINS = [
   { id: 'reject', name: 'Reject Bin', current: 5, max: 100, color: '#F44336', signal: 'R' }
 ];
 
+// Explicit material-to-signal mapping fallback
+const MATERIAL_SIGNAL_MAP = {
+  Plastic: 'W',
+  Metal: 'M',
+  'E-Waste': 'E'
+};
+
 export default function App() {
   const [binCapacities, setBinCapacities] = useState(INITIAL_BINS);
   const [logs, setLogs] = useState([]);
   
-  // Deposit Form State (Normalized types)
+  // Form State
   const [depositWeight, setDepositWeight] = useState(13.5);
-  const [depositMaterial, setDepositMaterial] = useState('Plastic');
+  const [depositMaterial, setDepositMaterial] = useState('Metal');
+  const [walletAddress, setWalletAddress] = useState('');
   const [depositFile, setDepositFile] = useState(null);
+  
+  // Network/UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  // Ref to programmatically clear the uncontrolled file input DOM element
+  // Ref to reset uncontrolled file input
   const fileInputRef = useRef(null);
 
   /**
-   * Evaluates backend response and routes item to correct bin.
+   * Process the verification output from main.py
    */
-  const processEvaluationResult = (data, weightInput) => {
-    const isReject = data.fusion_result?.decision === "REJECT" || data.status === "CONTAMINATION_DETECTED";
+  const processEvaluationResult = (data, fallbackWeight) => {
+    const isReject = 
+      data.fusion_result?.decision === "REJECT" || 
+      data.fusion_result?.decision === "CONTAMINATED";
     
-    // Explicit signal mapping fallback
+    // Resolve route signal from backend or compute fallback
     let routeSignal = data.hardware_route_signal;
     if (!routeSignal) {
-      if (isReject) {
-        routeSignal = "R";
-      } else {
-        // Map default non-reject materials explicitly
-        const materialMap = {
-          Plastic: "W",
-          Metal: "M",
-          "E-Waste": "E"
-        };
-        routeSignal = materialMap[depositMaterial] || "M";
-      }
+      routeSignal = isReject ? "R" : (MATERIAL_SIGNAL_MAP[depositMaterial] || "M");
     }
 
     const itemWeight = typeof data.stable_weight_g === 'number' 
       ? data.stable_weight_g 
-      : parseFloat(weightInput) || 0;
+      : parseFloat(fallbackWeight) || 0;
 
-    // Update bin capacity based on route signal
+    // Update bin capacities
     setBinCapacities(prevBins =>
       prevBins.map(bin => {
         if (bin.signal === routeSignal) {
@@ -58,44 +60,48 @@ export default function App() {
       })
     );
 
-    // Append log with precise status metadata
+    // Build log record
     const newLog = {
       id: Date.now(),
       timestamp: new Date().toLocaleTimeString(),
-      material: depositMaterial,
+      material: data.predicted_label || depositMaterial,
       weight: itemWeight,
       route: routeSignal,
       isContaminated: isReject,
-      decision: data.fusion_result?.decision || "ACCEPTED",
-      details: data.fusion_result?.reason || "Processed successfully"
+      decision: data.fusion_result?.decision || "VERIFIED_CLEAN",
+      action: data.fusion_result?.action || "Processed",
+      txHash: data.web3_reward?.tx_hash || null,
+      explorerUrl: data.web3_reward?.explorer_url || null
     };
 
     setLogs(prevLogs => [newLog, ...prevLogs]);
   };
 
   /**
-   * Handles user submission, API call, error handling, and form state reset.
+   * Post form data directly to FastAPI /api/rag/evaluate
    */
   const handleUserDeposit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
 
+    // FormData matching FastAPI requirements: label, real_weight_g, wallet_address, image
     const formData = new FormData();
-    formData.append('weight', depositWeight);
-    formData.append('material', depositMaterial);
+    formData.append('label', depositMaterial);
+    formData.append('real_weight_g', depositWeight);
+    formData.append('wallet_address', walletAddress);
     if (depositFile) {
       formData.append('image', depositFile);
     }
 
     try {
-      const response = await fetch('/api/evaluate', {
+      // Direct call to port 8000 endpoint
+      const response = await fetch('http://localhost:8000/api/rag/evaluate', {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        // Parse backend JSON error payload (e.g., FastAPI 422/500 validation errors)
         let backendError = `Server returned status ${response.status}`;
         try {
           const errorData = await response.json();
@@ -113,41 +119,40 @@ export default function App() {
       const data = await response.json();
       processEvaluationResult(data, depositWeight);
 
-      // Reset form state and UI file input DOM node after successful deposit
+      // Clear input state after successful transaction
       setDepositFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     } catch (err) {
-      setErrorMessage(err.message || "An unexpected error occurred during deposit.");
+      setErrorMessage(err.message || "Failed to communicate with FastAPI backend.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // KPI Calculations
   const totalDetections = logs.length;
   const totalRejections = logs.filter(l => l.isContaminated || l.route === 'R').length;
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '900px', margin: '0 auto' }}>
-      <h1>Smart Recycling Node Dashboard</h1>
+      <h1>Smart Bin Dashboard</h1>
 
-      {/* KPI Summary Cards */}
+      {/* KPI Cards */}
       <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
         <div style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '8px', flex: 1 }}>
-          <h3>Total Processed</h3>
+          <h3>Total Deposits</h3>
           <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{totalDetections}</p>
         </div>
         <div style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '8px', flex: 1 }}>
-          <h3>Rejections / Anomalies</h3>
+          <h3>Rejections</h3>
           <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#F44336', margin: 0 }}>
             {totalRejections} Detected
           </p>
         </div>
       </div>
 
-      {/* Bin Status Overview */}
+      {/* Bin Capacities */}
       <section style={{ marginBottom: '30px' }}>
         <h2>Bin Capacities</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
@@ -170,7 +175,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* Deposit Form */}
+      {/* Form Submission */}
       <section style={{ marginBottom: '30px', padding: '20px', border: '1px solid #eee', borderRadius: '8px' }}>
         <h2>Simulate Material Deposit</h2>
         {errorMessage && (
@@ -192,16 +197,27 @@ export default function App() {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '4px' }}>Material:</label>
+            <label style={{ display: 'block', marginBottom: '4px' }}>Material Label:</label>
             <select 
               value={depositMaterial} 
               onChange={(e) => setDepositMaterial(e.target.value)}
               style={{ width: '100%', padding: '8px' }}
             >
-              <option value="Plastic">Plastic/Wrapper (Signal: W)</option>
               <option value="Metal">Metal (Signal: M)</option>
+              <option value="Plastic">Plastic/Wrapper (Signal: W)</option>
               <option value="E-Waste">E-Waste (Signal: E)</option>
             </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px' }}>Sepolia Wallet Address (Optional for Web3 Rewards):</label>
+            <input 
+              type="text"
+              placeholder="0x..."
+              value={walletAddress} 
+              onChange={(e) => setWalletAddress(e.target.value)} 
+              style={{ width: '100%', padding: '8px' }}
+            />
           </div>
 
           <div>
@@ -220,7 +236,7 @@ export default function App() {
             disabled={isSubmitting}
             style={{ padding: '10px 20px', background: '#2196F3', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
-            {isSubmitting ? 'Evaluating...' : 'Submit Deposit'}
+            {isSubmitting ? 'Evaluating & Minting...' : 'Submit Deposit'}
           </button>
         </form>
       </section>
@@ -237,8 +253,8 @@ export default function App() {
                 <th style={{ padding: '8px' }}>Time</th>
                 <th style={{ padding: '8px' }}>Material</th>
                 <th style={{ padding: '8px' }}>Weight</th>
-                <th style={{ padding: '8px' }}>Signal</th>
-                <th style={{ padding: '8px' }}>Status</th>
+                <th style={{ padding: '8px' }}>Route</th>
+                <th style={{ padding: '8px' }}>Web3 Reward</th>
               </tr>
             </thead>
             <tbody>
@@ -248,8 +264,14 @@ export default function App() {
                   <td style={{ padding: '8px' }}>{log.material}</td>
                   <td style={{ padding: '8px' }}>{log.weight}g</td>
                   <td style={{ padding: '8px' }}><code>{log.route}</code></td>
-                  <td style={{ padding: '8px', color: log.isContaminated ? '#F44336' : '#4CAF50' }}>
-                    {log.isContaminated ? 'REJECTED' : 'ACCEPTED'}
+                  <td style={{ padding: '8px' }}>
+                    {log.explorerUrl ? (
+                      <a href={log.explorerUrl} target="_blank" rel="noopener noreferrer">
+                        View Tx ↗
+                      </a>
+                    ) : (
+                      'No Wallet Provided'
+                    )}
                   </td>
                 </tr>
               ))}
