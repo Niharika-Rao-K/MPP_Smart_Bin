@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from web3 import Web3
 
-# Load environment variables from .env
 load_dotenv()
 
 app = FastAPI(title="Smart Bin RAG & Web3 API")
@@ -24,9 +23,10 @@ app.add_middleware(
 # Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    detail = exc.detail if isinstance(exc, HTTPException) else str(exc)
     return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc)},
+        status_code=getattr(exc, "status_code", 500),
+        content={"detail": detail},
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "*",
@@ -34,16 +34,17 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-# --- Web3 Setup ---
 SEPOLIA_RPC_URL = os.getenv("SEPOLIA_RPC_URL", "https://eth-sepolia.g.alchemy.com/v2/_wokhAu3_ees-Kn_dPfyJ")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")
 
-# ERC-20 Mint ABI
 ABI_PATH = os.path.join(os.path.dirname(__file__), "abi.json")
 
-with open(ABI_PATH, "r") as f:
-    CONTRACT_ABI = json.load(f)
+try:
+    with open(ABI_PATH, "r") as f:
+        CONTRACT_ABI = json.load(f)
+except Exception:
+    CONTRACT_ABI = []
 
 def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
     if not PRIVATE_KEY or not CONTRACT_ADDRESS:
@@ -69,10 +70,11 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
     })
 
     signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    
+    # Compatibility fix for Web3.py v5 and v6 raw transaction attribute
+    raw_tx = getattr(signed_tx, "raw_transaction", getattr(signed_tx, "rawTransaction", None))
+    tx_hash = w3.eth.send_raw_transaction(raw_tx)
     return w3.to_hex(tx_hash)
-
-# --- Routes ---
 
 @app.get("/")
 async def root():
@@ -90,20 +92,23 @@ async def evaluate_sensor_fusion(
             await image.read()
 
         tx_hash = None
-        # Mint real Sepolia tokens if user provides a valid 0x wallet address
-        if wallet_address and wallet_address.startswith("0x"):
-            tx_hash = mint_reward_tokens(wallet_address, amount=10)
+        if wallet_address and wallet_address.strip().startswith("0x"):
+            tx_hash = mint_reward_tokens(wallet_address.strip(), amount=10)
+
+        # Signal mapping logic based on material input
+        signal_map = {"Metal": "M", "Plastic": "W", "E-Waste": "E"}
+        route_signal = signal_map.get(label, "M")
 
         return {
             "predicted_label": label,
             "stable_weight_g": real_weight_g,
-            "hardware_route_signal": "M",
+            "hardware_route_signal": route_signal,
             "fusion_result": {
                 "decision": "VERIFIED_CLEAN",
-                "action": "Accept item. Route to METAL bin."
+                "action": f"Accept item. Route to {label.upper()} bin."
             },
             "web3_reward": {
-                "tokens_minted": 10,
+                "tokens_minted": 10 if tx_hash else 0,
                 "tx_hash": tx_hash,
                 "explorer_url": f"https://sepolia.etherscan.io/tx/{tx_hash}" if tx_hash else None
             }
