@@ -16,7 +16,7 @@ app = FastAPI(title="Smart Bin RAG & Web3 API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
