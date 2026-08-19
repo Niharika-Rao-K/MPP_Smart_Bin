@@ -62,21 +62,15 @@ def calculate_dynamic_credits(label: str, real_weight_g: float) -> int:
     Dynamically calculates reward points using nearest-neighbor similarity match 
     against known baseline items (RAG retrieval step).
     """
-    # Filter reference database by material class
     matched_items = [item for item in KNOWN_ITEMS_DB if item["material"].lower() == label.lower()]
 
     if not matched_items:
-        # Fallback calculation if item class isn't strictly recognized
         return max(1, int(real_weight_g * 0.5))
 
-    # Retrieve nearest neighbor reference based on closest weight proximity
     nearest_item = min(matched_items, key=lambda x: abs(x["base_weight_g"] - real_weight_g))
-
-    # Calculate proportional credit based on reference standard
     weight_ratio = real_weight_g / nearest_item["base_weight_g"]
     calculated_credits = int(nearest_item["credits"] * weight_ratio)
 
-    # Bound credits to reasonable minimum/maximum limits
     return max(1, min(calculated_credits, 100))
 
 def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
@@ -92,9 +86,13 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
 
     nonce = w3.eth.get_transaction_count(account.address)
     
+    # Scale integer credit score to 18 decimal places (wei)
+    token_amount_wei = w3.to_wei(amount, 'ether')
+
+    # Calls standard function mint(address to, uint256 amount)
     tx = contract.functions.mint(
         Web3.to_checksum_address(recipient_wallet), 
-        amount
+        token_amount_wei
     ).build_transaction({
         'from': account.address,
         'nonce': nonce,
@@ -104,7 +102,6 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
 
     signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
     
-    # Compatibility fix for Web3.py v5 and v6 raw transaction attribute
     raw_tx = getattr(signed_tx, "raw_transaction", getattr(signed_tx, "rawTransaction", None))
     tx_hash = w3.eth.send_raw_transaction(raw_tx)
     return w3.to_hex(tx_hash)
@@ -124,15 +121,12 @@ async def evaluate_sensor_fusion(
         if image:
             await image.read()
 
-        # Compute dynamic points based on RAG similarity match
         dynamic_credits = calculate_dynamic_credits(label, real_weight_g)
 
         tx_hash = None
         if wallet_address and wallet_address.strip().startswith("0x"):
-            # Mint dynamically calculated points instead of hardcoded 10
             tx_hash = mint_reward_tokens(wallet_address.strip(), amount=dynamic_credits)
 
-        # Signal mapping logic based on material input
         signal_map = {"Metal": "M", "Plastic": "W", "E-Waste": "E"}
         route_signal = signal_map.get(label, "M")
 
