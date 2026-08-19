@@ -1,33 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Recycle2Earn - Smart Bin Dashboard</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                purple: '#7C3AED',
-                green: '#10B981',
-                amber: '#F59E0B',
-                blue: '#0284C7',
-                rose: '#F43F5E',
-                bg: '#F8FAFC'
-              }
-            }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recycle2Earn - Smart Bin Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // Light theme color palette
+            bgMain: '#F1F5F9',      // Soft slate background (not bright white)
+            bgCard: '#FFFFFF',      // Card surfaces
+            bgSidebar: '#E2E8F0',   // Sidebar & terminal background
+            accentGreen: '#65A30D', // Eco accent green
+            accentYellow: '#D97706',// Gamification gold/yellow
+            textPrimary: '#1E293B', // Deep slate for readable text
+            textSecondary: '#64748B'// Subdued slate for labels
           }
         }
       }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  </head>
-  <body class="bg-slate-100 font-sans text-slate-800 min-h-screen">
-    <div id="root"></div>
-  </body>
+    }
+  </script>
+</head>
+<body class="bg-bgMain text-textPrimary font-sans antialiased min-h-screen p-4 md:p-6">
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto bg-bgSidebar/50 rounded-2xl p-4 shadow-xl border border-slate-300/60">
+    
+    <!-- Top Navbar -->
+    <header class="flex items-center justify-between pb-4 mb-4 border-b border-slate-300">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">♻️</span>
+        <h1 class="text-xl font-bold tracking-wide text-textPrimary">Recycle2Earn</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-right text-xs">
+          <p class="font-mono font-semibold text-accentGreen" id="user-wallet-display">0xA1b2...7cDe</p>
+          <p class="text-textSecondary">Level 1 Recycler</p>
+        </div>
+        <div class="w-9 h-9 bg-accentGreen/20 text-accentGreen border border-accentGreen/40 rounded-full flex items-center justify-center font-bold text-sm">
+          NR
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+      <!-- Sidebar Navigation (2 cols) -->
+      <aside class="lg:col-span-2 flex flex-col gap-2 bg-bgCard p-3 rounded-xl border border-slate-200 text-sm font-medium">
+        <button class="flex items-center gap-3 px-3 py-2 bg-accentGreen/10 text-accentGreen rounded-lg border border-accentGreen/30 font-semibold">
+          <span>🏠</span> Overview
+        </button>
+        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+          <span>📥</span> Deposit
+        </button>
+        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+          <span>🏆</span> Rewards
+        </button>
+        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+          <span>🎯</span> Challenges
+        </button>
+        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+          <span>📊</span> Leaderboard
+        </button>
+      </aside>
+
+      <!-- Center Dashboard Content (6 cols) -->
+      <main class="lg:col-span-6 flex flex-col gap-4">
+
+        <!-- Top KPI Cards Row -->
+        <div class="grid grid-cols-3 gap-3">
+          <!-- Total Tokens Earned -->
+          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="text-[10px] font-bold text-textSecondary uppercase tracking-wider">Total Tokens</div>
+            <div class="text-xl font-black text-accentYellow mt-1" id="portal-total-tokens">532.45</div>
+            <span class="text-[10px] text-textSecondary font-semibold">$RECYCLE</span>
+          </div>
+
+          <!-- Total Weight Recycled -->
+          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-[10px] font-bold text-textSecondary uppercase tracking-wider">Weight Recycled</div>
+            <div class="text-xl font-black text-accentGreen mt-1" id="portal-weight-recycled">128.45</div>
+            <span class="text-[10px] text-textSecondary font-semibold">kg</span>
+          </div>
+
+          <!-- Total Deposits -->
+          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-[10px] font-bold text-textSecondary uppercase tracking-wider">Total Deposits</div>
+            <div class="text-xl font-black text-textPrimary mt-1" id="portal-total-deposits">24</div>
+            <span class="text-[10px] text-textSecondary font-semibold">Deposits</span>
+          </div>
+        </div>
+
+        <!-- Recycler Level Progress -->
+        <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex justify-between items-center text-xs mb-2">
+            <span class="font-bold text-textPrimary">Recycler Level Progress</span>
+            <span class="text-textSecondary font-medium">Level 2 (75%)</span>
+          </div>
+          <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+            <div class="bg-accentGreen h-full rounded-full transition-all duration-500" style="width: 75%;"></div>
+          </div>
+        </div>
+
+        <!-- Gamification & Challenge Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Recent Badges -->
+          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-textPrimary mb-3">Recent Badges</p>
+            <div class="flex gap-2">
+              <span class="p-2 bg-amber-100 rounded-lg text-lg" title="First Deposit">🪙</span>
+              <span class="p-2 bg-emerald-100 rounded-lg text-lg" title="Clean Streak">🌱</span>
+              <span class="p-2 bg-blue-100 rounded-lg text-lg" title="Recycler">♻️</span>
+              <span class="p-2 bg-purple-100 rounded-lg text-lg" title="Master">🏅</span>
+            </div>
+          </div>
+
+          <!-- Daily Challenge -->
+          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <p class="text-xs font-bold text-textPrimary">Daily Challenge</p>
+              <p class="text-xs text-textSecondary mt-1">Recycle 5kg today</p>
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div class="bg-accentYellow h-full rounded-full" style="width: 64%;"></div>
+              </div>
+              <span class="text-[10px] font-bold text-textSecondary">3.2/5kg</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Mount Point for App.js -->
+        <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
+          <p class="text-xs font-bold text-textPrimary mb-2">Simulate Deposit</p>
+          <div id="portal-deposit-form"></div>
+        </div>
+
+      </main>
+
+      <!-- Right Terminal / Live Hardware Stream (4 cols) -->
+      <aside class="lg:col-span-4 bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-xs shadow-inner flex flex-col justify-between border border-slate-800">
+        <div>
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+            <span class="text-emerald-400 font-semibold">/api/rag/evaluate</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              LIVE
+            </span>
+          </div>
+          
+          <!-- React Activity Logs / Live Response JSON -->
+          <div id="portal-activity-table" class="space-y-2 overflow-y-auto max-h-[380px] text-slate-300">
+            <!-- App.js renders live responses here -->
+            <pre class="text-[11px] leading-relaxed text-emerald-300">{
+  "status": "AWAITING_INPUT",
+  "message": "System ready for hardware input"
+}</pre>
+          </div>
+        </div>
+
+        <p class="text-[10px] text-slate-500 pt-3 border-t border-slate-800">
+          Hardware status: Connected via Serial (Baud 115200)
+        </p>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- React Mount Root -->
+  <div id="root"></div>
+
+</body>
 </html>
