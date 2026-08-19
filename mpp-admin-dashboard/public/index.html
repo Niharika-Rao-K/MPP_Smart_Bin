@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recycle2Earn - Smart Bin Dashboard</title>
+  <title>Recycle2Earn - Gamified Eco-Dashboard</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,14 +12,14 @@
       theme: {
         extend: {
           colors: {
-            // Light theme color palette
-            bgMain: '#F1F5F9',      // Soft slate background (not bright white)
-            bgCard: '#FFFFFF',      // Card surfaces
-            bgSidebar: '#E2E8F0',   // Sidebar & terminal background
-            accentGreen: '#65A30D', // Eco accent green
-            accentYellow: '#D97706',// Gamification gold/yellow
-            textPrimary: '#1E293B', // Deep slate for readable text
-            textSecondary: '#64748B'// Subdued slate for labels
+            // Original Dark Theme Palette
+            bgMain: '#121214',      // Deep charcoal background
+            bgCard: '#18181B',      // Card surface dark
+            bgSidebar: '#0F0F10',   // Sidebar dark border
+            accentGreen: '#84CC16', // Bright eco-lime green
+            accentYellow: '#EAB308',// Gamification gold
+            textPrimary: '#F4F4F5', // Crisp light gray text
+            textSecondary: '#A1A1AA'// Muted slate text
           }
         }
       }
@@ -29,21 +29,33 @@
 <body class="bg-bgMain text-textPrimary font-sans antialiased min-h-screen p-4 md:p-6">
 
   <!-- Main Container -->
-  <div class="max-w-7xl mx-auto bg-bgSidebar/50 rounded-2xl p-4 shadow-xl border border-slate-300/60">
+  <div class="max-w-[1400px] mx-auto bg-bgSidebar rounded-2xl p-4 shadow-2xl border border-zinc-800">
     
     <!-- Top Navbar -->
-    <header class="flex items-center justify-between pb-4 mb-4 border-b border-slate-300">
+    <header class="flex items-center justify-between pb-4 mb-4 border-b border-zinc-800">
       <div class="flex items-center gap-2">
-        <span class="text-2xl">♻️</span>
-        <h1 class="text-xl font-bold tracking-wide text-textPrimary">Recycle2Earn</h1>
+        <span class="text-2xl text-accentGreen">♻️</span>
+        <h1 class="text-xl font-bold tracking-wide text-zinc-100">Recycle2Earn</h1>
       </div>
-      <div class="flex items-center gap-4">
-        <div class="text-right text-xs">
-          <p class="font-mono font-semibold text-accentGreen" id="user-wallet-display">0xA1b2...7cDe</p>
-          <p class="text-textSecondary">Level 1 Recycler</p>
+      
+      <!-- Top Right Controls -->
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-4 text-zinc-400 text-sm">
+          <button class="hover:text-zinc-100 transition">♡</button>
+          <button class="hover:text-zinc-100 transition">💬</button>
+          <button class="hover:text-zinc-100 transition">👤</button>
+          <button class="hover:text-zinc-100 transition">🔗</button>
         </div>
-        <div class="w-9 h-9 bg-accentGreen/20 text-accentGreen border border-accentGreen/40 rounded-full flex items-center justify-center font-bold text-sm">
-          NR
+        
+        <!-- User Badge -->
+        <div class="flex items-center gap-3 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800">
+          <div class="text-right text-xs">
+            <p class="font-mono font-semibold text-accentGreen" id="user-wallet-display">0xA1b2...7cDe</p>
+            <p class="text-zinc-400">Level 1 Recycler</p>
+          </div>
+          <div class="w-8 h-8 rounded-full overflow-hidden border border-accentGreen/50">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Recycler" alt="Avatar" class="w-full h-full object-cover" />
+          </div>
         </div>
       </div>
     </header>
@@ -52,21 +64,24 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
       <!-- Sidebar Navigation (2 cols) -->
-      <aside class="lg:col-span-2 flex flex-col gap-2 bg-bgCard p-3 rounded-xl border border-slate-200 text-sm font-medium">
-        <button class="flex items-center gap-3 px-3 py-2 bg-accentGreen/10 text-accentGreen rounded-lg border border-accentGreen/30 font-semibold">
+      <aside class="lg:col-span-2 flex flex-col gap-1.5 bg-bgCard p-3 rounded-xl border border-zinc-800/80 text-sm font-medium">
+        <button class="flex items-center gap-3 px-3 py-2.5 bg-zinc-900 text-accentGreen rounded-lg border border-accentGreen/30 font-semibold shadow-sm">
           <span>🏠</span> Overview
         </button>
-        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
           <span>📥</span> Deposit
         </button>
-        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
           <span>🏆</span> Rewards
         </button>
-        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
           <span>🎯</span> Challenges
         </button>
-        <button class="flex items-center gap-3 px-3 py-2 text-textSecondary hover:bg-slate-100 rounded-lg transition">
+        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
           <span>📊</span> Leaderboard
+        </button>
+        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition mt-auto">
+          <span>⚙️</span> Settings
         </button>
       </aside>
 
@@ -76,96 +91,128 @@
         <!-- Top KPI Cards Row -->
         <div class="grid grid-cols-3 gap-3">
           <!-- Total Tokens Earned -->
-          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
-            <div class="text-[10px] font-bold text-textSecondary uppercase tracking-wider">Total Tokens</div>
-            <div class="text-xl font-black text-accentYellow mt-1" id="portal-total-tokens">532.45</div>
-            <span class="text-[10px] text-textSecondary font-semibold">$RECYCLE</span>
+          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg relative overflow-hidden flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-accentYellow/10 border border-accentYellow/30 flex items-center justify-center text-accentYellow font-bold text-lg">
+              $
+            </div>
+            <div>
+              <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Tokens Earned</div>
+              <div class="text-2xl font-black text-accentGreen tracking-tight" id="portal-total-tokens">532.45</div>
+              <span class="text-[10px] text-zinc-400 font-semibold">$RECYCLE</span>
+            </div>
           </div>
 
           <!-- Total Weight Recycled -->
-          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
-            <div class="text-[10px] font-bold text-textSecondary uppercase tracking-wider">Weight Recycled</div>
-            <div class="text-xl font-black text-accentGreen mt-1" id="portal-weight-recycled">128.45</div>
-            <span class="text-[10px] text-textSecondary font-semibold">kg</span>
+          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-accentGreen/10 border border-accentGreen/30 flex items-center justify-center text-accentGreen text-lg">
+              ♻️
+            </div>
+            <div>
+              <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Weight Recycled</div>
+              <div class="text-2xl font-black text-accentGreen tracking-tight" id="portal-weight-recycled">128.45</div>
+              <span class="text-[10px] text-zinc-400 font-semibold">kg</span>
+            </div>
           </div>
 
           <!-- Total Deposits -->
-          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
-            <div class="text-[10px] font-bold text-textSecondary uppercase tracking-wider">Total Deposits</div>
-            <div class="text-xl font-black text-textPrimary mt-1" id="portal-total-deposits">24</div>
-            <span class="text-[10px] text-textSecondary font-semibold">Deposits</span>
+          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-accentYellow/10 border border-accentYellow/30 flex items-center justify-center text-accentYellow text-lg">
+              🏆
+            </div>
+            <div>
+              <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Deposits</div>
+              <div class="text-2xl font-black text-accentGreen tracking-tight" id="portal-total-deposits">24</div>
+              <span class="text-[10px] text-zinc-400 font-semibold">Deposits</span>
+            </div>
           </div>
         </div>
 
         <!-- Recycler Level Progress -->
-        <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg relative">
           <div class="flex justify-between items-center text-xs mb-2">
-            <span class="font-bold text-textPrimary">Recycler Level Progress</span>
-            <span class="text-textSecondary font-medium">Level 2 (75%)</span>
+            <span class="font-bold text-zinc-200">Recycler Level Progress</span>
+            <span class="text-zinc-400 font-medium">Level 2 <span class="text-zinc-500 text-[10px]">(500 $RECYCLE to next level)</span></span>
           </div>
-          <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
-            <div class="bg-accentGreen h-full rounded-full transition-all duration-500" style="width: 75%;"></div>
+          <div class="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-zinc-800 p-0.5">
+            <div class="bg-gradient-to-r from-lime-500 to-accentGreen h-full rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(132,204,22,0.6)]" style="width: 75%;"></div>
           </div>
+          <div class="text-right text-[10px] font-bold text-zinc-400 mt-1">75%</div>
         </div>
 
         <!-- Gamification & Challenge Row -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <!-- Recent Badges -->
-          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-xs font-bold text-textPrimary mb-3">Recent Badges</p>
-            <div class="flex gap-2">
-              <span class="p-2 bg-amber-100 rounded-lg text-lg" title="First Deposit">🪙</span>
-              <span class="p-2 bg-emerald-100 rounded-lg text-lg" title="Clean Streak">🌱</span>
-              <span class="p-2 bg-blue-100 rounded-lg text-lg" title="Recycler">♻️</span>
-              <span class="p-2 bg-purple-100 rounded-lg text-lg" title="Master">🏅</span>
+          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg">
+            <p class="text-xs font-bold text-zinc-200 mb-3">Recent Badges</p>
+            <div class="flex gap-2 justify-between">
+              <div class="w-9 h-9 bg-amber-950/40 border border-amber-600/50 rounded-lg flex items-center justify-center text-amber-400 text-sm shadow-[0_0_8px_rgba(217,119,6,0.2)]" title="First Deposit">🪙</div>
+              <div class="w-9 h-9 bg-purple-950/40 border border-purple-500/50 rounded-lg flex items-center justify-center text-purple-300 text-sm shadow-[0_0_8px_rgba(168,85,247,0.2)]" title="5 Deposits">💎</div>
+              <div class="w-9 h-9 bg-blue-950/40 border border-blue-500/50 rounded-lg flex items-center justify-center text-blue-300 text-sm shadow-[0_0_8px_rgba(59,130,246,0.2)]" title="10kg Recycled">🏙️</div>
+              <div class="w-9 h-9 bg-emerald-950/40 border border-emerald-500/50 rounded-lg flex items-center justify-center text-emerald-400 text-sm shadow-[0_0_8px_rgba(16,185,129,0.2)]" title="Clean Streak">🌱</div>
+              <div class="w-9 h-9 bg-amber-900/30 border border-amber-500/50 rounded-lg flex items-center justify-center text-amber-300 text-sm shadow-[0_0_8px_rgba(245,158,11,0.2)]" title="Token Earner">🏅</div>
             </div>
           </div>
 
           <!-- Daily Challenge -->
-          <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-            <div>
-              <p class="text-xs font-bold text-textPrimary">Daily Challenge</p>
-              <p class="text-xs text-textSecondary mt-1">Recycle 5kg today</p>
+          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg flex flex-col justify-between">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-xs font-bold text-zinc-200">Daily Challenge</p>
+                <p class="text-xs text-zinc-400 mt-1">Recycle 5kg today</p>
+              </div>
+              <span class="text-2xl">🎁</span>
             </div>
             <div class="mt-2 flex items-center gap-2">
-              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div class="bg-accentYellow h-full rounded-full" style="width: 64%;"></div>
+              <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
+                <div class="bg-accentGreen h-full rounded-full shadow-[0_0_8px_rgba(132,204,22,0.8)]" style="width: 64%;"></div>
               </div>
-              <span class="text-[10px] font-bold text-textSecondary">3.2/5kg</span>
+              <span class="text-[10px] font-bold text-zinc-300 whitespace-nowrap">3.2 / 5 kg</span>
             </div>
           </div>
         </div>
 
-        <!-- Form Mount Point for App.js -->
-        <div class="bg-bgCard p-4 rounded-xl border border-slate-200 shadow-sm">
-          <p class="text-xs font-bold text-textPrimary mb-2">Simulate Deposit</p>
+        <!-- Form Mount Point for React -->
+        <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg">
+          <p class="text-xs font-bold text-zinc-200 mb-3">Simulate Material Deposit</p>
           <div id="portal-deposit-form"></div>
         </div>
 
       </main>
 
-      <!-- Right Terminal / Live Hardware Stream (4 cols) -->
-      <aside class="lg:col-span-4 bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-xs shadow-inner flex flex-col justify-between border border-slate-800">
+      <!-- Right Code / Live Terminal Window (4 cols) -->
+      <aside class="lg:col-span-4 bg-[#09090B] text-emerald-400 rounded-xl p-4 font-mono text-xs shadow-2xl flex flex-col justify-between border border-zinc-800 relative">
         <div>
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-            <span class="text-emerald-400 font-semibold">/api/rag/evaluate</span>
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">
+          <!-- Code Window Header -->
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800/80">
+            <span class="text-accentGreen font-semibold tracking-wide text-xs">/api/rag/evaluate Response</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-950/80 text-emerald-400 border border-emerald-800">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               LIVE
             </span>
           </div>
           
-          <!-- React Activity Logs / Live Response JSON -->
-          <div id="portal-activity-table" class="space-y-2 overflow-y-auto max-h-[380px] text-slate-300">
-            <!-- App.js renders live responses here -->
-            <pre class="text-[11px] leading-relaxed text-emerald-300">{
-  "status": "AWAITING_INPUT",
-  "message": "System ready for hardware input"
+          <!-- React Activity Logs / Code Output -->
+          <div id="portal-activity-table" class="space-y-2 overflow-y-auto max-h-[420px] text-emerald-400/90">
+            <pre class="text-[11px] leading-relaxed font-mono">{
+  "query": "Classify this item and route accordingly",
+  "image_id": "img_1245.jpg",
+  "classification": {
+    "metal": 0.05,
+    "waste": 0.95,
+    "e_waste": 0.25
+  },
+  "routing": {
+    "metal": "Conveyor_A",
+    "waste": "Conveyor_B",
+    "e_waste": "Conveyor_C"
+  },
+  "status": "SUCCESS",
+  "timestamp": "2026-08-19T18:12:31Z"
 }</pre>
           </div>
         </div>
 
-        <p class="text-[10px] text-slate-500 pt-3 border-t border-slate-800">
+        <p class="text-[10px] text-zinc-600 pt-3 border-t border-zinc-800/80 mt-4">
           Hardware status: Connected via Serial (Baud 115200)
         </p>
       </aside>
@@ -173,7 +220,7 @@
     </div>
   </div>
 
-  <!-- React Mount Root -->
+  <!-- React Mount Point -->
   <div id="root"></div>
 
 </body>
