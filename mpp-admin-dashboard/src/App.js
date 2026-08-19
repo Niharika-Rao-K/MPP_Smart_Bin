@@ -160,6 +160,33 @@ export default function App() {
             >
               {analysis.contaminated ? 'REJECTED' : 'APPROVED'}
             </div>
+
+            {/* ETHERSCAN TRANSACTION LINK */}
+            {analysis.explorerUrl ? (
+              <a
+                href={analysis.explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block',
+                  marginTop: '12px',
+                  padding: '8px 12px',
+                  backgroundColor: '#6200ee',
+                  color: '#ffffff',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  textAlign: 'center'
+                }}
+              >
+                View on Etherscan ↗
+              </a>
+            ) : (
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
+                No blockchain transaction recorded
+              </div>
+            )}
           </div>
         ) : (
           <div className="analysis-idle">
@@ -304,15 +331,23 @@ export default function App() {
                       ).toFixed(2)} R2E`}
                 </div>
 
-                {log.explorerUrl && (
+                {log.explorerUrl ? (
                   <a
                     href={log.explorerUrl}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="activity-link"
+                    style={{
+                      fontSize: '12px',
+                      color: '#6200ee',
+                      textDecoration: 'underline',
+                      fontWeight: 'bold'
+                    }}
                   >
-                    ↗
+                    View Tx ↗
                   </a>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#aaa' }}>N/A</span>
                 )}
               </div>
             ))}
