@@ -126,7 +126,13 @@ async def evaluate_sensor_fusion(
 
         tx_hash = None
         if wallet_address and wallet_address.strip().startswith("0x"):
-            tx_hash = mint_reward_tokens(wallet_address.strip(), amount=dynamic_credits)
+            try:
+                tx_hash = mint_reward_tokens(wallet_address.strip(), amount=dynamic_credits)
+            except Exception as web3_err:
+                print(f"--- WEB3 TRANSACTION ERROR TRACE ---")
+                print(web3_err)
+                print(f"------------------------------------")
+                tx_hash = None
 
         # Hardware signal mapping based on material input
         signal_map = {"Metal": "M", "Plastic": "W", "E-Waste": "E"}
