@@ -98,7 +98,7 @@ export default function App() {
 
     try {
       // Direct call to port 8000 endpoint
-      const response = await fetch('${API_BASE}/api/rag/evaluate', {
+      const response = await fetch(`${API_BASE}/api/rag/evaluate`, {
         method: 'POST',
         body: formData,
       });
