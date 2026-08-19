@@ -4,15 +4,14 @@ from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from web3 import Web3
 
 load_dotenv()
 
 app = FastAPI(title="Smart Bin RAG & Web3 API")
 
-# Enable CORS for all origins
+# Enable CORS for all origins (Allows React on port 3000/5173 to connect)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,10 +19,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount static directory to serve HTML/assets
-os.makedirs("static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Global Exception Handler
 @app.exception_handler(Exception)
@@ -113,8 +108,7 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
 
 @app.get("/")
 async def root():
-    """Serves the dashboard HTML directly at the root URL."""
-    return FileResponse("static/index.html")
+    return {"message": "Smart Bin RAG & Web3 API is running"}
 
 @app.post("/api/rag/evaluate")
 async def evaluate_sensor_fusion(
