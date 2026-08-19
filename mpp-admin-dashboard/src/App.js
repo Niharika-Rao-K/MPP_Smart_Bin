@@ -1,163 +1,116 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+const API_URL = 'http://localhost:8000/api/rag/evaluate';
 
-// Configuration for Bin Capacities and Signals
-const INITIAL_BINS = [
-  { id: 'plastic', name: 'Plastic / Wrappers', current: 36, max: 100, color: 'bg-emerald-500', signal: 'W' },
-  { id: 'metal', name: 'Metal / Cans', current: 20, max: 100, color: 'bg-sky-500', signal: 'M' },
-  { id: 'e-waste', name: 'E-Waste', current: 15, max: 100, color: 'bg-amber-500', signal: 'E' },
-  { id: 'reject', name: 'Reject Bin', current: 5, max: 100, color: 'bg-rose-500', signal: 'R' }
-];
-
-// Fallback material-to-signal mapping
-const MATERIAL_SIGNAL_MAP = {
-  Plastic: 'W',
-  Metal: 'M',
-  'E-Waste': 'E'
-};
-
-// Preset quick-test items matching KNOWN_ITEMS_DB
-const PRESET_ITEMS = [
-  { name: 'Coca-Cola Can', material: 'Metal', weight: 13.0 },
-  { name: 'Plastic Bottle (500ml)', material: 'Plastic', weight: 18.5 },
-  { name: 'PCB / E-Waste', material: 'E-Waste', weight: 50.0 }
-];
-
-export default function App() {
-  const [binCapacities, setBinCapacities] = useState(INITIAL_BINS);
-  const [logs, setLogs] = useState([]);
-
+function App() {
   // Form State
-  const [depositWeight, setDepositWeight] = useState(13.5);
-  const [depositMaterial, setDepositMaterial] = useState('Metal');
-  const [walletAddress, setWalletAddress] = useState('0x2f45eF660233ebD3fe2ff5370fC41A1477f5f400');
-  const [depositFile, setDepositFile] = useState(null);
-
-  // Network/UI State
+  const [material, setMaterial] = useState('Metal');
+  const [weight, setWeight] = useState(13.5);
+  const [wallet, setWallet] = useState('0x2f45eF660233ebD3fe2ff5370fC41A1477f5f400');
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadLabel, setUploadLabel] = useState('Drop item photo or click to browse');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(null);
 
-  // Ref to reset uncontrolled file input
-  const fileInputRef = useRef(null);
+  // Global Metrics
+  const [totalTokens, setTotalTokens] = useState(0);
+  const [totalWeight, setTotalWeight] = useState(0);
+  const [totalDeposits, setTotalDeposits] = useState(0);
 
-  /**
-   * Process the verification output from main.py
-   */
-  const processEvaluationResult = (data, fallbackWeight) => {
-    const isReject =
-      data.fusion_result?.decision === "REJECT" ||
-      data.fusion_result?.decision === "CONTAMINATED";
+  // Live Hardware & AI Output
+  const [activeSignal, setActiveSignal] = useState(null);
+  const [fusionDecision, setFusionDecision] = useState('WAITING_FOR_INPUT');
+  const [fusionAction, setFusionAction] = useState('Insert material to trigger pipeline.');
 
-    let routeSignal = data.hardware_route_signal;
-    if (!routeSignal) {
-      routeSignal = isReject ? "R" : (MATERIAL_SIGNAL_MAP[depositMaterial] || "M");
+  // Web3 Reward Status
+  const [txMinted, setTxMinted] = useState(0);
+  const [txHash, setTxHash] = useState('0x0000000000000000000000000000000000000000');
+  const [explorerUrl, setExplorerUrl] = useState('#');
+  const [txConfirmed, setTxConfirmed] = useState(false);
+
+  // Activity Log
+  const [activityLog, setActivityLog] = useState([]);
+
+  const handleImageChange = (e) => {
+    if (e.target.files.length > 0) {
+      setImageFile(e.target.files[0]);
+      setUploadLabel(`Selected: ${e.target.files[0].name}`);
     }
-
-    const itemWeight = typeof data.stable_weight_g === 'number'
-      ? data.stable_weight_g
-      : parseFloat(fallbackWeight) || 0;
-
-    const creditsEarned = data.calculated_credits || data.web3_reward?.tokens_minted || 0;
-
-    // Increment bin item counts
-    setBinCapacities(prevBins =>
-      prevBins.map(bin => {
-        if (bin.signal === routeSignal) {
-          return { ...bin, current: Math.min(bin.max, bin.current + 1) };
-        }
-        return bin;
-      })
-    );
-
-    // Append standard log entry
-    const newLog = {
-      id: Date.now(),
-      timestamp: new Date().toLocaleTimeString(),
-      material: data.predicted_label || depositMaterial,
-      weight: itemWeight,
-      route: routeSignal,
-      credits: creditsEarned,
-      isContaminated: isReject,
-      decision: data.fusion_result?.decision || "VERIFIED_CLEAN",
-      action: data.fusion_result?.action || "Processed",
-      txHash: data.web3_reward?.tx_hash || null,
-      explorerUrl: data.web3_reward?.explorer_url || null
-    };
-
-    setLogs(prevLogs => [newLog, ...prevLogs]);
   };
 
-  /**
-   * Submit deposit payload to FastAPI (/api/rag/evaluate)
-   */
-  const handleUserDeposit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setErrorMessage(null);
 
     const formData = new FormData();
-    formData.append('label', depositMaterial);
-    formData.append('real_weight_g', depositWeight);
-    formData.append('wallet_address', walletAddress);
-    if (depositFile) {
-      formData.append('image', depositFile);
+    formData.append('label', material);
+    formData.append('real_weight_g', parseFloat(weight));
+    formData.append('wallet_address', wallet);
+    if (imageFile) {
+      formData.append('image', imageFile);
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/rag/evaluate`, {
+      const response = await fetch(API_URL, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        let backendError = `Server error: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.detail) {
-            backendError = typeof errorData.detail === 'string'
-              ? errorData.detail
-              : JSON.stringify(errorData.detail);
-          }
-        } catch {
-          // Response body non-JSON
-        }
-        throw new Error(backendError);
+        throw new Error(`Server returned error status ${response.status}`);
       }
 
       const data = await response.json();
-      processEvaluationResult(data, depositWeight);
+      
+      // Update Metrics
+      const minted = data.web3_reward?.tokens_minted || 0;
+      const stableWeight = data.stable_weight_g || 0;
 
-      // Reset file input
-      setDepositFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      setTotalDeposits((prev) => prev + 1);
+      setTotalWeight((prev) => prev + stableWeight);
+      setTotalTokens((prev) => prev + minted);
+
+      // Update Hardware Feedback
+      setActiveSignal(data.hardware_route_signal);
+      setFusionDecision(data.fusion_result?.decision || 'N/A');
+      setFusionAction(data.fusion_result?.action || 'N/A');
+
+      // Update Web3 Data
+      const currentTxHash = data.web3_reward?.tx_hash;
+      const currentExplorerUrl = data.web3_reward?.explorer_url || '#';
+
+      if (currentTxHash) {
+        setTxMinted(minted);
+        setTxHash(currentTxHash);
+        setExplorerUrl(currentExplorerUrl);
+        setTxConfirmed(true);
+      } else {
+        setTxMinted(0);
+        setTxHash('No wallet provided for minting');
+        setTxConfirmed(false);
       }
+
+      // Add to Activity Log Table
+      const newEntry = {
+        time: new Date().toLocaleTimeString(),
+        material: data.predicted_label || material,
+        weight: stableWeight,
+        signal: data.hardware_route_signal,
+        minted: minted,
+        txHash: currentTxHash,
+        explorerUrl: currentExplorerUrl
+      };
+
+      setActivityLog((prev) => [newEntry, ...prev]);
+
     } catch (err) {
-      setErrorMessage(err.message || "Unable to reach FastAPI service.");
+      alert(`API Error: ${err.message}. Ensure backend is running on port 8000.`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Quick preset button click handler
-  const applyPreset = (preset) => {
-    setDepositMaterial(preset.material);
-    setDepositWeight(preset.weight);
-  };
-
-  // Summary Metrics
-  const totalDeposits = logs.length;
-  const totalRejections = logs.filter(l => l.isContaminated || l.route === 'R').length;
-  const totalWeightGrams = logs.reduce((acc, curr) => acc + curr.weight, 0);
-  const totalCreditsEarned = logs.reduce((acc, curr) => acc + curr.credits, 0);
-
-  const truncatedWallet = walletAddress
-    ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`
-    : 'Not Connected';
-
   return (
-    <div className="bg-slate-100 font-sans text-slate-800 min-h-screen flex">
+    <div class="bg-slate-100 font-sans text-slate-800 min-h-screen flex">
       {/* SIDEBAR */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between p-5 hidden md:flex shrink-0">
         <div>
@@ -166,8 +119,8 @@ export default function App() {
               <i className="fa-solid fa-recycle"></i>
             </div>
             <div>
-              <h1 className="font-extrabold text-slate-900 text-lg leading-none">SmartBin AI</h1>
-              <span className="text-xs text-slate-400 font-medium">Sort. Earn. Verify.</span>
+              <h1 className="font-extrabold text-slate-900 text-lg leading-none">Recycle2Earn</h1>
+              <span className="text-xs text-slate-400 font-medium">Recycle. Earn. Level Up.</span>
             </div>
           </div>
 
@@ -176,282 +129,291 @@ export default function App() {
               <i className="fa-solid fa-chart-pie w-5"></i> Dashboard
             </a>
             <a href="#deposit-section" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 font-medium rounded-xl transition">
-              <i className="fa-solid fa-bolt w-5 text-amber-500"></i> Deposit Waste
+              <i className="fa-solid fa-dumpster-fire w-5 text-amber-500"></i> Deposit Waste
             </a>
-            <a href="#capacity" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 font-medium rounded-xl transition">
-              <i className="fa-solid fa-dumpster w-5 text-emerald-500"></i> Bin Capacities
+            <a href="#ai" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 font-medium rounded-xl transition">
+              <i className="fa-solid fa-microchip w-5 text-emerald-500"></i> AI & Hardware
             </a>
-            <a href="#logs" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 font-medium rounded-xl transition">
-              <i className="fa-solid fa-clock-rotate-left w-5 text-sky-500"></i> Audit Logs
+            <a href="#web3" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 font-medium rounded-xl transition">
+              <i className="fa-solid fa-cubes w-5 text-sky-500"></i> Blockchain
             </a>
           </nav>
         </div>
 
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
-            <i className="fa-solid fa-wallet text-sm"></i>
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-violet-500 to-indigo-600 p-4 rounded-2xl text-white shadow-md">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-violet-200">User Status</span>
+              <span className="bg-white/20 text-xs px-2 py-0.5 rounded-full font-bold">Level 2</span>
+            </div>
+            <p className="font-bold text-sm mb-1">Eco Recycler</p>
+            <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden mb-2">
+              <div className="bg-emerald-400 h-full w-[65%] rounded-full"></div>
+            </div>
+            <p className="text-[11px] text-violet-200">350 XP to Level 3</p>
           </div>
-          <div className="overflow-hidden">
-            <p className="text-xs text-slate-400 font-medium truncate">{truncatedWallet}</p>
-            <p className="text-xs font-bold text-emerald-600">{totalCreditsEarned} $RECYCLE</p>
+
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
+              <i className="fa-solid fa-wallet text-sm"></i>
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs text-slate-400 font-medium truncate">
+                {wallet ? `${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}` : 'Not Connected'}
+              </p>
+              <p className="text-xs font-bold text-emerald-600">{totalTokens} $RECYCLE</p>
+            </div>
           </div>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* HEADER */}
         <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Smart Bin Control Center</h2>
-            <p className="text-xs text-slate-500">AI-Driven Waste Sorting & Web3 Incentive Network</p>
+            <h2 className="text-xl font-bold text-slate-900">Welcome back, Recycler! 👋</h2>
+            <p className="text-xs text-slate-500">Here is your recycling impact and web3 rewards overview.</p>
           </div>
-
-          <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-full text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            API: <span className="font-mono font-bold text-slate-900">{API_BASE}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-full text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Sepolia Testnet
+            </div>
+            <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 border border-violet-200 flex items-center justify-center font-bold">
+              <i className="fa-solid fa-user"></i>
+            </div>
           </div>
         </header>
 
         <div className="p-6 space-y-6 max-w-7xl mx-auto w-full">
-          {/* ANALYTICS KPI CARDS */}
+          {/* METRICS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm">
+            <div className="bg-emerald-50/80 border border-emerald-200/60 p-5 rounded-2xl flex items-center justify-between shadow-sm">
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Deposits</p>
-                <h3 className="text-2xl font-black text-slate-900">{totalDeposits}</h3>
-              </div>
-              <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shadow-amber-200">
-                <i className="fa-solid fa-box-archive"></i>
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm">
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Recycled Mass</p>
-                <h3 className="text-2xl font-black text-sky-600">
-                  {totalWeightGrams >= 1000 ? `${(totalWeightGrams / 1000).toFixed(2)} kg` : `${totalWeightGrams.toFixed(1)} g`}
-                </h3>
-              </div>
-              <div className="w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shadow-sky-200">
-                <i className="fa-solid fa-scale-balanced"></i>
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm">
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tokens Minted</p>
-                <h3 className="text-2xl font-black text-emerald-600">+{totalCreditsEarned}</h3>
+                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Tokens Earned</p>
+                <h3 className="text-2xl font-black text-emerald-900">{totalTokens}</h3>
+                <p className="text-[11px] text-emerald-700 font-medium mt-1"><i className="fa-solid fa-arrow-up text-emerald-600"></i> $RECYCLE Minted</p>
               </div>
               <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shadow-emerald-200">
                 <i className="fa-solid fa-coins"></i>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center justify-between shadow-sm">
+            <div className="bg-violet-50/80 border border-violet-200/60 p-5 rounded-2xl flex items-center justify-between shadow-sm">
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Rejections / Contaminated</p>
-                <h3 className="text-2xl font-black text-rose-600">{totalRejections}</h3>
+                <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-1">Weight Recycled</p>
+                <h3 className="text-2xl font-black text-violet-900">{totalWeight.toFixed(1)} <span className="text-base font-semibold">g</span></h3>
+                <p className="text-[11px] text-violet-700 font-medium mt-1"><i className="fa-solid fa-weight-hanging"></i> Verified by LoadCell</p>
               </div>
-              <div className="w-12 h-12 bg-rose-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shadow-rose-200">
-                <i className="fa-solid fa-triangle-exclamation"></i>
+              <div className="w-12 h-12 bg-violet-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shadow-violet-200">
+                <i className="fa-solid fa-scale-balanced"></i>
+              </div>
+            </div>
+
+            <div className="bg-amber-50/80 border border-amber-200/60 p-5 rounded-2xl flex items-center justify-between shadow-sm">
+              <div>
+                <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Total Deposits</p>
+                <h3 className="text-2xl font-black text-amber-900">{totalDeposits}</h3>
+                <p className="text-[11px] text-amber-700 font-medium mt-1"><i className="fa-solid fa-circle-check"></i> RAG Verified</p>
+              </div>
+              <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shadow-amber-200">
+                <i className="fa-solid fa-box-archive"></i>
+              </div>
+            </div>
+
+            <div className="bg-sky-50/80 border border-sky-200/60 p-5 rounded-2xl flex items-center justify-between shadow-sm">
+              <div>
+                <p className="text-xs font-bold text-sky-600 uppercase tracking-wider mb-1">CO₂ Offset</p>
+                <h3 className="text-2xl font-black text-sky-900">{(totalWeight * 0.0025).toFixed(2)} <span className="text-base font-semibold">kg</span></h3>
+                <p className="text-[11px] text-sky-700 font-medium mt-1"><i className="fa-solid fa-leaf"></i> Environmental Impact</p>
+              </div>
+              <div className="w-12 h-12 bg-sky-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shadow-sky-200">
+                <i className="fa-solid fa-cloud-sun"></i>
               </div>
             </div>
           </div>
 
-          {/* BIN CAPACITY MONITOR */}
-          <section id="capacity" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-dumpster text-emerald-500"></i> Bin Capacity Monitor
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {binCapacities.map(bin => {
-                const percentage = Math.min(100, Math.round((bin.current / bin.max) * 100));
-                return (
-                  <div key={bin.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-                    <div className="flex justify-between items-center mb-2">
-                      <strong className="text-sm text-slate-800">{bin.name}</strong>
-                      <span className="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
-                        Signal: [{bin.signal}]
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-2">
-                      <div className={`${bin.color} h-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
-                    </div>
-                    <div className="flex justify-between text-xs text-slate-500 font-medium">
-                      <span>{bin.current} / {bin.max} units</span>
-                      <span className="font-bold text-slate-700">{percentage}%</span>
+          {/* FORM & HARDWARE FEED */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="deposit-section">
+            <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-bolt text-amber-500"></i> Quick Deposit Simulation
+                  </h3>
+                  <span className="text-[11px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">FastAPI RAG</span>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Sample Waste Image</label>
+                    <div className="border-2 border-dashed border-violet-200 bg-violet-50/50 hover:bg-violet-50 p-4 rounded-xl text-center cursor-pointer transition relative">
+                      <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <i className="fa-solid fa-cloud-arrow-up text-2xl text-violet-500 mb-1"></i>
+                      <p className={`text-xs font-semibold ${imageFile ? 'text-violet-600 font-bold' : 'text-slate-700'}`}>{uploadLabel}</p>
+                      <p className="text-[10px] text-slate-400">JPG, PNG up to 5MB</p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </section>
 
-          {/* SIMULATION FORM */}
-          <section id="deposit-section" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Measured Weight (g)</label>
+                    <div className="relative">
+                      <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} required className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl font-bold text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                      <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">grams</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Material Classification</label>
+                    <select value={material} onChange={(e) => setMaterial(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl font-bold text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                      <option value="Metal">Metal (Signal: M)</option>
+                      <option value="Plastic">Plastic (Signal: W)</option>
+                      <option value="E-Waste">E-Waste (Signal: E)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Sepolia Wallet Address</label>
+                    <input type="text" value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder="0x..." className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl font-mono text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  </div>
+
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-violet-200 flex items-center justify-center gap-2 transition disabled:opacity-50">
+                    {isSubmitting ? (
+                      <><i className="fa-solid fa-spinner animate-spin"></i> Processing RAG & Web3...</>
+                    ) : (
+                      <><i className="fa-solid fa-paper-plane"></i> Submit Deposit & Evaluate</>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div className="lg:col-span-7 space-y-6">
+              {/* HARDWARE ROUTING */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-gears text-emerald-500"></i> Hardware Route & AI Fusion
+                  </h3>
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live Conveyor Signal
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-4 text-center">
+                  <div className={`p-3 rounded-xl border transition ${activeSignal === 'M' ? 'border-2 border-emerald-500 bg-emerald-50 shadow-md' : 'border-slate-200 bg-slate-50 opacity-50'}`}>
+                    <span className="text-xs font-bold text-slate-500">Signal [M]</span>
+                    <p className="font-black text-slate-800 text-sm">METAL</p>
+                  </div>
+                  <div className={`p-3 rounded-xl border transition ${activeSignal === 'W' ? 'border-2 border-emerald-500 bg-emerald-50 shadow-md' : 'border-slate-200 bg-slate-50 opacity-50'}`}>
+                    <span className="text-xs font-bold text-slate-500">Signal [W]</span>
+                    <p className="font-black text-slate-800 text-sm">PLASTIC</p>
+                  </div>
+                  <div className={`p-3 rounded-xl border transition ${activeSignal === 'E' ? 'border-2 border-emerald-500 bg-emerald-50 shadow-md' : 'border-slate-200 bg-slate-50 opacity-50'}`}>
+                    <span className="text-xs font-bold text-slate-500">Signal [E]</span>
+                    <p className="font-black text-slate-800 text-sm">E-WASTE</p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-900 rounded-xl text-slate-200 font-mono text-xs space-y-1">
+                  <p className="text-slate-500">// Sensor Fusion Output</p>
+                  <p>Decision: <span className="text-emerald-400 font-bold">{fusionDecision}</span></p>
+                  <p>Action: <span className="text-sky-300">{fusionAction}</span></p>
+                </div>
+              </div>
+
+              {/* BLOCKCHAIN STATUS */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
+                <div className="absolute -right-6 -bottom-6 text-indigo-800/30 text-9xl font-black pointer-events-none">
+                  <i className="fa-brands fa-ethereum"></i>
+                </div>
+
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                  <h3 className="font-extrabold text-white text-base flex items-center gap-2">
+                    <i className="fa-solid fa-link text-sky-400"></i> Web3 Reward Minting
+                  </h3>
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold font-mono ${txConfirmed ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-indigo-500/30 border border-indigo-400/30 text-indigo-200'}`}>
+                    {txConfirmed ? 'Confirmed' : 'Idle'}
+                  </span>
+                </div>
+
+                <div className="space-y-3 relative z-10">
+                  <div>
+                    <span className="text-[11px] text-slate-400 font-medium">Minted Tokens</span>
+                    <p className="text-2xl font-black text-emerald-400">+{txMinted} $RECYCLE</p>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] text-slate-400 font-medium">Sepolia Transaction Hash</span>
+                    <p className="font-mono text-xs text-indigo-300 truncate">{txHash}</p>
+                  </div>
+
+                  <a href={explorerUrl} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-2 text-xs font-bold text-sky-400 hover:text-sky-300 transition mt-2 ${!txConfirmed && 'pointer-events-none opacity-50'}`}>
+                    View on Sepolia Etherscan <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ACTIVITY LOG TABLE */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
-                <i className="fa-solid fa-bolt text-amber-500"></i> Simulate Material Deposit
+                <i className="fa-solid fa-clock-rotate-left text-violet-500"></i> Recent Deposit Operations
               </h3>
-              <span className="text-xs bg-violet-100 text-violet-700 font-bold px-2.5 py-1 rounded-full">
-                RAG Pipeline Active
-              </span>
+              <span className="text-xs text-slate-400 font-medium">Real-time Session Logs</span>
             </div>
 
-            {/* Quick Presets */}
-            <div className="mb-4 flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-slate-400">Quick Presets:</span>
-              {PRESET_ITEMS.map((item, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => applyPreset(item)}
-                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-full border border-slate-200 font-medium transition"
-                >
-                  + {item.name} ({item.weight}g)
-                </button>
-              ))}
-            </div>
-
-            {errorMessage && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
-                <i className="fa-solid fa-circle-exclamation text-base"></i> {errorMessage}
-              </div>
-            )}
-
-            <form onSubmit={handleUserDeposit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Measured Weight (grams)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={depositWeight}
-                    onChange={(e) => setDepositWeight(parseFloat(e.target.value) || 0)}
-                    required
-                    className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Material Classification</label>
-                  <select
-                    value={depositMaterial}
-                    onChange={(e) => setDepositMaterial(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  >
-                    <option value="Metal">Metal (Signal: M)</option>
-                    <option value="Plastic">Plastic / Wrapper (Signal: W)</option>
-                    <option value="E-Waste">E-Waste (Signal: E)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Sepolia Wallet Address</label>
-                <input
-                  type="text"
-                  placeholder="0x..."
-                  value={walletAddress}
-                  onChange={(e) => setWalletAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl font-mono text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Verification Image (Optional)</label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setDepositFile(e.target.files[0] || null)}
-                  className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl text-xs text-slate-600 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 cursor-pointer"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-violet-200 flex items-center justify-center gap-2 transition disabled:opacity-70"
-              >
-                {isSubmitting ? (
-                  <>
-                    <i className="fa-solid fa-spinner animate-spin"></i> Evaluating RAG & Minting Tokens...
-                  </>
-                ) : (
-                  <>
-                    <i className="fa-solid fa-paper-plane"></i> Submit Deposit Simulation
-                  </>
-                )}
-              </button>
-            </form>
-          </section>
-
-          {/* AUDIT LOGS TABLE */}
-          <section id="logs" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2">
-              <i className="fa-solid fa-clock-rotate-left text-violet-500"></i> Recent Audit Logs
-            </h3>
-
-            {logs.length === 0 ? (
-              <p className="text-xs text-slate-400 italic py-4 text-center">No processing records logged yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="pb-3 px-2">Time</th>
-                      <th className="pb-3 px-2">Material</th>
-                      <th className="pb-3 px-2">Weight</th>
-                      <th className="pb-3 px-2">Route</th>
-                      <th className="pb-3 px-2">Credits</th>
-                      <th className="pb-3 px-2">Decision</th>
-                      <th className="pb-3 px-2 text-right">Web3 Explorer</th>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <th className="pb-3 px-2">Time</th>
+                    <th className="pb-3 px-2">Material</th>
+                    <th className="pb-3 px-2">Weight</th>
+                    <th className="pb-3 px-2">Hardware Route</th>
+                    <th className="pb-3 px-2">Tokens Minted</th>
+                    <th className="pb-3 px-2 text-right">Blockchain Tx</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs divide-y divide-slate-100 font-medium text-slate-700">
+                  {activityLog.length === 0 ? (
+                    <tr className="text-slate-400 italic">
+                      <td colSpan="6" className="py-6 text-center">No deposit operations submitted yet.</td>
                     </tr>
-                  </thead>
-                  <tbody className="text-xs divide-y divide-slate-100 font-medium text-slate-700">
-                    {logs.map(log => (
-                      <tr key={log.id} className="hover:bg-slate-50 transition">
-                        <td className="py-3 px-2 font-mono text-slate-400">{log.timestamp}</td>
+                  ) : (
+                    activityLog.map((log, index) => (
+                      <tr key={index} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-2 font-mono text-slate-400">{log.time}</td>
                         <td className="py-3 px-2 font-bold text-slate-800">{log.material}</td>
-                        <td className="py-3 px-2">{log.weight}g</td>
+                        <td className="py-3 px-2 font-semibold">{log.weight}g</td>
                         <td className="py-3 px-2">
-                          <span className="bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded font-mono text-[10px]">
-                            [{log.route}]
+                          <span className="bg-violet-100 text-violet-700 font-bold px-2 py-0.5 rounded-md text-[10px]">
+                            Signal [{log.signal}]
                           </span>
                         </td>
-                        <td className="py-3 px-2 font-bold text-emerald-600">+{log.credits}</td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            log.isContaminated ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                          }`}>
-                            {log.decision}
-                          </span>
-                        </td>
+                        <td className="py-3 px-2 font-bold text-emerald-600">+{log.minted} RECYCLE</td>
                         <td className="py-3 px-2 text-right">
-                          {log.explorerUrl ? (
-                            <a
-                              href={log.explorerUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sky-600 font-bold hover:underline"
-                            >
+                          {log.txHash ? (
+                            <a href={log.explorerUrl} target="_blank" rel="noreferrer" className="text-sky-600 font-bold hover:underline">
                               View Tx <i className="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
                             </a>
                           ) : (
-                            <span className="text-slate-400">No Tx</span>
+                            <span className="text-slate-400">N/A</span>
                           )}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </main>
     </div>
   );
 }
+
+export default App;
