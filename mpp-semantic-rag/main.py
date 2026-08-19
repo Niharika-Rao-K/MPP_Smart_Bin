@@ -46,6 +46,39 @@ try:
 except Exception:
     CONTRACT_ABI = []
 
+# Reference database for dynamic RAG/similarity credit scoring
+KNOWN_ITEMS_DB = [
+    {"brand": "Coca-Cola Can (330ml)", "material": "Metal", "base_weight_g": 13.0, "credits": 15},
+    {"brand": "Pepsi Can (330ml)", "material": "Metal", "base_weight_g": 13.5, "credits": 15},
+    {"brand": "Generic Aluminum Can", "material": "Metal", "base_weight_g": 14.0, "credits": 12},
+    {"brand": "Pepsi Bottle (500ml)", "material": "Plastic", "base_weight_g": 18.0, "credits": 10},
+    {"brand": "Coca-Cola Bottle (500ml)", "material": "Plastic", "base_weight_g": 18.5, "credits": 10},
+    {"brand": "Generic Plastic Bottle", "material": "Plastic", "base_weight_g": 20.0, "credits": 8},
+    {"brand": "Circuit Board / Battery", "material": "E-Waste", "base_weight_g": 50.0, "credits": 30},
+]
+
+def calculate_dynamic_credits(label: str, real_weight_g: float) -> int:
+    """
+    Dynamically calculates reward points using nearest-neighbor similarity match 
+    against known baseline items (RAG retrieval step).
+    """
+    # Filter reference database by material class
+    matched_items = [item for item in KNOWN_ITEMS_DB if item["material"].lower() == label.lower()]
+
+    if not matched_items:
+        # Fallback calculation if item class isn't strictly recognized
+        return max(1, int(real_weight_g * 0.5))
+
+    # Retrieve nearest neighbor reference based on closest weight proximity
+    nearest_item = min(matched_items, key=lambda x: abs(x["base_weight_g"] - real_weight_g))
+
+    # Calculate proportional credit based on reference standard
+    weight_ratio = real_weight_g / nearest_item["base_weight_g"]
+    calculated_credits = int(nearest_item["credits"] * weight_ratio)
+
+    # Bound credits to reasonable minimum/maximum limits
+    return max(1, min(calculated_credits, 100))
+
 def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
     if not PRIVATE_KEY or not CONTRACT_ADDRESS:
         raise ValueError("Missing PRIVATE_KEY or CONTRACT_ADDRESS in .env file.")
@@ -91,9 +124,13 @@ async def evaluate_sensor_fusion(
         if image:
             await image.read()
 
+        # Compute dynamic points based on RAG similarity match
+        dynamic_credits = calculate_dynamic_credits(label, real_weight_g)
+
         tx_hash = None
         if wallet_address and wallet_address.strip().startswith("0x"):
-            tx_hash = mint_reward_tokens(wallet_address.strip(), amount=10)
+            # Mint dynamically calculated points instead of hardcoded 10
+            tx_hash = mint_reward_tokens(wallet_address.strip(), amount=dynamic_credits)
 
         # Signal mapping logic based on material input
         signal_map = {"Metal": "M", "Plastic": "W", "E-Waste": "E"}
@@ -103,12 +140,13 @@ async def evaluate_sensor_fusion(
             "predicted_label": label,
             "stable_weight_g": real_weight_g,
             "hardware_route_signal": route_signal,
+            "calculated_credits": dynamic_credits,
             "fusion_result": {
                 "decision": "VERIFIED_CLEAN",
                 "action": f"Accept item. Route to {label.upper()} bin."
             },
             "web3_reward": {
-                "tokens_minted": 10 if tx_hash else 0,
+                "tokens_minted": dynamic_credits if tx_hash else 0,
                 "tx_hash": tx_hash,
                 "explorer_url": f"https://sepolia.etherscan.io/tx/{tx_hash}" if tx_hash else None
             }
