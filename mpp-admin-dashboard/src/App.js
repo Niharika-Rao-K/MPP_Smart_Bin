@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+
 
 // Configuration for Bin Capacities and Signals
 const INITIAL_BINS = [
@@ -96,7 +98,7 @@ export default function App() {
 
     try {
       // Direct call to port 8000 endpoint
-      const response = await fetch('http://127.0.0.1:8000/api/rag/evaluate', {
+      const response = await fetch('${API_BASE}/api/rag/evaluate', {
         method: 'POST',
         body: formData,
       });
