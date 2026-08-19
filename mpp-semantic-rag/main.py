@@ -73,7 +73,7 @@ def calculate_dynamic_credits(label: str, real_weight_g: float) -> int:
 
     return max(1, min(calculated_credits, 100))
 
-def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
+def mint_reward_tokens(recipient_wallet: str, amount: int = 10, label: str = "Plastic", weight_g: float = 0.0):
     if not PRIVATE_KEY or not CONTRACT_ADDRESS:
         raise ValueError("Missing PRIVATE_KEY or CONTRACT_ADDRESS in .env file.")
         
@@ -89,14 +89,16 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
     # Scale integer credit score to 18 decimal places (wei)
     token_amount_wei = w3.to_wei(amount, 'ether')
 
-    # Calls standard function mint(address to, uint256 amount)
+    # Calls contract function mint(address to, uint256 amount, string material, uint256 weight)
     tx = contract.functions.mint(
         Web3.to_checksum_address(recipient_wallet), 
-        token_amount_wei
+        token_amount_wei,
+        label,
+        int(weight_g)
     ).build_transaction({
         'from': account.address,
         'nonce': nonce,
-        'gas': 200000,
+        'gas': 300000,
         'gasPrice': w3.eth.gas_price,
     })
 
@@ -127,7 +129,12 @@ async def evaluate_sensor_fusion(
         tx_hash = None
         if wallet_address and wallet_address.strip().startswith("0x"):
             try:
-                tx_hash = mint_reward_tokens(wallet_address.strip(), amount=dynamic_credits)
+                tx_hash = mint_reward_tokens(
+                    recipient_wallet=wallet_address.strip(),
+                    amount=dynamic_credits,
+                    label=label,
+                    weight_g=real_weight_g
+                )
             except Exception as web3_err:
                 print(f"--- WEB3 TRANSACTION ERROR TRACE ---")
                 print(web3_err)
