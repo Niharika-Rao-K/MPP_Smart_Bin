@@ -4,7 +4,8 @@ from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from web3 import Web3
 
 load_dotenv()
@@ -19,6 +20,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static directory to serve HTML/assets
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Global Exception Handler
 @app.exception_handler(Exception)
@@ -108,7 +113,8 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10):
 
 @app.get("/")
 async def root():
-    return {"status": "online", "service": "Smart Bin Semantic RAG & Web3 Engine"}
+    """Serves the dashboard HTML directly at the root URL."""
+    return FileResponse("static/index.html")
 
 @app.post("/api/rag/evaluate")
 async def evaluate_sensor_fusion(
@@ -121,12 +127,14 @@ async def evaluate_sensor_fusion(
         if image:
             await image.read()
 
+        # Compute dynamic points based on RAG similarity match
         dynamic_credits = calculate_dynamic_credits(label, real_weight_g)
 
         tx_hash = None
         if wallet_address and wallet_address.strip().startswith("0x"):
             tx_hash = mint_reward_tokens(wallet_address.strip(), amount=dynamic_credits)
 
+        # Hardware signal mapping based on material input
         signal_map = {"Metal": "M", "Plastic": "W", "E-Waste": "E"}
         route_signal = signal_map.get(label, "M")
 
