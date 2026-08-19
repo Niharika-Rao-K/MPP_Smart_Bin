@@ -1,227 +1,1681 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recycle2Earn - Gamified Eco-Dashboard</title>
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            // Original Dark Theme Palette
-            bgMain: '#121214',      // Deep charcoal background
-            bgCard: '#18181B',      // Card surface dark
-            bgSidebar: '#0F0F10',   // Sidebar dark border
-            accentGreen: '#84CC16', // Bright eco-lime green
-            accentYellow: '#EAB308',// Gamification gold
-            textPrimary: '#F4F4F5', // Crisp light gray text
-            textSecondary: '#A1A1AA'// Muted slate text
-          }
-        }
+  <meta charset="utf-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+
+  <meta
+    name="theme-color"
+    content="#0b0d0b"
+  />
+
+  <meta
+    name="description"
+    content="Recycle2Earn - Gamified Recycling Dashboard"
+  />
+
+  <title>Recycle2Earn</title>
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body,
+    #root {
+      width: 100%;
+      min-height: 100%;
+    }
+
+    body {
+      background:
+        radial-gradient(
+          circle at 70% 15%,
+          rgba(140, 255, 0, 0.05),
+          transparent 30%
+        ),
+        radial-gradient(
+          circle at 20% 80%,
+          rgba(255, 210, 0, 0.03),
+          transparent 30%
+        ),
+        #090b09;
+
+      color: #e8eee7;
+      font-family: "Inter", Arial, sans-serif;
+      font-size: 13px;
+    }
+
+    button,
+    input,
+    select {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    /* =========================================================
+       MAIN APPLICATION
+    ========================================================= */
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.015),
+          transparent
+        );
+    }
+
+    /* =========================================================
+       SIDEBAR
+    ========================================================= */
+
+    .sidebar {
+      width: 220px;
+      min-height: 100vh;
+
+      background:
+        linear-gradient(
+          180deg,
+          #101410 0%,
+          #0c0f0c 100%
+        );
+
+      border-right: 1px solid #252b25;
+
+      display: flex;
+      flex-direction: column;
+
+      padding: 24px 15px;
+
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+
+      padding: 0 10px 28px;
+
+      font-size: 17px;
+      font-weight: 700;
+
+      color: #f2f4ee;
+    }
+
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+
+      border-radius: 50%;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background: rgba(167, 255, 0, 0.1);
+      border: 1px solid rgba(167, 255, 0, 0.25);
+
+      color: #b5ff00;
+      font-size: 16px;
+
+      box-shadow:
+        0 0 15px rgba(166, 255, 0, 0.12);
+    }
+
+    .brand span {
+      color: #dce4da;
+    }
+
+    .brand strong {
+      color: #b6ff00;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .nav-item {
+      height: 38px;
+
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      padding: 0 12px;
+
+      border-radius: 7px;
+
+      color: #818981;
+
+      text-decoration: none;
+
+      transition:
+        background 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .nav-item:hover {
+      background: #171c17;
+      color: #dbe5d9;
+    }
+
+    .nav-item.active {
+      color: #b7ff00;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(180, 255, 0, 0.11),
+          rgba(180, 255, 0, 0.04)
+        );
+
+      border: 1px solid rgba(180, 255, 0, 0.13);
+
+      box-shadow:
+        inset 3px 0 0 #b8ff00;
+    }
+
+    .nav-icon {
+      width: 18px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+
+      padding: 14px 10px;
+
+      border-top: 1px solid #202520;
+
+      color: #606860;
+
+      font-size: 10px;
+
+      line-height: 1.6;
+    }
+
+    /* =========================================================
+       MAIN CONTENT
+    ========================================================= */
+
+    .main {
+      margin-left: 220px;
+      width: calc(100% - 220px);
+
+      min-height: 100vh;
+
+      padding: 0 26px 30px;
+    }
+
+    /* =========================================================
+       TOP BAR
+    ========================================================= */
+
+    .topbar {
+      height: 68px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      border-bottom: 1px solid #1f241f;
+
+      margin-bottom: 22px;
+    }
+
+    .page-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e9eee7;
+    }
+
+    .page-title p {
+      color: #687068;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 17px;
+    }
+
+    .top-icon {
+      color: #778077;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .top-icon:hover {
+      color: #c0ff3c;
+    }
+
+    .wallet-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      padding: 6px 9px;
+
+      border-radius: 8px;
+
+      background: #121612;
+      border: 1px solid #292e29;
+
+      font-size: 10px;
+      color: #a8afa7;
+    }
+
+    .wallet-dot {
+      width: 8px;
+      height: 8px;
+
+      border-radius: 50%;
+
+      background: #b7ff00;
+
+      box-shadow:
+        0 0 8px rgba(183, 255, 0, 0.7);
+    }
+
+    .avatar {
+      width: 25px;
+      height: 25px;
+
+      border-radius: 50%;
+
+      background:
+        linear-gradient(
+          135deg,
+          #5f7148,
+          #1e241c
+        );
+
+      border: 1px solid #58604f;
+    }
+
+    /* =========================================================
+       KPI CARDS
+    ========================================================= */
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+
+      margin-bottom: 13px;
+    }
+
+    .kpi-card {
+      min-height: 86px;
+
+      border-radius: 9px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #151a14,
+          #101410
+        );
+
+      border: 1px solid #292e26;
+
+      padding: 15px;
+
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: "";
+
+      position: absolute;
+
+      width: 80px;
+      height: 80px;
+
+      right: -35px;
+      bottom: -45px;
+
+      border-radius: 50%;
+
+      background: rgba(174, 255, 0, 0.07);
+      filter: blur(10px);
+    }
+
+    .kpi-inner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .kpi-icon {
+      width: 34px;
+      height: 34px;
+
+      border-radius: 50%;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background: rgba(180, 255, 0, 0.08);
+      border: 1px solid rgba(180, 255, 0, 0.2);
+
+      color: #c4ff22;
+
+      font-size: 16px;
+    }
+
+    .kpi-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #737b72;
+    }
+
+    .kpi-value {
+      margin-top: 3px;
+
+      font-size: 21px;
+      font-weight: 700;
+
+      color: #d7ff25;
+
+      text-shadow:
+        0 0 10px rgba(193, 255, 30, 0.13);
+    }
+
+    .kpi-unit {
+      font-size: 9px;
+      color: #858d82;
+      margin-left: 2px;
+    }
+
+    /* =========================================================
+       GRID / PANELS
+    ========================================================= */
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+      gap: 13px;
+    }
+
+    .panel {
+      background:
+        linear-gradient(
+          145deg,
+          #141914,
+          #0f130f
+        );
+
+      border: 1px solid #272d27;
+
+      border-radius: 9px;
+
+      overflow: hidden;
+    }
+
+    .panel-header {
+      min-height: 43px;
+
+      padding: 11px 15px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      border-bottom: 1px solid #252a24;
+    }
+
+    .panel-title {
+      color: #d9ded7;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .panel-subtitle {
+      color: #667066;
+      font-size: 9px;
+    }
+
+    /* =========================================================
+       PROGRESS
+    ========================================================= */
+
+    .progress-panel {
+      padding: 15px;
+    }
+
+    .level-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 10px;
+    }
+
+    .level-text {
+      color: #aeb6aa;
+      font-size: 9px;
+    }
+
+    .level-text strong {
+      color: #b9ff00;
+    }
+
+    .progress-track {
+      height: 8px;
+
+      background: #252b22;
+
+      border-radius: 20px;
+
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 67%;
+
+      height: 100%;
+
+      border-radius: 20px;
+
+      background:
+        linear-gradient(
+          90deg,
+          #81bc00,
+          #c4ff19
+        );
+
+      box-shadow:
+        0 0 10px rgba(187, 255, 0, 0.4);
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+
+      margin-top: 8px;
+
+      color: #626a60;
+
+      font-size: 8px;
+    }
+
+    .level-badge {
+      width: 47px;
+      height: 47px;
+
+      border-radius: 50%;
+
+      border: 1px solid #525a4b;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 22px;
+
+      background:
+        radial-gradient(
+          circle,
+          #343a28,
+          #151a14
+        );
+
+      box-shadow:
+        0 0 15px rgba(198, 255, 0, 0.08);
+    }
+
+    /* =========================================================
+       LOWER DASHBOARD
+    ========================================================= */
+
+    .lower-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 13px;
+
+      margin-top: 13px;
+    }
+
+    /* =========================================================
+       BADGES
+    ========================================================= */
+
+    .badges {
+      display: flex;
+      gap: 10px;
+
+      padding: 15px;
+    }
+
+    .badge {
+      flex: 1;
+
+      text-align: center;
+
+      color: #8b9487;
+
+      font-size: 7px;
+    }
+
+    .badge-circle {
+      width: 36px;
+      height: 36px;
+
+      margin: 0 auto 7px;
+
+      border-radius: 50%;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border: 1px solid #59624f;
+
+      background: #1b2019;
+
+      color: #d3e53d;
+
+      font-size: 15px;
+    }
+
+    .badge:nth-child(2) .badge-circle {
+      color: #8de6ff;
+    }
+
+    .badge:nth-child(3) .badge-circle {
+      color: #75ff8d;
+    }
+
+    .badge:nth-child(4) .badge-circle {
+      color: #d6bfff;
+    }
+
+    .badge:nth-child(5) .badge-circle {
+      color: #ffd83b;
+    }
+
+    /* =========================================================
+       CHALLENGE
+    ========================================================= */
+
+    .challenge {
+      padding: 15px;
+    }
+
+    .challenge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .challenge-title {
+      color: #e2e8dd;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .challenge-description {
+      color: #737c70;
+      font-size: 8px;
+
+      margin-top: 5px;
+    }
+
+    .challenge-icon {
+      font-size: 23px;
+    }
+
+    .challenge-progress {
+      margin-top: 13px;
+    }
+
+    .challenge-track {
+      height: 5px;
+
+      border-radius: 10px;
+
+      background: #262d22;
+
+      overflow: hidden;
+    }
+
+    .challenge-fill {
+      width: 64%;
+
+      height: 100%;
+
+      background: #baff00;
+
+      box-shadow:
+        0 0 8px rgba(186, 255, 0, 0.35);
+    }
+
+    .challenge-footer {
+      display: flex;
+      justify-content: space-between;
+
+      margin-top: 6px;
+
+      font-size: 8px;
+
+      color: #697267;
+    }
+
+    .challenge-footer strong {
+      color: #baff00;
+    }
+
+    /* =========================================================
+       API / RAG PANEL
+    ========================================================= */
+
+    .api-panel {
+      min-height: 320px;
+    }
+
+    .live-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+
+      color: #9ca59a;
+
+      font-size: 8px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+
+      border-radius: 50%;
+
+      background: #aaff00;
+
+      box-shadow:
+        0 0 8px rgba(170, 255, 0, 0.8);
+    }
+
+    .api-code {
+      padding: 14px;
+
+      height: 274px;
+
+      overflow: auto;
+
+      font-family:
+        "Courier New",
+        monospace;
+
+      font-size: 8px;
+
+      line-height: 1.65;
+
+      color: #9da99a;
+
+      background: #0a0d0a;
+    }
+
+    .api-line {
+      color: #697269;
+    }
+
+    .api-key {
+      color: #b7d46c;
+    }
+
+    .api-value {
+      color: #c7d2c3;
+    }
+
+    .api-green {
+      color: #aaff00;
+    }
+
+    .api-yellow {
+      color: #e1d36c;
+    }
+
+    /* =========================================================
+       DEPOSIT FORM
+    ========================================================= */
+
+    .deposit-panel {
+      margin-top: 13px;
+    }
+
+    #portal-deposit-form {
+      padding: 15px;
+    }
+
+    #portal-deposit-form form {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px !important;
+    }
+
+    #portal-deposit-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      color: #8d9689;
+
+      font-size: 9px;
+    }
+
+    #portal-deposit-form label:last-of-type {
+      grid-column: 1 / -1;
+    }
+
+    #portal-deposit-form input,
+    #portal-deposit-form select {
+      width: 100%;
+
+      height: 34px;
+
+      padding: 0 10px;
+
+      border-radius: 6px;
+
+      border: 1px solid #30372d;
+
+      background: #0c100c;
+
+      color: #d7ded4;
+
+      outline: none;
+
+      font-size: 10px;
+    }
+
+    #portal-deposit-form input:focus,
+    #portal-deposit-form select:focus {
+      border-color: #91c91b;
+
+      box-shadow:
+        0 0 0 2px rgba(166, 255, 0, 0.06);
+    }
+
+    #portal-deposit-form input[type="file"] {
+      padding-top: 8px;
+    }
+
+    #portal-deposit-form button {
+      grid-column: 1 / -1;
+
+      height: 37px;
+
+      border: 0;
+
+      border-radius: 6px;
+
+      background:
+        linear-gradient(
+          90deg,
+          #82b900,
+          #baff00
+        );
+
+      color: #0a0d08;
+
+      font-weight: 700;
+
+      font-size: 10px;
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    #portal-deposit-form button:hover {
+      transform: translateY(-1px);
+
+      box-shadow:
+        0 5px 20px rgba(176, 255, 0, 0.18);
+    }
+
+    #portal-deposit-form button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .reject-text {
+      color: #d4e632 !important;
+      font-size: 10px !important;
+    }
+
+    /* =========================================================
+       ACTIVITY
+    ========================================================= */
+
+    .activity-panel {
+      margin-top: 13px;
+    }
+
+    #portal-activity-table {
+      padding: 0;
+      overflow-x: auto;
+    }
+
+    #portal-activity-table > p {
+      padding: 25px 15px;
+
+      color: #626a61;
+
+      font-size: 10px;
+
+      text-align: center;
+    }
+
+    #portal-activity-table table {
+      width: 100% !important;
+
+      border-collapse: collapse;
+
+      font-size: 9px;
+    }
+
+    #portal-activity-table th {
+      padding: 11px 15px;
+
+      background: #111511;
+
+      color: #737c70;
+
+      font-size: 8px;
+
+      font-weight: 600;
+
+      text-transform: uppercase;
+
+      letter-spacing: 0.5px;
+
+      border-bottom: 1px solid #292f28 !important;
+    }
+
+    #portal-activity-table td {
+      padding: 11px 15px;
+
+      color: #9ca59a;
+
+      border-bottom: 1px solid #202520 !important;
+    }
+
+    #portal-activity-table tbody tr:hover {
+      background: rgba(180, 255, 0, 0.025);
+    }
+
+    #portal-activity-table code {
+      color: #c4ec61;
+
+      background: rgba(180, 255, 0, 0.06);
+
+      padding: 3px 6px;
+
+      border-radius: 4px;
+
+      font-size: 8px;
+    }
+
+    #portal-activity-table a {
+      color: #b7ff00;
+
+      text-decoration: none;
+    }
+
+    #portal-activity-table a:hover {
+      text-decoration: underline;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media (max-width: 1050px) {
+      .sidebar {
+        width: 180px;
+      }
+
+      .main {
+        margin-left: 180px;
+        width: calc(100% - 180px);
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
       }
     }
-  </script>
+
+    @media (max-width: 760px) {
+      .sidebar {
+        position: relative;
+
+        width: 100%;
+        min-height: auto;
+
+        border-right: none;
+        border-bottom: 1px solid #252b25;
+      }
+
+      .app-shell {
+        display: block;
+      }
+
+      .main {
+        margin-left: 0;
+        width: 100%;
+
+        padding: 0 14px 25px;
+      }
+
+      .nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .nav-item {
+        flex: 1;
+        min-width: 110px;
+      }
+
+      .sidebar-bottom {
+        display: none;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .lower-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #portal-deposit-form form {
+        grid-template-columns: 1fr;
+      }
+
+      #portal-deposit-form label:last-of-type {
+        grid-column: auto;
+      }
+
+      #portal-deposit-form button {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .topbar {
+        height: auto;
+        padding: 15px 0;
+
+        gap: 15px;
+      }
+
+      .top-actions {
+        gap: 8px;
+      }
+
+      .wallet-pill {
+        display: none;
+      }
+
+      .badges {
+        gap: 4px;
+      }
+
+      .badge-circle {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+      }
+    }
+  </style>
 </head>
-<body class="bg-bgMain text-textPrimary font-sans antialiased min-h-screen p-4 md:p-6">
 
-  <!-- Main Container -->
-  <div class="max-w-[1400px] mx-auto bg-bgSidebar rounded-2xl p-4 shadow-2xl border border-zinc-800">
-    
-    <!-- Top Navbar -->
-    <header class="flex items-center justify-between pb-4 mb-4 border-b border-zinc-800">
-      <div class="flex items-center gap-2">
-        <span class="text-2xl text-accentGreen">♻️</span>
-        <h1 class="text-xl font-bold tracking-wide text-zinc-100">Recycle2Earn</h1>
-      </div>
-      
-      <!-- Top Right Controls -->
-      <div class="flex items-center gap-6">
-        <div class="flex items-center gap-4 text-zinc-400 text-sm">
-          <button class="hover:text-zinc-100 transition">♡</button>
-          <button class="hover:text-zinc-100 transition">💬</button>
-          <button class="hover:text-zinc-100 transition">👤</button>
-          <button class="hover:text-zinc-100 transition">🔗</button>
+<body>
+
+  <div id="root">
+
+    <div class="app-shell">
+
+      <!-- =====================================================
+           SIDEBAR
+      ====================================================== -->
+
+      <aside class="sidebar">
+
+        <div class="brand">
+          <div class="brand-icon">♻</div>
+          <span>Recycle<strong>2Earn</strong></span>
         </div>
-        
-        <!-- User Badge -->
-        <div class="flex items-center gap-3 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800">
-          <div class="text-right text-xs">
-            <p class="font-mono font-semibold text-accentGreen" id="user-wallet-display">0xA1b2...7cDe</p>
-            <p class="text-zinc-400">Level 1 Recycler</p>
-          </div>
-          <div class="w-8 h-8 rounded-full overflow-hidden border border-accentGreen/50">
-            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Recycler" alt="Avatar" class="w-full h-full object-cover" />
-          </div>
+
+        <nav class="nav">
+
+          <a href="#" class="nav-item active">
+            <span class="nav-icon">⌂</span>
+            <span>Overview</span>
+          </a>
+
+          <a href="#deposit" class="nav-item">
+            <span class="nav-icon">＋</span>
+            <span>Deposit</span>
+          </a>
+
+          <a href="#rewards" class="nav-item">
+            <span class="nav-icon">◇</span>
+            <span>Rewards</span>
+          </a>
+
+          <a href="#challenges" class="nav-item">
+            <span class="nav-icon">♧</span>
+            <span>Challenges</span>
+          </a>
+
+          <a href="#leaderboard" class="nav-item">
+            <span class="nav-icon">♛</span>
+            <span>Leaderboard</span>
+          </a>
+
+          <a href="#profile" class="nav-item">
+            <span class="nav-icon">◉</span>
+            <span>Profile</span>
+          </a>
+
+          <a href="#settings" class="nav-item">
+            <span class="nav-icon">⚙</span>
+            <span>Settings</span>
+          </a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div>♻ Recycling Network</div>
+          <div>Smart Waste Intelligence</div>
+          <div>v1.0.0</div>
         </div>
-      </div>
-    </header>
 
-    <!-- Main Grid Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-      <!-- Sidebar Navigation (2 cols) -->
-      <aside class="lg:col-span-2 flex flex-col gap-1.5 bg-bgCard p-3 rounded-xl border border-zinc-800/80 text-sm font-medium">
-        <button class="flex items-center gap-3 px-3 py-2.5 bg-zinc-900 text-accentGreen rounded-lg border border-accentGreen/30 font-semibold shadow-sm">
-          <span>🏠</span> Overview
-        </button>
-        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
-          <span>📥</span> Deposit
-        </button>
-        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
-          <span>🏆</span> Rewards
-        </button>
-        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
-          <span>🎯</span> Challenges
-        </button>
-        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition">
-          <span>📊</span> Leaderboard
-        </button>
-        <button class="flex items-center gap-3 px-3 py-2.5 text-textSecondary hover:text-zinc-200 hover:bg-zinc-900/50 rounded-lg transition mt-auto">
-          <span>⚙️</span> Settings
-        </button>
       </aside>
 
-      <!-- Center Dashboard Content (6 cols) -->
-      <main class="lg:col-span-6 flex flex-col gap-4">
 
-        <!-- Top KPI Cards Row -->
-        <div class="grid grid-cols-3 gap-3">
-          <!-- Total Tokens Earned -->
-          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg relative overflow-hidden flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-accentYellow/10 border border-accentYellow/30 flex items-center justify-center text-accentYellow font-bold text-lg">
-              $
-            </div>
-            <div>
-              <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Tokens Earned</div>
-              <div class="text-2xl font-black text-accentGreen tracking-tight" id="portal-total-tokens">532.45</div>
-              <span class="text-[10px] text-zinc-400 font-semibold">$RECYCLE</span>
-            </div>
+      <!-- =====================================================
+           MAIN
+      ====================================================== -->
+
+      <main class="main">
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+          <div class="page-title">
+            <h1>Overview</h1>
+            <p>Welcome back — keep recycling and earn rewards.</p>
           </div>
 
-          <!-- Total Weight Recycled -->
-          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-accentGreen/10 border border-accentGreen/30 flex items-center justify-center text-accentGreen text-lg">
-              ♻️
+          <div class="top-actions">
+
+            <span class="top-icon">♡</span>
+            <span class="top-icon">◌</span>
+            <span class="top-icon">♧</span>
+            <span class="top-icon">↗</span>
+
+            <div class="wallet-pill">
+              <span class="wallet-dot"></span>
+              <span>0xA12b...7c2e</span>
+              <div class="avatar"></div>
             </div>
-            <div>
-              <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Weight Recycled</div>
-              <div class="text-2xl font-black text-accentGreen tracking-tight" id="portal-weight-recycled">128.45</div>
-              <span class="text-[10px] text-zinc-400 font-semibold">kg</span>
-            </div>
+
           </div>
 
-          <!-- Total Deposits -->
-          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-accentYellow/10 border border-accentYellow/30 flex items-center justify-center text-accentYellow text-lg">
-              🏆
-            </div>
-            <div>
-              <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Deposits</div>
-              <div class="text-2xl font-black text-accentGreen tracking-tight" id="portal-total-deposits">24</div>
-              <span class="text-[10px] text-zinc-400 font-semibold">Deposits</span>
-            </div>
-          </div>
-        </div>
+        </header>
 
-        <!-- Recycler Level Progress -->
-        <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg relative">
-          <div class="flex justify-between items-center text-xs mb-2">
-            <span class="font-bold text-zinc-200">Recycler Level Progress</span>
-            <span class="text-zinc-400 font-medium">Level 2 <span class="text-zinc-500 text-[10px]">(500 $RECYCLE to next level)</span></span>
-          </div>
-          <div class="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-zinc-800 p-0.5">
-            <div class="bg-gradient-to-r from-lime-500 to-accentGreen h-full rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(132,204,22,0.6)]" style="width: 75%;"></div>
-          </div>
-          <div class="text-right text-[10px] font-bold text-zinc-400 mt-1">75%</div>
-        </div>
 
-        <!-- Gamification & Challenge Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Recent Badges -->
-          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg">
-            <p class="text-xs font-bold text-zinc-200 mb-3">Recent Badges</p>
-            <div class="flex gap-2 justify-between">
-              <div class="w-9 h-9 bg-amber-950/40 border border-amber-600/50 rounded-lg flex items-center justify-center text-amber-400 text-sm shadow-[0_0_8px_rgba(217,119,6,0.2)]" title="First Deposit">🪙</div>
-              <div class="w-9 h-9 bg-purple-950/40 border border-purple-500/50 rounded-lg flex items-center justify-center text-purple-300 text-sm shadow-[0_0_8px_rgba(168,85,247,0.2)]" title="5 Deposits">💎</div>
-              <div class="w-9 h-9 bg-blue-950/40 border border-blue-500/50 rounded-lg flex items-center justify-center text-blue-300 text-sm shadow-[0_0_8px_rgba(59,130,246,0.2)]" title="10kg Recycled">🏙️</div>
-              <div class="w-9 h-9 bg-emerald-950/40 border border-emerald-500/50 rounded-lg flex items-center justify-center text-emerald-400 text-sm shadow-[0_0_8px_rgba(16,185,129,0.2)]" title="Clean Streak">🌱</div>
-              <div class="w-9 h-9 bg-amber-900/30 border border-amber-500/50 rounded-lg flex items-center justify-center text-amber-300 text-sm shadow-[0_0_8px_rgba(245,158,11,0.2)]" title="Token Earner">🏅</div>
-            </div>
-          </div>
+        <!-- =====================================================
+             KPI CARDS
+        ====================================================== -->
 
-          <!-- Daily Challenge -->
-          <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg flex flex-col justify-between">
-            <div class="flex justify-between items-start">
+        <section class="kpi-grid">
+
+          <div class="kpi-card">
+
+            <div class="kpi-inner">
+
+              <div class="kpi-icon">◉</div>
+
               <div>
-                <p class="text-xs font-bold text-zinc-200">Daily Challenge</p>
-                <p class="text-xs text-zinc-400 mt-1">Recycle 5kg today</p>
-              </div>
-              <span class="text-2xl">🎁</span>
-            </div>
-            <div class="mt-2 flex items-center gap-2">
-              <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
-                <div class="bg-accentGreen h-full rounded-full shadow-[0_0_8px_rgba(132,204,22,0.8)]" style="width: 64%;"></div>
-              </div>
-              <span class="text-[10px] font-bold text-zinc-300 whitespace-nowrap">3.2 / 5 kg</span>
-            </div>
-          </div>
-        </div>
+                <div class="kpi-label">
+                  Total Tokens Earned
+                </div>
 
-        <!-- Form Mount Point for React -->
-        <div class="bg-bgCard p-4 rounded-xl border border-zinc-800 shadow-lg">
-          <p class="text-xs font-bold text-zinc-200 mb-3">Simulate Material Deposit</p>
-          <div id="portal-deposit-form"></div>
-        </div>
+                <div class="kpi-value">
+                  532.45
+                  <span class="kpi-unit">R2E</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="kpi-card">
+
+            <div class="kpi-inner">
+
+              <div class="kpi-icon">♻</div>
+
+              <div>
+                <div class="kpi-label">
+                  Total Weight Recycled
+                </div>
+
+                <div class="kpi-value">
+                  128.45
+                  <span class="kpi-unit">kg</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="kpi-card">
+
+            <div class="kpi-inner">
+
+              <div class="kpi-icon">♛</div>
+
+              <div>
+                <div class="kpi-label">
+                  Total Deposits
+                </div>
+
+                <div id="portal-total-deposits"
+                     class="kpi-value">
+                  0
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             DASHBOARD MAIN GRID
+        ====================================================== -->
+
+        <section class="dashboard-grid">
+
+          <!-- LEFT COLUMN -->
+
+          <div>
+
+            <!-- LEVEL PROGRESS -->
+
+            <div class="panel">
+
+              <div class="panel-header">
+
+                <span class="panel-title">
+                  Recycler Level Progress
+                </span>
+
+                <span class="panel-subtitle">
+                  Level 2
+                </span>
+
+              </div>
+
+              <div class="progress-panel">
+
+                <div class="level-row">
+
+                  <div class="level-text">
+                    <strong>Level 1</strong>
+                    &nbsp; → &nbsp;
+                    Level 2
+                  </div>
+
+                  <div class="level-badge">
+                    ♛
+                  </div>
+
+                </div>
+
+                <div class="progress-track">
+                  <div class="progress-fill"></div>
+                </div>
+
+                <div class="progress-meta">
+                  <span>
+                    500 R2E required for next level
+                  </span>
+
+                  <span>
+                    67%
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- BADGES + CHALLENGE -->
+
+            <div class="lower-grid">
+
+              <div class="panel" id="rewards">
+
+                <div class="panel-header">
+                  <span class="panel-title">
+                    Recent Badges
+                  </span>
+
+                  <span class="panel-subtitle">
+                    5 earned
+                  </span>
+                </div>
+
+                <div class="badges">
+
+                  <div class="badge">
+                    <div class="badge-circle">
+                      ★
+                    </div>
+                    First Deposit
+                  </div>
+
+                  <div class="badge">
+                    <div class="badge-circle">
+                      ◇
+                    </div>
+                    5 Deposits
+                  </div>
+
+                  <div class="badge">
+                    <div class="badge-circle">
+                      ♻
+                    </div>
+                    10kg Recycled
+                  </div>
+
+                  <div class="badge">
+                    <div class="badge-circle">
+                      ✓
+                    </div>
+                    Clean Streak
+                  </div>
+
+                  <div class="badge">
+                    <div class="badge-circle">
+                      ⬟
+                    </div>
+                    Token Earner
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div class="panel" id="challenges">
+
+                <div class="panel-header">
+                  <span class="panel-title">
+                    Daily Challenge
+                  </span>
+                </div>
+
+                <div class="challenge">
+
+                  <div class="challenge-row">
+
+                    <div>
+                      <div class="challenge-title">
+                        Recycle 5kg Today
+                      </div>
+
+                      <div class="challenge-description">
+                        Earn bonus R2E tokens
+                      </div>
+                    </div>
+
+                    <div class="challenge-icon">
+                      🎁
+                    </div>
+
+                  </div>
+
+                  <div class="challenge-progress">
+
+                    <div class="challenge-track">
+                      <div class="challenge-fill"></div>
+                    </div>
+
+                    <div class="challenge-footer">
+                      <span>
+                        <strong>3.2 kg</strong> / 5 kg
+                      </span>
+
+                      <span>
+                        64%
+                      </span>
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- DEPOSIT -->
+
+            <div
+              class="panel deposit-panel"
+              id="deposit"
+            >
+
+              <div class="panel-header">
+
+                <div>
+                  <div class="panel-title">
+                    Make a Deposit
+                  </div>
+
+                  <div class="panel-subtitle">
+                    Submit recyclable material for evaluation
+                  </div>
+                </div>
+
+                <span class="panel-subtitle">
+                  AI + RAG
+                </span>
+
+              </div>
+
+              <div id="portal-deposit-form"></div>
+
+            </div>
+
+
+            <!-- ACTIVITY -->
+
+            <div class="panel activity-panel">
+
+              <div class="panel-header">
+
+                <div>
+                  <div class="panel-title">
+                    Recent Activity
+                  </div>
+
+                  <div class="panel-subtitle">
+                    Your latest recycling deposits
+                  </div>
+                </div>
+
+                <span class="panel-subtitle">
+                  LIVE
+                </span>
+
+              </div>
+
+              <div id="portal-activity-table"></div>
+
+            </div>
+
+          </div>
+
+
+          <!-- ===================================================
+               RIGHT COLUMN — API / RAG
+          ==================================================== -->
+
+          <div>
+
+            <div class="panel api-panel">
+
+              <div class="panel-header">
+
+                <span class="panel-title">
+                  /api/rag/evaluate
+                </span>
+
+                <div class="live-status">
+                  <span class="live-dot"></span>
+                  LIVE
+                </div>
+
+              </div>
+
+              <div class="api-code">
+
+                <div>
+                  <span class="api-key">"query"</span>:
+                  <span class="api-value">
+                    "Classify this item and route accordingly"
+                  </span>
+                </div>
+
+                <div>
+                  <span class="api-key">"image"</span>:
+                  <span class="api-value">
+                    "img_1245.jpg"
+                  </span>
+                </div>
+
+                <div>
+                  <span class="api-key">"classification"</span>: {
+                </div>
+
+                <div>
+                  &nbsp;&nbsp;
+                  <span class="api-key">"metal"</span>:
+                  <span class="api-yellow">0.65</span>,
+                </div>
+
+                <div>
+                  &nbsp;&nbsp;
+                  <span class="api-key">"waste"</span>:
+                  <span class="api-yellow">0.95</span>,
+                </div>
+
+                <div>
+                  &nbsp;&nbsp;
+                  <span class="api-key">"e_waste"</span>:
+                  <span class="api-yellow">0.25</span>
+                </div>
+
+                <div>
+                  }
+                </div>
+
+                <br />
+
+                <div>
+                  <span class="api-key">"routing"</span>: {
+                </div>
+
+                <div>
+                  &nbsp;&nbsp;
+                  <span class="api-key">"route"</span>:
+                  <span class="api-green">"Conveyor_A"</span>,
+                </div>
+
+                <div>
+                  &nbsp;&nbsp;
+                  <span class="api-key">"waste"</span>:
+                  <span class="api-green">"Conveyor_B"</span>,
+                </div>
+
+                <div>
+                  &nbsp;&nbsp;
+                  <span class="api-key">"e_waste"</span>:
+                  <span class="api-green">"Conveyor_C"</span>
+                </div>
+
+                <div>
+                  }
+                </div>
+
+                <br />
+
+                <div>
+                  <span class="api-key">"status"</span>:
+                  <span class="api-green">"SUCCESS"</span>,
+                </div>
+
+                <div>
+                  <span class="api-key">"timestamp"</span>:
+                  <span class="api-value">
+                    "2026-08-19T14:24:35Z"
+                  </span>
+                </div>
+
+                <br />
+
+                <div class="api-line">
+                  // AI classification complete
+                </div>
+
+                <div class="api-line">
+                  // Hardware route determined
+                </div>
+
+                <div class="api-line">
+                  // Blockchain reward ready
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- REJECTION KPI -->
+
+            <div class="panel" style="margin-top:13px;">
+
+              <div class="panel-header">
+
+                <span class="panel-title">
+                  Rejected / Contaminated
+                </span>
+
+                <span class="panel-subtitle">
+                  Quality Control
+                </span>
+
+              </div>
+
+              <div
+                style="
+                  padding:18px;
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:center;
+                "
+              >
+
+                <div>
+
+                  <div
+                    style="
+                      font-size:9px;
+                      color:#70796d;
+                      margin-bottom:5px;
+                    "
+                  >
+                    TOTAL REJECTIONS
+                  </div>
+
+                  <div id="portal-rejections">
+                    0 Detected
+                  </div>
+
+                </div>
+
+                <div
+                  style="
+                    width:42px;
+                    height:42px;
+                    border-radius:50%;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:rgba(255,190,0,.08);
+                    border:1px solid rgba(255,190,0,.18);
+                    color:#e4d03d;
+                    font-size:18px;
+                  "
+                >
+                  !
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
 
       </main>
 
-      <!-- Right Code / Live Terminal Window (4 cols) -->
-      <aside class="lg:col-span-4 bg-[#09090B] text-emerald-400 rounded-xl p-4 font-mono text-xs shadow-2xl flex flex-col justify-between border border-zinc-800 relative">
-        <div>
-          <!-- Code Window Header -->
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800/80">
-            <span class="text-accentGreen font-semibold tracking-wide text-xs">/api/rag/evaluate Response</span>
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-950/80 text-emerald-400 border border-emerald-800">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              LIVE
-            </span>
-          </div>
-          
-          <!-- React Activity Logs / Code Output -->
-          <div id="portal-activity-table" class="space-y-2 overflow-y-auto max-h-[420px] text-emerald-400/90">
-            <pre class="text-[11px] leading-relaxed font-mono">{
-  "query": "Classify this item and route accordingly",
-  "image_id": "img_1245.jpg",
-  "classification": {
-    "metal": 0.05,
-    "waste": 0.95,
-    "e_waste": 0.25
-  },
-  "routing": {
-    "metal": "Conveyor_A",
-    "waste": "Conveyor_B",
-    "e_waste": "Conveyor_C"
-  },
-  "status": "SUCCESS",
-  "timestamp": "2026-08-19T18:12:31Z"
-}</pre>
-          </div>
-        </div>
-
-        <p class="text-[10px] text-zinc-600 pt-3 border-t border-zinc-800/80 mt-4">
-          Hardware status: Connected via Serial (Baud 115200)
-        </p>
-      </aside>
-
     </div>
-  </div>
 
-  <!-- React Mount Point -->
-  <div id="root"></div>
+  </div>
 
 </body>
 </html>
