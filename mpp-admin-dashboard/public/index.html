@@ -104,16 +104,19 @@
       </div>
 
       <!-- Current User Sidebar Widget -->
-      <div id="sidebar-user-widget" class="p-4 bg-slate-900/90 rounded-2xl border border-emerald-900/40 shadow-inner">
+      <div id="sidebar-user-widget" class="p-4 bg-slate-900/90 rounded-2xl border border-emerald-900/40 shadow-inner flex flex-col gap-2">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs" id="widget-avatar">
             ?
           </div>
           <div class="overflow-hidden">
-            <p class="text-xs font-bold text-slate-100 truncate" id="widget-username">Not Registered</p>
+            <p class="text-xs font-bold text-slate-100 truncate" id="widget-username">Not Logged In</p>
             <p class="text-[10px] font-mono text-emerald-400/70 truncate" id="widget-wallet">No Wallet Linked</p>
           </div>
         </div>
+        <button id="logout-btn" onclick="handleLogout()" class="hidden text-[10px] text-red-400 hover:text-red-300 font-bold self-end flex items-center gap-1 transition">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
       </div>
     </aside>
 
@@ -128,9 +131,11 @@
           </h2>
           <p class="text-xs font-medium text-slate-400 mt-1">Scan bin QR code, deposit waste, and earn $RECYCLE on Sepolia.</p>
         </div>
-        <button onclick="openRegisterModal()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-950 flex items-center justify-center gap-2">
-          <i class="fa-solid fa-user-plus"></i> Register / Switch User
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="auth-main-btn" onclick="openAuthModal('login')" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-950 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-right-to-bracket"></i> Login / Register
+          </button>
+        </div>
       </div>
 
       <!-- PAGE 1: DASHBOARD VIEW -->
@@ -290,7 +295,7 @@
         </div>
       </div>
 
-      <!-- PAGE 4: MEMBERS LEADERBOARD VIEW (WITH CUSTOM BACKGROUND) -->
+      <!-- PAGE 4: MEMBERS LEADERBOARD VIEW -->
       <div id="view-members" class="view-page hidden space-y-6">
         <div class="bg-leaderboard-pattern backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/40 shadow-2xl">
           <div class="flex items-center justify-between mb-4">
@@ -323,15 +328,31 @@
     </main>
   </div>
 
-  <!-- Registration Modal -->
-  <div id="register-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
+  <!-- Unified Auth Modal (Login / Register Tabs) -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
     <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-emerald-700/40 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="font-extrabold text-white text-base">Register User & Sepolia Wallet</h3>
-        <button onclick="closeRegisterModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <!-- Auth Tabs -->
+        <div class="flex gap-4">
+          <button id="tab-login" onclick="switchAuthTab('login')" class="font-extrabold text-sm text-emerald-400 border-b-2 border-emerald-400 pb-1">Login</button>
+          <button id="tab-register" onclick="switchAuthTab('register')" class="font-extrabold text-sm text-slate-400 pb-1 hover:text-white">Register</button>
+        </div>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <form id="register-form" onsubmit="handleUserRegistration(event)" class="space-y-4">
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="handleUserLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Sepolia Wallet Address</label>
+          <input type="text" id="login-wallet" required pattern="^0x[a-fA-F0-9]{40}$" placeholder="0x..." class="w-full bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-xl font-mono text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 text-xs transition">
+          Log In
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" onsubmit="handleUserRegistration(event)" class="space-y-4 hidden">
         <div>
           <label class="block text-xs font-bold text-slate-300 mb-1">Full Name / Username</label>
           <input type="text" id="reg-username" required placeholder="e.g. Alex Rivera" class="w-full bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
@@ -344,7 +365,7 @@
         </div>
 
         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 text-xs transition">
-          Complete Registration
+          Create Account
         </button>
       </form>
     </div>
@@ -395,32 +416,51 @@
       }
     }
 
-    function openRegisterModal() {
-      document.getElementById('register-modal').classList.remove('hidden');
+    /* Auth Modal Switcher */
+    function openAuthModal(mode = 'login') {
+      document.getElementById('auth-modal').classList.remove('hidden');
+      switchAuthTab(mode);
     }
 
-    function closeRegisterModal() {
-      document.getElementById('register-modal').classList.add('hidden');
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
     }
 
-    function updateWasteCategoryPreview() {
-      const type = document.getElementById('waste-type').value;
-      const imgElem = document.getElementById('category-preview-img');
-      const tagElem = document.getElementById('category-tag');
-      const routeElem = document.getElementById('bin-route-display');
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('login-form');
+      const regForm = document.getElementById('register-form');
+      const tabLogin = document.getElementById('tab-login');
+      const tabReg = document.getElementById('tab-register');
 
-      imgElem.src = WASTE_IMAGES[type] || WASTE_IMAGES['Plastic'];
-
-      if (type === 'Plastic') {
-        tagElem.innerText = 'PLASTIC';
-        routeElem.innerText = 'P (Plastic)';
-      } else if (type === 'Metal') {
-        tagElem.innerText = 'METAL CAN';
-        routeElem.innerText = 'M (Metal)';
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        regForm.classList.add('hidden');
+        tabLogin.className = "font-extrabold text-sm text-emerald-400 border-b-2 border-emerald-400 pb-1";
+        tabReg.className = "font-extrabold text-sm text-slate-400 pb-1 hover:text-white";
       } else {
-        tagElem.innerText = 'E-WASTE';
-        routeElem.innerText = 'E (E-Waste)';
+        loginForm.classList.add('hidden');
+        regForm.classList.remove('hidden');
+        tabReg.className = "font-extrabold text-sm text-emerald-400 border-b-2 border-emerald-400 pb-1";
+        tabLogin.className = "font-extrabold text-sm text-slate-400 pb-1 hover:text-white";
       }
+    }
+
+    function handleUserLogin(e) {
+      e.preventDefault();
+      const wallet = document.getElementById('login-wallet').value.trim();
+      const user = users.find(u => u.wallet.toLowerCase() === wallet.toLowerCase());
+
+      if (!user) {
+        alert('Account not found! Please register first.');
+        switchAuthTab('register');
+        document.getElementById('reg-wallet').value = wallet;
+        return;
+      }
+
+      activeWallet = user.wallet;
+      saveState();
+      closeAuthModal();
+      renderDashboard();
     }
 
     function handleUserRegistration(e) {
@@ -446,7 +486,13 @@
 
       activeWallet = wallet;
       saveState();
-      closeRegisterModal();
+      closeAuthModal();
+      renderDashboard();
+    }
+
+    function handleLogout() {
+      activeWallet = null;
+      saveState();
       renderDashboard();
     }
 
@@ -456,11 +502,31 @@
       renderDashboard();
     }
 
+    function updateWasteCategoryPreview() {
+      const type = document.getElementById('waste-type').value;
+      const imgElem = document.getElementById('category-preview-img');
+      const tagElem = document.getElementById('category-tag');
+      const routeElem = document.getElementById('bin-route-display');
+
+      imgElem.src = WASTE_IMAGES[type] || WASTE_IMAGES['Plastic'];
+
+      if (type === 'Plastic') {
+        tagElem.innerText = 'PLASTIC';
+        routeElem.innerText = 'P (Plastic)';
+      } else if (type === 'Metal') {
+        tagElem.innerText = 'METAL CAN';
+        routeElem.innerText = 'M (Metal)';
+      } else {
+        tagElem.innerText = 'E-WASTE';
+        routeElem.innerText = 'E (E-Waste)';
+      }
+    }
+
     async function handleDeposit(e) {
       e.preventDefault();
       if (!activeWallet) {
-        alert('Please register or select a Sepolia wallet user first!');
-        openRegisterModal();
+        alert('Please log in or register your Sepolia wallet first!');
+        openAuthModal('login');
         return;
       }
 
@@ -527,15 +593,25 @@
       const widgetAvatar = document.getElementById('widget-avatar');
       const widgetUsername = document.getElementById('widget-username');
       const widgetWallet = document.getElementById('widget-wallet');
+      const logoutBtn = document.getElementById('logout-btn');
+      const authMainBtn = document.getElementById('auth-main-btn');
 
       if (activeUser) {
         widgetAvatar.innerText = activeUser.username.charAt(0).toUpperCase();
         widgetUsername.innerText = activeUser.username;
         widgetWallet.innerText = truncateAddress(activeUser.wallet);
+        logoutBtn.classList.remove('hidden');
+
+        authMainBtn.innerHTML = `<i class="fa-solid fa-user-check"></i> ${activeUser.username}`;
+        authMainBtn.onclick = () => openAuthModal('login');
       } else {
         widgetAvatar.innerText = '?';
-        widgetUsername.innerText = 'Not Registered';
+        widgetUsername.innerText = 'Not Logged In';
         widgetWallet.innerText = 'No Wallet Linked';
+        logoutBtn.classList.add('hidden');
+
+        authMainBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Login / Register`;
+        authMainBtn.onclick = () => openAuthModal('login');
       }
 
       const streakCount = document.getElementById('streak-count');
