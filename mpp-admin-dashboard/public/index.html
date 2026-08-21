@@ -1,3723 +1,632 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Recycle2Earn - Smart Bin Web App</title>
+  
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 
-  <meta charset="utf-8" />
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  />
-
-  <meta
-    name="theme-color"
-    content="#fafaf8"
-  />
-
-  <meta
-    name="description"
-    content="Recycle2Earn Smart Recycling Dashboard"
-  />
-
-  <title>Recycle2Earn | Smart Recycling</title>
-
-
-  <!-- =====================================================
-       FONT
-  ====================================================== -->
-
-  <link
-    rel="preconnect"
-    href="https://fonts.googleapis.com"
-  />
-
-  <link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
-  />
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
-    rel="stylesheet"
-  />
-
+  <!-- PWA Capabilities -->
+  <link rel="manifest" href="data:application/manifest+json;utf8,{%22short_name%22:%22Recycle2Earn%22,%22name%22:%22Recycle2Earn%20Smart%20Bin%20App%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22theme_color%22:%22%2310B981%22,%22background_color%22:%22%23000000%22}">
+  <meta name="theme-color" content="#10B981">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
   <style>
-
-    /* =====================================================
-       GLOBAL
-    ====================================================== */
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html,
     body {
-      width: 100%;
-      min-height: 100%;
-    }
-
-    body {
-
-      background:
-        linear-gradient(
-          135deg,
-          #fbfbf9 0%,
-          #f7f8f5 45%,
-          #ffffff 100%
-        );
-
-      color: #18231f;
-
-      font-family:
-        "DM Sans",
-        Arial,
-        sans-serif;
-
-      font-size: 14px;
-
-      overflow-x: hidden;
-    }
-
-    button,
-    input,
-    select {
-      font-family: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    a {
-      text-decoration: none;
-    }
-
-
-    /* =====================================================
-       REACT ROOT
-       IMPORTANT:
-       This remains empty. The dashboard is outside it.
-    ====================================================== */
-
-    #root {
-      display: none;
-    }
-
-
-    /* =====================================================
-       APP SHELL
-    ====================================================== */
-
-    .app-shell {
-
-      min-height: 100vh;
-
-      display: flex;
-
-      background:
-        radial-gradient(
-          circle at 85% 10%,
-          rgba(210, 165, 65, 0.08),
-          transparent 28%
-        ),
-        radial-gradient(
-          circle at 40% 80%,
-          rgba(49, 148, 92, 0.05),
-          transparent 30%
-        );
-    }
-
-
-    /* =====================================================
-       SIDEBAR
-    ====================================================== */
-
-    .sidebar {
-
-      width: 235px;
-
-      min-height: 100vh;
-
-      position: fixed;
-
-      left: 0;
-      top: 0;
-      bottom: 0;
-
-      z-index: 20;
-
-      padding: 24px 18px;
-
-      background:
-        rgba(255, 255, 255, 0.94);
-
-      border-right:
-        1px solid #e8ebe6;
-
-      display: flex;
-
-      flex-direction: column;
-
-      box-shadow:
-        5px 0 25px
-        rgba(34, 45, 38, 0.025);
-    }
-
-
-    /* =====================================================
-       BRAND
-    ====================================================== */
-
-    .brand {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 11px;
-
-      padding:
-        5px 8px 28px;
-    }
-
-    .brand-symbol {
-
-      width: 42px;
-      height: 42px;
-
-      border-radius: 13px;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      font-size: 25px;
-
-      background:
-        linear-gradient(
-          145deg,
-          #e7f6e9,
-          #f9f1d9
-        );
-
-      border:
-        1px solid #e3eadf;
-
-      box-shadow:
-        0 6px 16px
-        rgba(47, 132, 76, 0.08);
-    }
-
-    .brand-name {
-
-      font-family:
-        "Plus Jakarta Sans",
-        sans-serif;
-
-      font-size: 18px;
-
-      font-weight: 800;
-
-      color: #18221e;
-    }
-
-    .brand-name span {
-      color: #2e9c5a;
-    }
-
-    .brand-tagline {
-
-      margin-top: 3px;
-
-      font-size: 10px;
-
-      color: #78827b;
-    }
-
-
-    /* =====================================================
-       NAVIGATION
-    ====================================================== */
-
-    .nav {
-
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 5px;
-    }
-
-    .nav-item {
-
-      height: 44px;
-
-      padding:
-        0 13px;
-
-      border-radius: 10px;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 13px;
-
-      color: #52605a;
-
-      font-size: 13px;
-
-      transition:
-        all 0.2s ease;
-    }
-
-    .nav-item:hover {
-
-      background: #f5f8f4;
-
-      color: #23824b;
-
-      transform: translateX(2px);
-    }
-
-    .nav-item.active {
-
-      color: #16834a;
-
-      background:
-        linear-gradient(
-          90deg,
-          #eff9f2,
-          #f7fbf7
-        );
-
-      border:
-        1px solid #dcefe2;
-
-      box-shadow:
-        inset 3px 0 0 #2d9b5b;
-    }
-
-    .nav-icon {
-
-      width: 22px;
-
-      text-align: center;
-
-      font-size: 18px;
-
-      color: #6848c8;
-    }
-
-    .nav-item.active .nav-icon {
-      color: #218e51;
-    }
-
-
-    /* =====================================================
-       SIDEBAR USER CARD
-    ====================================================== */
-
-    .sidebar-spacer {
-      flex: 1;
-    }
-
-    .sidebar-wallet {
-
-      padding: 12px;
-
-      border-radius: 11px;
-
-      border:
-        1px solid #e8ebe8;
-
-      background:
-        linear-gradient(
-          135deg,
-          #ffffff,
-          #f8faf7
-        );
-
-      margin-bottom: 14px;
-    }
-
-    .wallet-user {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 9px;
-    }
-
-    .avatar {
-
-      width: 34px;
-      height: 34px;
-
-      border-radius: 50%;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      background:
-        linear-gradient(
-          135deg,
-          #d9f1df,
-          #f7e7b8
-        );
-
-      font-size: 19px;
-    }
-
-    .wallet-address {
-
-      font-size: 10px;
-
-      color: #59655e;
-    }
-
-    .wallet-balance {
-
-      margin-top: 5px;
-
-      color: #087f48;
-
-      font-weight: 700;
-
-      font-size: 12px;
-    }
-
-    .wallet-copy {
-      margin-left: auto;
-      color: #7b857e;
-      font-size: 13px;
-    }
-
-
-    /* =====================================================
-       LEVEL CARD
-    ====================================================== */
-
-    .level-card {
-
-      border:
-        1px solid #e7e9e3;
-
-      border-radius: 12px;
-
-      padding: 15px;
-
-      background:
-        linear-gradient(
-          145deg,
-          #ffffff,
-          #fbfcf9
-        );
-
-      overflow: hidden;
-
-      position: relative;
-    }
-
-    .level-card h3 {
-
-      font-family:
-        "Plus Jakarta Sans",
-        sans-serif;
-
-      font-size: 15px;
-
-      color: #4630ad;
-    }
-
-    .level-xp {
-
-      margin-top: 15px;
-
-      font-size: 12px;
-
-      font-weight: 700;
-    }
-
-    .level-track {
-
-      height: 7px;
-
-      margin-top: 10px;
-
-      border-radius: 10px;
-
-      background: #eeeafa;
-
-      overflow: hidden;
-    }
-
-    .level-fill {
-
-      width: 49%;
-
-      height: 100%;
-
-      border-radius: 10px;
-
-      background:
-        linear-gradient(
-          90deg,
-          #5635c7,
-          #9274e7
-        );
-    }
-
-    .level-next {
-
-      text-align: right;
-
-      margin-top: 7px;
-
-      font-size: 10px;
-
-      color: #5b48b7;
-    }
-
-    .plant-decoration {
-
-      margin-top: 17px;
-
-      font-size: 39px;
-
-      opacity: 0.75;
-    }
-
-    .level-message {
-
-      margin-top: 7px;
-
-      font-size: 10px;
-
-      color: #68736b;
-
-      line-height: 1.5;
-    }
-
-
-    /* =====================================================
-       MAIN CONTENT
-    ====================================================== */
-
-    .main {
-
-      margin-left: 235px;
-
-      width:
-        calc(100% - 235px);
-
-      padding:
-        18px 22px 35px;
-
-      min-height: 100vh;
-    }
-
-
-    /* =====================================================
-       TOPBAR
-    ====================================================== */
-
-    .topbar {
-
-      min-height: 64px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      margin-bottom: 16px;
-    }
-
-    .welcome h1 {
-
-      font-family:
-        "Plus Jakarta Sans",
-        sans-serif;
-
-      font-size: 19px;
-
-      font-weight: 800;
-
-      color: #18221e;
-    }
-
-    .welcome p {
-
-      margin-top: 4px;
-
-      color: #758078;
-
-      font-size: 11px;
-    }
-
-    .top-actions {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 10px;
-    }
-
-    .network-pill {
-
-      height: 44px;
-
-      padding: 0 14px;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 9px;
-
-      border:
-        1px solid #e4e7e3;
-
-      background: #fff;
-
-      border-radius: 10px;
-
-      color: #303a35;
-
-      font-size: 12px;
-    }
-
-    .eth {
-
-      color: #6853c8;
-
-      font-size: 18px;
-    }
-
-    .notification {
-
-      width: 44px;
-      height: 44px;
-
-      border-radius: 10px;
-
-      border:
-        1px solid #e4e7e3;
-
-      background: white;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      font-size: 17px;
-    }
-
-    .profile-pill {
-
-      height: 44px;
-
-      padding:
-        4px 12px 4px 5px;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 9px;
-
-      border:
-        1px solid #e4e7e3;
-
-      border-radius: 11px;
-
-      background: white;
-
-      min-width: 140px;
-    }
-
-    .profile-pill .avatar {
-      width: 34px;
-      height: 34px;
-    }
-
-    .profile-name {
-
-      font-size: 11px;
-
-      font-weight: 700;
-
-      color: #26312b;
-    }
-
-    .profile-level {
-
-      font-size: 10px;
-
-      color: #16854b;
-
-      margin-top: 2px;
-    }
-
-
-    /* =====================================================
-       KPI GRID
-    ====================================================== */
-
-    .kpi-grid {
-
-      display: grid;
-
-      grid-template-columns:
-        repeat(4, minmax(0, 1fr));
-
-      gap: 12px;
-
-      margin-bottom: 13px;
-    }
-
-    .kpi-card {
-
-      min-height: 127px;
-
-      padding: 18px;
-
-      border-radius: 14px;
-
-      background:
-        linear-gradient(
-          145deg,
-          rgba(255,255,255,0.96),
-          rgba(252,253,250,0.95)
-        );
-
-      border:
-        1px solid #e5e9e4;
-
-      position: relative;
-
-      overflow: hidden;
-
-      box-shadow:
-        0 6px 22px
-        rgba(34, 49, 40, 0.035);
-    }
-
-    .kpi-card.gold {
-      border-color: #f0e5c9;
-    }
-
-    .kpi-card.blue {
-      border-color: #dfe7f3;
-    }
-
-    .kpi-inner {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 15px;
-    }
-
-    .kpi-icon {
-
-      width: 58px;
-      height: 58px;
-
-      flex-shrink: 0;
-
-      border-radius: 50%;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      font-size: 27px;
-
-      background:
-        linear-gradient(
-          145deg,
-          #e5f5e9,
-          #f2faef
-        );
-
-      color: #209352;
-
-      border:
-        1px solid #d9ebdd;
-    }
-
-    .kpi-card.purple .kpi-icon {
-
-      background:
-        linear-gradient(
-          145deg,
-          #eee8fb,
-          #f7f3ff
-        );
-
-      color: #7151c7;
-
-      border-color: #e3d9f7;
-    }
-
-    .kpi-card.gold .kpi-icon {
-
-      background:
-        linear-gradient(
-          145deg,
-          #fff3d8,
-          #fff9eb
-        );
-
-      color: #c18a18;
-
-      border-color: #f2dfb5;
-    }
-
-    .kpi-card.blue .kpi-icon {
-
-      background:
-        linear-gradient(
-          145deg,
-          #e7f0fc,
-          #f5f8fe
-        );
-
-      color: #4484c5;
-
-      border-color: #dce8f7;
-    }
-
-    .kpi-label {
-
-      font-size: 9px;
-
-      text-transform: uppercase;
-
-      letter-spacing: 0.5px;
-
-      color: #637068;
-
-      font-weight: 600;
-    }
-
-    .kpi-value {
-
-      margin-top: 5px;
-
-      font-family:
-        "Plus Jakarta Sans",
-        sans-serif;
-
-      font-size: 27px;
-
-      font-weight: 800;
-
-      color: #16211c;
-
-      white-space: nowrap;
-    }
-
-    .kpi-unit {
-
-      font-family:
-        "DM Sans",
-        sans-serif;
-
-      font-size: 12px;
-
-      color: #159051;
-
-      margin-left: 3px;
-    }
-
-    .gold-text {
-      color: #b67d12 !important;
-    }
-
-    .kpi-change {
-
-      margin-top: 9px;
-
-      color: #188c50;
-
-      font-size: 10px;
-
-      font-weight: 600;
-    }
-
-    .kpi-change.gold {
-      color: #b57d13;
-    }
-
-
-    /* =====================================================
-       MAIN DASHBOARD GRID
-    ====================================================== */
-
-    .dashboard-grid {
-
-      display: grid;
-
-      grid-template-columns:
-        minmax(0, 1.12fr)
-        minmax(0, 1fr)
-        minmax(0, 1fr)
-        minmax(0, 1fr);
-
-      gap: 12px;
-    }
-
-    .panel {
-
-      background:
-        rgba(255,255,255,0.94);
-
-      border:
-        1px solid #e6e9e5;
-
-      border-radius: 14px;
-
-      overflow: hidden;
-
-      box-shadow:
-        0 5px 20px
-        rgba(38, 52, 44, 0.035);
-    }
-
-    .panel-header {
-
-      min-height: 49px;
-
-      padding:
-        13px 15px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      border-bottom:
-        1px solid #edf0ec;
-    }
-
-    .panel-title {
-
-      font-family:
-        "Plus Jakarta Sans",
-        sans-serif;
-
-      font-size: 12px;
-
-      font-weight: 700;
-
-      color: #3f27ad;
-
-      letter-spacing: 0.2px;
-    }
-
-    .panel-title.green {
-      color: #238b50;
-    }
-
-    .panel-title.gold {
-      color: #ae7710;
-    }
-
-    .panel-subtitle {
-
-      color: #77827b;
-
-      font-size: 9px;
-    }
-
-
-    /* =====================================================
-       MISSION
-    ====================================================== */
-
-    .mission-panel {
-
-      min-height: 324px;
-    }
-
-    .mission {
-
-      padding: 18px;
-    }
-
-    .mission-top {
-
-      display: flex;
-
-      justify-content: space-between;
-
-      align-items: center;
-    }
-
-    .mission-icon {
-
-      font-size: 58px;
-
-      color: #7250c9;
-
-      filter:
-        drop-shadow(
-          0 7px 7px
-          rgba(90,60,180,.13)
-        );
-    }
-
-    .mission-title {
-
-      font-size: 13px;
-
-      font-weight: 700;
-
-      color: #26312b;
-    }
-
-    .mission-description {
-
-      margin-top: 5px;
-
-      font-size: 10px;
-
-      color: #6d7770;
-    }
-
-    .mission-progress {
-
-      margin-top: 22px;
-    }
-
-    .mission-track {
-
-      height: 8px;
-
-      border-radius: 20px;
-
-      background: #edf0ed;
-
-      overflow: hidden;
-    }
-
-    .mission-fill {
-
-      width: 65%;
-
-      height: 100%;
-
-      border-radius: 20px;
-
-      background:
-        linear-gradient(
-          90deg,
-          #39a861,
-          #53bb76
-        );
-    }
-
-    .mission-meta {
-
-      display: flex;
-
-      justify-content: space-between;
-
-      margin-top: 8px;
-
-      font-size: 10px;
-
-      color: #56625b;
-    }
-
-    .mission-reward {
-
-      margin-top: 26px;
-
-      font-size: 10px;
-
-      color: #536059;
-    }
-
-    .mission-reward strong {
-      color: #188c50;
-    }
-
-    .mission-button {
-
-      margin-top: 23px;
-
-      width: 100%;
-
-      height: 37px;
-
-      border: 0;
-
-      border-radius: 7px;
-
-      background:
-        linear-gradient(
-          90deg,
-          #eadfff,
-          #e2d4fa
-        );
-
-      color: #5232b6;
-
-      font-weight: 700;
-
-      font-size: 10px;
-    }
-
-
-    /* =====================================================
-       ANALYSIS
-    ====================================================== */
-
-    .analysis-panel {
-      min-height: 324px;
-    }
-
-    .confidence {
-
-      padding: 5px 8px;
-
-      border-radius: 7px;
-
-      color: #176d46;
-
-      background: #eef9f2;
-
-      border:
-        1px solid #d9eee0;
-
-      font-size: 8px;
-
-      font-weight: 600;
-    }
-
-    .analysis-content {
-
-      padding: 15px;
-    }
-
-    .analysis-preview {
-
-      width: 105px;
-      height: 105px;
-
-      border-radius: 50%;
-
-      margin: 0 auto 15px;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      background:
-        linear-gradient(
-          145deg,
-          #edf8f0,
-          #f9f9f7
-        );
-
-      border:
-        4px solid #d8eedf;
-
-      font-size: 47px;
-
-      box-shadow:
-        0 0 0 5px #f5faf6;
-    }
-
-    .analysis-result {
-
-      padding-left: 3px;
-    }
-
-    .analysis-label {
-
-      color: #6d7871;
-
-      text-transform: uppercase;
-
-      font-size: 8px;
-
-      letter-spacing: .4px;
-    }
-
-    .analysis-value {
-
-      margin-top: 5px;
-
-      font-size: 14px;
-
-      font-weight: 700;
-
-      color: #1c2922;
-    }
-
-    .material-chip {
-
-      display: inline-block;
-
-      margin-top: 6px;
-
-      padding: 7px 12px;
-
-      border-radius: 8px;
-
-      color: #176c46;
-
-      background: #e2f5e8;
-
-      font-size: 10px;
-
-      font-weight: 700;
-    }
-
-    .route-chip {
-
-      margin-top: 9px;
-
-      display: inline-flex;
-
-      align-items: center;
-
-      gap: 15px;
-
-      padding: 8px 13px;
-
-      border-radius: 8px;
-
-      color: #176b46;
-
-      background: #eff9f2;
-
-      border: 1px solid #dfefe3;
-
-      font-size: 10px;
-
-      font-weight: 600;
-    }
-
-    .analysis-live {
-
-      padding: 12px;
-
-      text-align: center;
-
-      color: #8a948d;
-
-      font-size: 10px;
-    }
-
-
-    /* =====================================================
-       HARDWARE
-    ====================================================== */
-
-    .hardware-panel {
-      min-height: 324px;
-    }
-
-    .live {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 6px;
-
-      color: #18874c;
-
-      font-size: 9px;
-
-      font-weight: 700;
-    }
-
-    .live-dot {
-
-      width: 7px;
-      height: 7px;
-
-      border-radius: 50%;
-
-      background: #2aa65b;
-
-      box-shadow:
-        0 0 8px
-        rgba(42,166,91,.4);
-    }
-
-    .hardware-illustration {
-
-      height: 173px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: center;
-
-      position: relative;
-
-      overflow: hidden;
-
-      background:
-        linear-gradient(
-          180deg,
-          #fafcfb,
-          #f4f8f4
-        );
-    }
-
-    .machine {
-
-      font-size: 90px;
-
-      filter:
-        drop-shadow(
-          0 12px 10px
-          rgba(0,0,0,.08)
-        );
-    }
-
-    .conveyor {
-
-      position: absolute;
-
-      bottom: 17px;
-
-      left: 11%;
-
-      right: 11%;
-
-      height: 22px;
-
-      border-radius: 20px;
-
-      background:
-        linear-gradient(
-          180deg,
-          #5e6870,
-          #252e34
-        );
-
-      box-shadow:
-        0 4px 0 #aab2b5;
-    }
-
-    .hardware-bottom {
-
-      padding: 13px 15px;
-
-      display: flex;
-
-      justify-content: space-between;
-
-      align-items: center;
-    }
-
-    .hardware-label {
-
-      font-size: 8px;
-
-      color: #758079;
-
-      text-transform: uppercase;
-    }
-
-    .hardware-weight {
-
-      margin-top: 4px;
-
-      font-size: 20px;
-
-      font-weight: 800;
-
-      color: #14874a;
-    }
-
-    .hardware-weight span {
-
-      font-size: 9px;
-
-      color: #748078;
-
-      font-weight: 500;
-    }
-
-    .stable {
-
-      margin-left: 5px;
-
-      padding: 4px 7px;
-
-      border-radius: 6px;
-
-      background: #eef8f1;
-
-      color: #3f7958;
-
-      font-size: 8px;
-    }
-
-    .sparkline {
-
-      color: #1e9a56;
-
-      font-size: 29px;
-    }
-
-
-    /* =====================================================
-       BLOCKCHAIN
-    ====================================================== */
-
-    .blockchain-panel {
-      min-height: 324px;
-    }
-
-    .blockchain {
-
-      padding: 15px;
-    }
-
-    .tx-label {
-
-      color: #68736d;
-
-      font-size: 8px;
-
-      text-transform: uppercase;
-    }
-
-    .tx-status {
-
-      margin-top: 8px;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 12px;
-
-      color: #17884b;
-
-      font-size: 14px;
-
-      font-weight: 700;
-    }
-
-    .confirmed {
-
-      width: 30px;
-      height: 30px;
-
-      border-radius: 50%;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      border:
-        2px solid #1c9455;
-
-      font-size: 15px;
-    }
-
-    .tx-row {
-
-      padding:
-        13px 0;
-
-      border-bottom:
-        1px solid #edf0ed;
-    }
-
-    .tx-value {
-
-      margin-top: 5px;
-
-      font-size: 12px;
-
-      color: #29342e;
-
-      font-weight: 600;
-    }
-
-    .reward-value {
-
-      margin-top: 5px;
-
-      color: #b77c10;
-
-      font-weight: 800;
-
-      font-size: 13px;
-    }
-
-    .explorer-button {
-
-      width: 100%;
-
-      height: 38px;
-
-      margin-top: 12px;
-
-      border: 0;
-
-      border-radius: 8px;
-
-      background:
-        linear-gradient(
-          90deg,
-          #eee4ff,
-          #e5dafa
-        );
-
-      color: #5736b8;
-
-      font-size: 9px;
-
-      font-weight: 700;
-    }
-
-
-    /* =====================================================
-       IMPACT BAR
-    ====================================================== */
-
-    .impact-panel {
-
-      margin-top: 13px;
-
-      min-height: 88px;
-
-      display: flex;
-
-      align-items: center;
-
-      padding: 13px 20px;
-
-      position: relative;
-
-      overflow: hidden;
-    }
-
-    .impact-title {
-
-      width: 135px;
-
-      font-family:
-        "Plus Jakarta Sans",
-        sans-serif;
-
-      color: #432bad;
-
-      font-size: 14px;
-
-      font-weight: 700;
-    }
-
-    .impact-items {
-
-      display: flex;
-
-      align-items: center;
-
-      flex: 1;
-
-      gap: 0;
-    }
-
-    .impact-item {
-
-      min-width: 180px;
-
-      padding:
-        0 20px;
-
-      border-left:
-        1px solid #edf0eb;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 10px;
-    }
-
-    .impact-icon {
-
-      width: 42px;
-      height: 42px;
-
-      border-radius: 50%;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      background: #edf8ef;
-
-      font-size: 19px;
-    }
-
-    .impact-item.gold .impact-icon {
-
-      background: #fff4dc;
-    }
-
-    .impact-number {
-
-      color: #16864a;
-
-      font-size: 17px;
-
-      font-weight: 800;
-    }
-
-    .impact-item.gold .impact-number {
-
-      color: #b27a0e;
-    }
-
-    .impact-number span {
-
-      font-size: 9px;
-
-      font-weight: 500;
-
-      color: #77827b;
-    }
-
-    .impact-label {
-
-      margin-top: 2px;
-
-      color: #77827b;
-
-      font-size: 8px;
-    }
-
-    .earth {
-
-      margin-left: auto;
-
-      font-size: 61px;
-
-      opacity: .85;
-    }
-
-
-    /* =====================================================
-       LOWER GRID
-    ====================================================== */
-
-    .lower-grid {
-
-      display: grid;
-
-      grid-template-columns:
-        1.25fr
-        0.95fr
-        1fr
-        1fr;
-
-      gap: 12px;
-
-      margin-top: 13px;
-    }
-
-
-    /* =====================================================
-       QUICK DEPOSIT
-    ====================================================== */
-
-    .quick-deposit {
-
-      min-height: 295px;
-    }
-
-    .quick-content {
-
-      padding: 14px;
-    }
-
-    #portal-deposit-form {
-      width: 100%;
-    }
-
-    .deposit-form {
-
-      display: grid;
-
-      grid-template-columns:
-        0.9fr
-        1fr;
-
-      gap: 12px;
-    }
-
-    .upload-area {
-
-      min-height: 190px;
-
-      border:
-        1.5px dashed #b8a2f0;
-
-      border-radius: 10px;
-
-      display: flex;
-
-      flex-direction: column;
-
-      align-items: center;
-
-      justify-content: center;
-
-      position: relative;
-
-      background:
-        linear-gradient(
-          145deg,
-          #fdfbff,
-          #faf8ff
-        );
-
-      text-align: center;
-
-      overflow: hidden;
-    }
-
-    .upload-area input[type="file"] {
-
-      position: absolute;
-
-      inset: 0;
-
-      opacity: 0;
-
-      cursor: pointer;
-    }
-
-    .upload-icon {
-
-      width: 40px;
-      height: 40px;
-
-      border-radius: 50%;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      color: #5935be;
-
-      font-size: 25px;
-    }
-
-    .upload-title {
-
-      color: #5732bb;
-
-      font-size: 11px;
-
-      font-weight: 700;
-
-      max-width: 90%;
-
-      overflow: hidden;
-
-      text-overflow: ellipsis;
-    }
-
-    .upload-subtitle {
-
-      margin-top: 6px;
-
-      color: #69746e;
-
-      font-size: 9px;
-    }
-
-    .upload-format {
-
-      margin-top: 12px;
-
-      color: #8b938e;
-
-      font-size: 8px;
-    }
-
-    .deposit-fields {
-
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 10px;
-    }
-
-    .deposit-fields label {
-
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 5px;
-
-      color: #68736c;
-
-      font-size: 8px;
-    }
-
-    .deposit-fields input,
-    .deposit-fields select {
-
-      height: 34px;
-
-      border:
-        1px solid #e1e5e1;
-
-      border-radius: 7px;
-
-      background: #fff;
-
-      padding:
-        0 9px;
-
-      color: #29352f;
-
-      font-size: 10px;
-
-      outline: none;
-    }
-
-    .deposit-fields input:focus,
-    .deposit-fields select:focus {
-
-      border-color: #c2a354;
-
-      box-shadow:
-        0 0 0 3px
-        rgba(198,159,62,.09);
-    }
-
-    .deposit-fields button {
-
-      height: 36px;
-
-      border: 0;
-
-      border-radius: 7px;
-
-      background:
-        linear-gradient(
-          90deg,
-          #4f2cb6,
-          #7049cf
-        );
-
-      color: white;
-
-      font-size: 9px;
-
-      font-weight: 800;
-
-      letter-spacing: .2px;
-
-      margin-top: auto;
-    }
-
-    .deposit-fields button:hover {
-
-      box-shadow:
-        0 7px 17px
-        rgba(82,46,185,.18);
-
-      transform:
-        translateY(-1px);
-    }
-
-    .deposit-fields button:disabled {
-
-      opacity: .6;
-
-      cursor: not-allowed;
-
-      transform: none;
-    }
-
-    .deposit-error {
-
-      grid-column: 1 / -1;
-
-      padding: 8px;
-
-      border-radius: 7px;
-
-      background: #fff1ee;
-
-      color: #c04837;
-
-      font-size: 9px;
-
-      margin-bottom: 3px;
-    }
-
-
-    /* =====================================================
-       ACTIVITY
-    ====================================================== */
-
-    .activity-panel {
-
-      min-height: 295px;
-    }
-
-    #portal-activity-table {
-      width: 100%;
-    }
-
-    .activity-list {
-      padding: 5px 12px;
-    }
-
-    .activity-row {
-
-      min-height: 44px;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 7px;
-
-      border-bottom:
-        1px solid #f0f2ef;
-    }
-
-    .activity-row:last-child {
-      border-bottom: none;
-    }
-
-    .activity-material-icon {
-
-      width: 24px;
-      height: 24px;
-
-      border-radius: 50%;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      color: #248f52;
-
-      background: #edf8f0;
-
-      font-size: 11px;
-    }
-
-    .activity-main {
-
-      flex: 1;
-
-      min-width: 0;
-
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 2px;
-    }
-
-    .activity-main strong {
-
-      font-size: 8px;
-
-      color: #26332c;
-    }
-
-    .activity-main span {
-
-      font-size: 7px;
-
-      color: #7a857e;
-    }
-
-    .activity-time {
-
-      color: #7b857f;
-
-      font-size: 7px;
-
-      white-space: nowrap;
-    }
-
-    .activity-status {
-
-      color: #16894b;
-
-      font-size: 7px;
-
-      font-weight: 700;
-
-      white-space: nowrap;
-    }
-
-    .activity-status.rejected {
-      color: #bd4b38;
-    }
-
-    .activity-link {
-
-      color: #5d3ac1;
-
-      font-size: 11px;
-    }
-
-    .activity-empty {
-
-      min-height: 230px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: center;
-
-      flex-direction: column;
-
-      color: #77827b;
-
-      font-size: 10px;
-
-      gap: 6px;
-    }
-
-    .activity-empty-icon {
-
-      font-size: 30px;
-
-      color: #2a9857;
-    }
-
-    .activity-empty small {
-
-      color: #9aa29d;
-
-      font-size: 8px;
-    }
-
-
-    /* =====================================================
-       LEADERBOARD
-    ====================================================== */
-
-    .leaderboard {
-
-      padding: 8px 12px;
-    }
-
-    .leader-row {
-
-      min-height: 43px;
-
-      display: grid;
-
-      grid-template-columns:
-        24px 1fr auto;
-
-      align-items: center;
-
-      gap: 7px;
-
-      border-bottom:
-        1px solid #f0f2ef;
-
-      font-size: 8px;
-    }
-
-    .leader-row:last-child {
-      border-bottom: none;
-    }
-
-    .rank {
-
-      font-weight: 800;
-
-      color: #66736b;
-    }
-
-    .leader-user {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 7px;
-    }
-
-    .mini-avatar {
-
-      width: 21px;
-      height: 21px;
-
-      border-radius: 50%;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      background:
-        linear-gradient(
-          135deg,
-          #e2f1e6,
-          #f5e8c9
-        );
-
-      font-size: 12px;
-    }
-
-    .leader-name {
-
-      color: #354139;
-
-      font-weight: 600;
-    }
-
-    .leader-xp {
-
-      color: #27342c;
-
-      font-weight: 800;
-    }
-
-    .you-row {
-
-      margin:
-        0 -4px;
-
-      padding:
-        0 4px;
-
-      border-radius: 7px;
-
-      background:
-        #eff9f0;
-    }
-
-    .month {
-
-      border:
-        1px solid #e5e8e5;
-
-      padding: 6px 9px;
-
-      border-radius: 7px;
-
-      color: #647069;
-
-      background: white;
-
-      font-size: 8px;
-    }
-
-
-    /* =====================================================
-       BADGES
-    ====================================================== */
-
-    .badges {
-
-      padding:
-        13px;
-
-      display: grid;
-
-      grid-template-columns:
-        repeat(3, 1fr);
-
-      gap: 17px 7px;
-    }
-
-    .badge {
-
-      text-align: center;
-
-      font-size: 8px;
-
-      color: #56635c;
-    }
-
-    .badge-circle {
-
-      width: 47px;
-      height: 47px;
-
-      margin:
-        0 auto 7px;
-
-      border-radius: 13px;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      font-size: 23px;
-
-      color: #fff;
-
-      border:
-        2px solid rgba(255,255,255,.8);
-
-      box-shadow:
-        0 5px 12px
-        rgba(45,50,50,.08);
-    }
-
-    .badge:nth-child(1) .badge-circle {
-
-      background:
-        linear-gradient(
-          145deg,
-          #8763dc,
-          #5936b8
-        );
-    }
-
-    .badge:nth-child(2) .badge-circle {
-
-      background:
-        linear-gradient(
-          145deg,
-          #63bb4c,
-          #2d8c42
-        );
-    }
-
-    .badge:nth-child(3) .badge-circle {
-
-      background:
-        linear-gradient(
-          145deg,
-          #65b8eb,
-          #347db7
-        );
-    }
-
-    .badge:nth-child(4) .badge-circle {
-
-      background:
-        linear-gradient(
-          145deg,
-          #f5ad37,
-          #d27a0d
-        );
-    }
-
-    .badge:nth-child(5) .badge-circle {
-
-      background:
-        linear-gradient(
-          145deg,
-          #8766d8,
-          #4d31a5
-        );
-    }
-
-    .badge:nth-child(6) .badge-circle {
-
-      background:
-        linear-gradient(
-          145deg,
-          #dfe2e4,
-          #a8afb3
-        );
-
-      color: #626b70;
-    }
-
-
-    /* =====================================================
-       DYNAMIC ANALYSIS RESULT
-    ====================================================== */
-
-    #portal-analysis-status {
-      padding:
-        0 15px 15px;
-    }
-
-    .react-analysis-result {
-
-      padding-top: 3px;
-    }
-
-    .analysis-result-title {
-
-      font-size: 15px;
-
-      font-weight: 800;
-
-      color: #253129;
-    }
-
-    .analysis-result-row {
-
-      display: flex;
-
-      justify-content: space-between;
-
-      margin-top: 7px;
-
-      color: #718078;
-
-      font-size: 9px;
-    }
-
-    .analysis-result-row strong {
-      color: #26332c;
-    }
-
-    .analysis-approved,
-    .analysis-rejected {
-
-      margin-top: 10px;
-
-      display: inline-block;
-
-      padding: 5px 8px;
-
-      border-radius: 6px;
-
-      font-size: 8px;
-
-      font-weight: 800;
-    }
-
-    .analysis-approved {
-
-      color: #147a45;
-
-      background: #e9f7ed;
-    }
-
-    .analysis-rejected {
-
-      color: #b44736;
-
-      background: #fff0ed;
-    }
-
-    .analysis-idle {
-
-      color: #9aa39d;
-
-      font-size: 9px;
-
-      padding-top: 5px;
-    }
-
-
-    /* =====================================================
-       GOLD DETAILS
-    ====================================================== */
-
-    .gold-line {
-
-      height: 2px;
-
-      width: 38px;
-
-      background:
-        linear-gradient(
-          90deg,
-          #d4a63f,
-          #f2d889
-        );
-
-      border-radius: 10px;
-    }
-
-
-    /* =====================================================
-       RESPONSIVE
-    ====================================================== */
-
-    @media (max-width: 1250px) {
-
-      .sidebar {
-        width: 205px;
+      font-family: 'Inter', sans-serif;
+      background-color: #0d120e;
+    }
+
+    /* Main App Background Image */
+    .bg-recycle-pattern {
+      background-image: linear-gradient(rgba(10, 16, 12, 0.75), rgba(10, 16, 12, 0.85)), 
+                        url('https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    /* Leaderboard Custom Background */
+    .bg-leaderboard-pattern {
+      background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.90)), 
+                        url('https://plus.unsplash.com/premium_photo-1713628398199-17b97c1ec8a6?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    /* Gold Glowing Badge Animations */
+    @keyframes goldGlow {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(234, 179, 8, 0.4), inset 0 0 10px rgba(254, 240, 138, 0.5);
+        border-color: #facc15;
       }
-
-      .main {
-
-        margin-left: 205px;
-
-        width:
-          calc(100% - 205px);
-      }
-
-      .dashboard-grid {
-
-        grid-template-columns:
-          repeat(2, minmax(0, 1fr));
-      }
-
-      .lower-grid {
-
-        grid-template-columns:
-          repeat(2, minmax(0, 1fr));
-      }
-
-      .impact-items {
-        overflow-x: auto;
+      50% {
+        box-shadow: 0 0 25px rgba(250, 204, 21, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.8);
+        border-color: #fef08a;
       }
     }
 
-
-    @media (max-width: 900px) {
-
-      .sidebar {
-
-        position: relative;
-
-        width: 100%;
-
-        min-height: auto;
-
-        border-right: none;
-
-        border-bottom:
-          1px solid #e8ebe6;
-      }
-
-      .app-shell {
-        display: block;
-      }
-
-      .main {
-
-        margin-left: 0;
-
-        width: 100%;
-
-        padding:
-          16px;
-      }
-
-      .nav {
-
-        flex-direction: row;
-
-        flex-wrap: wrap;
-      }
-
-      .nav-item {
-
-        flex: 1;
-
-        min-width: 130px;
-      }
-
-      .sidebar-spacer,
-      .sidebar-wallet,
-      .level-card {
-        display: none;
-      }
-
-      .kpi-grid {
-
-        grid-template-columns:
-          repeat(2, 1fr);
-      }
+    .gold-badge-active {
+      background: linear-gradient(135deg, #713f12 0%, #a16207 50%, #ca8a04 100%);
+      border: 2px solid #facc15 !important;
+      animation: goldGlow 2.5s infinite ease-in-out;
+      color: #fef08a !important;
     }
 
-
-    @media (max-width: 650px) {
-
-      .topbar {
-
-        align-items: flex-start;
-
-        gap: 12px;
-
-        flex-direction: column;
-      }
-
-      .top-actions {
-
-        width: 100%;
-      }
-
-      .profile-pill {
-        margin-left: auto;
-      }
-
-      .dashboard-grid,
-      .lower-grid {
-
-        grid-template-columns: 1fr;
-      }
-
-      .kpi-grid {
-
-        grid-template-columns: 1fr;
-      }
-
-      .deposit-form {
-
-        grid-template-columns: 1fr;
-      }
-
-      .impact-panel {
-
-        align-items: flex-start;
-
-        flex-direction: column;
-
-        gap: 10px;
-      }
-
-      .impact-items {
-
-        width: 100%;
-      }
-
-      .earth {
-        display: none;
-      }
+    .gold-badge-active .badge-icon {
+      filter: drop-shadow(0 0 8px #fde047);
     }
-
   </style>
-
 </head>
+<body class="bg-recycle-pattern text-slate-100 min-h-screen">
 
+  <!-- Mobile Quick Bin QR Banner -->
+  <div id="qr-banner" class="hidden bg-emerald-600/90 backdrop-blur-md text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-lg border-b border-emerald-400/30">
+    <span><i class="fa-solid fa-qrcode mr-2"></i> Connected Bin: <span id="active-bin-id" class="underline">BIN-001</span></span>
+    <span class="bg-emerald-950/60 text-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] border border-emerald-500/30">PWA Mode</span>
+  </div>
 
-<body>
+  <div class="flex min-h-screen">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-slate-950/80 backdrop-blur-xl border-r border-emerald-900/30 p-6 flex flex-col justify-between hidden md:flex">
+      <div>
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-emerald-900/50">
+            <i class="fa-solid fa-recycle"></i>
+          </div>
+          <div>
+            <h1 class="font-black text-white text-lg leading-none tracking-wide">Recycle2Earn</h1>
+            <p class="text-[10px] font-semibold text-emerald-400/80 mt-1">Scan. Deposit. Earn.</p>
+          </div>
+        </div>
 
+        <nav class="space-y-2">
+          <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-sm transition">
+            <i class="fa-solid fa-chart-pie"></i> Dashboard
+          </button>
+          <button onclick="switchView('deposit')" id="nav-deposit" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white font-semibold text-sm transition">
+            <i class="fa-solid fa-dumpster-fire"></i> Quick Deposit
+          </button>
+          <button onclick="switchView('history')" id="nav-history" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white font-semibold text-sm transition">
+            <i class="fa-solid fa-clock-rotate-left"></i> History
+          </button>
+          <button onclick="switchView('members')" id="nav-members" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white font-semibold text-sm transition">
+            <i class="fa-solid fa-users"></i> Leaderboard
+          </button>
+        </nav>
+      </div>
 
-  <!-- =====================================================
-       IMPORTANT ARCHITECTURE
+      <!-- Current User Sidebar Widget -->
+      <div id="sidebar-user-widget" class="p-4 bg-slate-900/90 rounded-2xl border border-emerald-900/40 shadow-inner">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs" id="widget-avatar">
+            ?
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-xs font-bold text-slate-100 truncate" id="widget-username">Not Registered</p>
+            <p class="text-[10px] font-mono text-emerald-400/70 truncate" id="widget-wallet">No Wallet Linked</p>
+          </div>
+        </div>
+      </div>
+    </aside>
 
-       The visual dashboard is OUTSIDE #root.
+    <!-- Main Content Display -->
+    <main class="flex-1 p-4 md:p-10 max-w-7xl mx-auto space-y-6">
 
-       React mounts into the empty #root and uses portals
-       to inject dynamic components into the dashboard.
+      <!-- Header Bar -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-2xl">
+        <div>
+          <h2 class="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+            Welcome to Recycle2Earn 👋
+          </h2>
+          <p class="text-xs font-medium text-slate-400 mt-1">Scan bin QR code, deposit waste, and earn $RECYCLE on Sepolia.</p>
+        </div>
+        <button onclick="openRegisterModal()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-950 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-user-plus"></i> Register / Switch User
+        </button>
+      </div>
 
-       Therefore React will NOT erase this webpage.
-  ====================================================== -->
+      <!-- PAGE 1: DASHBOARD VIEW -->
+      <div id="view-dashboard" class="view-page space-y-6">
+        
+        <!-- Streaks & Glowing Gold Badges -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Daily Streak Card -->
+          <div class="bg-gradient-to-br from-emerald-600/90 to-teal-900/90 backdrop-blur-md text-white p-6 rounded-2xl border border-emerald-400/30 shadow-xl flex items-center justify-between">
+            <div>
+              <span class="text-xs font-black uppercase tracking-wider text-emerald-200">Current Streak</span>
+              <div class="flex items-baseline gap-2 mt-1">
+                <span id="streak-count" class="text-4xl font-black text-white">0</span>
+                <span class="text-lg font-bold text-emerald-200">Days</span>
+              </div>
+              <p class="text-[11px] text-emerald-200 mt-1"><i class="fa-solid fa-fire mr-1 text-amber-400"></i> Deposit daily to maintain streak!</p>
+            </div>
+            <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl shadow-inner">
+              🔥
+            </div>
+          </div>
 
+          <!-- Gold Glowing Badges Container -->
+          <div class="md:col-span-2 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+                <i class="fa-solid fa-award text-amber-400"></i> Earned Badges
+              </h3>
+              <span class="text-xs text-amber-300 font-bold" id="badge-count">0 / 4 Unlocked</span>
+            </div>
 
-  <div class="app-shell">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div id="badge-first" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">🌱</span>
+                <span class="text-xs font-black tracking-wide">First Deposit</span>
+                <span class="text-[9px] text-slate-400">1 Deposit</span>
+              </div>
+              <div id="badge-streak" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">⚡</span>
+                <span class="text-xs font-black tracking-wide">Clean Streak</span>
+                <span class="text-[9px] text-slate-400">3-Day Streak</span>
+              </div>
+              <div id="badge-heavy" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">🏋️</span>
+                <span class="text-xs font-black tracking-wide">Heavy Recycler</span>
+                <span class="text-[9px] text-slate-400">10+ kg Total</span>
+              </div>
+              <div id="badge-master" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">👑</span>
+                <span class="text-xs font-black tracking-wide">Eco Champion</span>
+                <span class="text-[9px] text-slate-400">50+ kg Total</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
+        <!-- Quick Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
+            <p class="text-xs text-slate-400 font-bold uppercase">Total Recycled</p>
+            <p id="dash-total-weight" class="text-2xl font-black text-emerald-400 mt-1">0.0 kg</p>
+          </div>
+          <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
+            <p class="text-xs text-slate-400 font-bold uppercase">Total Tokens Earned</p>
+            <p id="dash-total-tokens" class="text-2xl font-black text-amber-400 mt-1">0.0 $RECYCLE</p>
+          </div>
+          <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
+            <p class="text-xs text-slate-400 font-bold uppercase">Total Deposits</p>
+            <p id="dash-total-deposits" class="text-2xl font-black text-teal-400 mt-1">0</p>
+          </div>
+        </div>
 
-    <!-- ===================================================
-         SIDEBAR
-    ==================================================== -->
+      </div>
 
-    <aside class="sidebar">
+      <!-- PAGE 2: QUICK DEPOSIT VIEW -->
+      <div id="view-deposit" class="view-page hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Left Deposit Form -->
+          <div class="lg:col-span-5 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl space-y-4">
+            <h3 class="font-extrabold text-white text-base flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> New Waste Deposit
+            </h3>
 
+            <form id="deposit-form" onsubmit="handleDeposit(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Waste Category</label>
+                <select id="waste-type" onchange="updateWasteCategoryPreview()" class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="Plastic">Plastic Waste</option>
+                  <option value="Metal">Metal Cans</option>
+                  <option value="E-Waste">E-Waste / Circuitry</option>
+                </select>
+              </div>
 
-      <!-- BRAND -->
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Weight (kg)</label>
+                <input type="number" id="waste-weight" step="0.1" min="0.1" value="1.5" required class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-bold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </div>
 
-      <div class="brand">
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 text-xs transition">
+                <i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia
+              </button>
+            </form>
+          </div>
 
-        <div class="brand-symbol">
-          ♻
+          <!-- Right Image Visualizer -->
+          <div class="lg:col-span-7 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-image text-emerald-400"></i> Selected Waste Category
+                </h3>
+                <span id="category-tag" class="text-[10px] font-black uppercase px-2.5 py-1 bg-emerald-950 text-emerald-400 rounded-md border border-emerald-800">
+                  PLASTIC
+                </span>
+              </div>
+
+              <!-- Dynamic Category Image Display -->
+              <div id="preview-container" class="w-full h-56 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800 relative">
+                <img id="category-preview-img" src="" alt="Selected Waste Category" class="w-full h-full object-cover rounded-xl transition duration-300" />
+              </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-medium text-slate-400">
+              <span><i class="fa-solid fa-network-wire text-emerald-400 mr-1"></i> Signal: <strong id="bin-route-display" class="text-white">P (Plastic)</strong></span>
+              <span><i class="fa-solid fa-coins text-amber-400 mr-1"></i> Dynamic RAG Scoring Active</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PAGE 3: HISTORY VIEW -->
+      <div id="view-history" class="view-page hidden space-y-6">
+        <div class="bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl">
+          <h3 class="font-extrabold text-white text-base mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Active User Deposit History
+          </h3>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950/80 text-emerald-400 font-extrabold uppercase border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">Time</th>
+                  <th class="py-3 px-4">User</th>
+                  <th class="py-3 px-4">Material</th>
+                  <th class="py-3 px-4">Weight</th>
+                  <th class="py-3 px-4">Reward</th>
+                  <th class="py-3 px-4">Sepolia Transaction / Wallet</th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody" class="divide-y divide-slate-800 font-medium">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: MEMBERS LEADERBOARD VIEW (WITH CUSTOM BACKGROUND) -->
+      <div id="view-members" class="view-page hidden space-y-6">
+        <div class="bg-leaderboard-pattern backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/40 shadow-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-extrabold text-white text-base flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-amber-400"></i> Members Leaderboard
+              </h3>
+              <p class="text-xs text-slate-300">Top recyclers verified on Sepolia</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-200">
+              <thead class="bg-slate-950/90 text-emerald-400 font-extrabold uppercase border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">Member</th>
+                  <th class="py-3 px-4">Sepolia Address</th>
+                  <th class="py-3 px-4">Total Recycled</th>
+                  <th class="py-3 px-4">Total Tokens</th>
+                  <th class="py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="members-tbody" class="divide-y divide-slate-800/80 font-medium bg-slate-950/60">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Registration Modal -->
+  <div id="register-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-emerald-700/40 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-extrabold text-white text-base">Register User & Sepolia Wallet</h3>
+        <button onclick="closeRegisterModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="register-form" onsubmit="handleUserRegistration(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Full Name / Username</label>
+          <input type="text" id="reg-username" required placeholder="e.g. Alex Rivera" class="w-full bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
 
         <div>
-
-          <div class="brand-name">
-            Recycle<span>2Earn</span>
-          </div>
-
-          <div class="brand-tagline">
-            Recycle. Earn. Level Up.
-          </div>
-
+          <label class="block text-xs font-bold text-slate-300 mb-1">Sepolia Wallet Address</label>
+          <input type="text" id="reg-wallet" required pattern="^0x[a-fA-F0-9]{40}$" placeholder="0x..." class="w-full bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-xl font-mono text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          <span class="text-[10px] text-slate-400">Must be a valid Ethereum Sepolia address starting with 0x</span>
         </div>
 
-      </div>
-
-
-      <!-- NAVIGATION -->
-
-      <nav class="nav">
-
-        <a
-          href="#"
-          class="nav-item active"
-        >
-          <span class="nav-icon">
-            ⌂
-          </span>
-
-          Dashboard
-        </a>
-
-        <a
-          href="#deposit"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ♧
-          </span>
-
-          Deposit
-        </a>
-
-        <a
-          href="#analysis"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ✣
-          </span>
-
-          AI Analyzer
-        </a>
-
-        <a
-          href="#hardware"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ▣
-          </span>
-
-          Hardware
-        </a>
-
-        <a
-          href="#blockchain"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ◇
-          </span>
-
-          Blockchain
-        </a>
-
-        <a
-          href="#rewards"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ✧
-          </span>
-
-          Rewards
-        </a>
-
-        <a
-          href="#challenges"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ♧
-          </span>
-
-          Challenges
-        </a>
-
-        <a
-          href="#leaderboard"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ♛
-          </span>
-
-          Leaderboard
-        </a>
-
-        <a
-          href="#profile"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ◎
-          </span>
-
-          Profile
-        </a>
-
-        <a
-          href="#settings"
-          class="nav-item"
-        >
-          <span class="nav-icon">
-            ⚙
-          </span>
-
-          Settings
-        </a>
-
-      </nav>
-
-
-      <div class="sidebar-spacer"></div>
-
-
-      <!-- WALLET -->
-
-      <div class="sidebar-wallet">
-
-        <div class="wallet-user">
-
-          <div class="avatar">
-            👨🏻‍💻
-          </div>
-
-          <div>
-
-            <div class="wallet-address">
-              0xA12b2...7cDe
-            </div>
-
-            <div class="wallet-balance">
-              532.45 RECYCLE
-            </div>
-
-          </div>
-
-          <div class="wallet-copy">
-            ⧉
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <!-- LEVEL -->
-
-      <div class="level-card">
-
-        <h3>
-          Level 2 Recycler
-        </h3>
-
-        <div class="level-xp">
-          2,450 / 5,000 XP
-        </div>
-
-        <div class="level-track">
-
-          <div class="level-fill"></div>
-
-        </div>
-
-        <div class="level-next">
-          49% to Level 3
-        </div>
-
-        <div class="plant-decoration">
-          🌱
-        </div>
-
-        <div class="level-message">
-          You're making the planet cleaner! 🌎
-        </div>
-
-      </div>
-
-    </aside>
-
-
-    <!-- ===================================================
-         MAIN
-    ==================================================== -->
-
-    <main class="main">
-
-
-      <!-- =================================================
-           TOPBAR
-      ================================================== -->
-
-      <header class="topbar">
-
-        <div class="welcome">
-
-          <h1>
-            Welcome back, Recycler! 👋
-          </h1>
-
-          <p>
-            Here's your recycling impact today.
-          </p>
-
-        </div>
-
-
-        <div class="top-actions">
-
-          <div class="network-pill">
-
-            <span class="eth">
-              ♦
-            </span>
-
-            Sepolia
-
-            <span>
-             ⌄
-            </span>
-
-          </div>
-
-          <div class="notification">
-            ♧
-          </div>
-
-          <div class="profile-pill">
-
-            <div class="avatar">
-              👨🏻‍💻
-            </div>
-
-            <div>
-
-              <div class="profile-name">
-                Recycler
-              </div>
-
-              <div class="profile-level">
-                Level 2
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </header>
-
-
-      <!-- =================================================
-           KPI CARDS
-      ================================================== -->
-
-      <section class="kpi-grid">
-
-
-        <!-- TOKENS -->
-
-        <div class="kpi-card">
-
-          <div class="kpi-inner">
-
-            <div class="kpi-icon">
-              ♻
-            </div>
-
-            <div>
-
-              <div class="kpi-label">
-                Total Tokens Earned
-              </div>
-
-              <div class="kpi-value">
-                532.45
-
-                <span class="kpi-unit">
-                  $RECYCLE
-                </span>
-              </div>
-
-              <div class="kpi-change">
-                ↑ +12.25 today
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- WEIGHT -->
-
-        <div class="kpi-card purple">
-
-          <div class="kpi-inner">
-
-            <div class="kpi-icon">
-              ♻
-            </div>
-
-            <div>
-
-              <div class="kpi-label">
-                Total Weight Recycled
-              </div>
-
-              <div class="kpi-value">
-                128.45
-
-                <span class="kpi-unit">
-                  kg
-                </span>
-              </div>
-
-              <div class="kpi-change">
-                ↑ +1.85 kg today
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- DEPOSITS -->
-
-        <div class="kpi-card gold">
-
-          <div class="kpi-inner">
-
-            <div class="kpi-icon">
-              ♛
-            </div>
-
-            <div>
-
-              <div class="kpi-label">
-                Total Deposits
-              </div>
-
-              <div
-                class="kpi-value gold-text"
-              >
-
-                <span id="portal-total-deposits">
-                  24
-                </span>
-
-              </div>
-
-              <div class="kpi-change gold">
-                ↑ +3 today
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- CO2 -->
-
-        <div class="kpi-card blue">
-
-          <div class="kpi-inner">
-
-            <div class="kpi-icon">
-              ☁
-            </div>
-
-            <div>
-
-              <div class="kpi-label">
-                CO₂ Saved
-              </div>
-
-              <div class="kpi-value">
-
-                86.2
-
-                <span class="kpi-unit">
-                  kg
-                </span>
-
-              </div>
-
-              <div class="kpi-change">
-                ↑ +8.6 kg today
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- =================================================
-           MAIN FOUR PANELS
-      ================================================== -->
-
-      <section class="dashboard-grid">
-
-
-        <!-- MISSION -->
-
-        <div
-          class="panel mission-panel"
-          id="challenges"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title">
-              ◎ &nbsp; TODAY'S MISSION
-            </span>
-
-          </div>
-
-          <div class="mission">
-
-            <div class="mission-top">
-
-              <div>
-
-                <div class="mission-title">
-                  Recycle 5 kg of waste
-                </div>
-
-                <div class="mission-description">
-                  Complete today's challenge and earn bonus XP.
-                </div>
-
-              </div>
-
-              <div class="mission-icon">
-                ◎
-              </div>
-
-            </div>
-
-
-            <div class="mission-progress">
-
-              <div class="mission-track">
-
-                <div class="mission-fill"></div>
-
-              </div>
-
-              <div class="mission-meta">
-
-                <span>
-                  <strong>3.25</strong> / 5 kg
-                </span>
-
-                <span>
-                  65%
-                </span>
-
-              </div>
-
-            </div>
-
-
-            <div class="mission-reward">
-
-              REWARD:
-              <strong>
-                +50 XP
-              </strong>
-
-              &nbsp;
-
-              <strong>
-                +25 $RECYCLE
-              </strong>
-
-            </div>
-
-
-            <button class="mission-button">
-              VIEW ALL CHALLENGES
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- ANALYSIS -->
-
-        <div
-          class="panel analysis-panel"
-          id="analysis"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title">
-              ◇ &nbsp; ANALYSIS
-            </span>
-
-            <span class="confidence">
-              CONFIDENCE: 97.4%
-            </span>
-
-          </div>
-
-
-          <div class="analysis-content">
-
-            <div class="analysis-preview">
-              🧴
-            </div>
-
-
-            <div
-              id="portal-analysis-status"
-            >
-
-              <div class="analysis-result">
-
-                <div class="analysis-label">
-                  Item Identified
-                </div>
-
-                <div class="analysis-value">
-                  Plastic Bottle
-                </div>
-
-                <div class="analysis-label"
-                     style="margin-top:14px;">
-                  Material
-                </div>
-
-                <div class="material-chip">
-                  PLASTIC
-                </div>
-
-                <div class="analysis-label"
-                     style="margin-top:14px;">
-                  Route
-                </div>
-
-                <div class="route-chip">
-                  Conveyor B
-                  <span>»</span>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- HARDWARE -->
-
-        <div
-          class="panel hardware-panel"
-          id="hardware"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title green">
-              LIVE HARDWARE FEED
-            </span>
-
-            <span class="live">
-
-              <span class="live-dot"></span>
-
-              LIVE
-
-            </span>
-
-          </div>
-
-
-          <div class="hardware-illustration">
-
-            <div class="machine">
-              🦾
-            </div>
-
-            <div class="conveyor"></div>
-
-          </div>
-
-
-          <div class="hardware-bottom">
-
-            <div>
-
-              <div class="hardware-label">
-                Live Weight
-              </div>
-
-              <div class="hardware-weight">
-
-                1.85
-                <span>kg</span>
-
-                <span class="stable">
-                  Stable
-                </span>
-
-              </div>
-
-            </div>
-
-            <div class="sparkline">
-              ⌁
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- BLOCKCHAIN -->
-
-        <div
-          class="panel blockchain-panel"
-          id="blockchain"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title">
-              BLOCKCHAIN TRANSACTION
-            </span>
-
-          </div>
-
-
-          <div class="blockchain">
-
-            <div class="tx-label">
-              Status
-            </div>
-
-            <div class="tx-status">
-
-              CONFIRMED
-
-              <div class="confirmed">
-                ✓
-              </div>
-
-            </div>
-
-
-            <div class="tx-row">
-
-              <div class="tx-label">
-                TX HASH
-              </div>
-
-              <div class="tx-value">
-                0x8f3...9ab2 &nbsp; ⧉
-              </div>
-
-            </div>
-
-
-            <div class="tx-row">
-
-              <div class="tx-label">
-                Reward
-              </div>
-
-              <div class="reward-value">
-                +12.25 $RECYCLE
-              </div>
-
-            </div>
-
-
-            <button
-              class="explorer-button"
-            >
-              VIEW ON ETHERSCAN ↗
-            </button>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- =================================================
-           IMPACT
-      ================================================== -->
-
-      <section class="panel impact-panel">
-
-        <div class="impact-title">
-          YOUR IMPACT
-        </div>
-
-
-        <div class="impact-items">
-
-
-          <div class="impact-item">
-
-            <div class="impact-icon">
-              ♻
-            </div>
-
-            <div>
-
-              <div class="impact-number">
-                128.45
-                <span>kg</span>
-              </div>
-
-              <div class="impact-label">
-                Total Recycled
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <div class="impact-item">
-
-            <div class="impact-icon">
-              🌿
-            </div>
-
-            <div>
-
-              <div class="impact-number">
-                <span
-                  id="impact-deposits"
-                >
-                  24
-                </span>
-              </div>
-
-              <div class="impact-label">
-                Total Deposits
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <div class="impact-item gold">
-
-            <div class="impact-icon">
-              ◉
-            </div>
-
-            <div>
-
-              <div class="impact-number">
-                532.45
-              </div>
-
-              <div class="impact-label">
-                $RECYCLE Earned
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <div class="impact-item">
-
-            <div class="impact-icon">
-              ☁
-            </div>
-
-            <div>
-
-              <div class="impact-number">
-                86.2
-                <span>kg</span>
-              </div>
-
-              <div class="impact-label">
-                CO₂ Saved
-              </div>
-
-            </div>
-
-          </div>
-
-
-        </div>
-
-
-        <div class="earth">
-          🌍🌱
-        </div>
-
-      </section>
-
-
-      <!-- =================================================
-           LOWER FOUR PANELS
-      ================================================== -->
-
-      <section class="lower-grid">
-
-
-        <!-- QUICK DEPOSIT -->
-
-        <div
-          class="panel quick-deposit"
-          id="deposit"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title">
-              QUICK DEPOSIT
-            </span>
-
-          </div>
-
-          <div class="quick-content">
-
-            <div id="portal-deposit-form">
-
-              <!-- React will inject the form here -->
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- ACTIVITY -->
-
-        <div
-          class="panel activity-panel"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title">
-              RECENT ACTIVITY
-            </span>
-
-          </div>
-
-          <div id="portal-activity-table">
-
-            <!-- React will inject activity here -->
-
-          </div>
-
-        </div>
-
-
-        <!-- LEADERBOARD -->
-
-        <div
-          class="panel"
-          id="leaderboard"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title">
-              LEADERBOARD
-            </span>
-
-            <span class="month">
-              This Month ⌄
-            </span>
-
-          </div>
-
-
-          <div class="leaderboard">
-
-
-            <div class="leader-row">
-
-              <div class="rank">
-                1
-              </div>
-
-              <div class="leader-user">
-
-                <div class="mini-avatar">
-                  👨
-                </div>
-
-                <div class="leader-name">
-                  GreenMachine
-                </div>
-
-              </div>
-
-              <div class="leader-xp">
-                4,920 XP
-              </div>
-
-            </div>
-
-
-            <div class="leader-row">
-
-              <div class="rank">
-                2
-              </div>
-
-              <div class="leader-user">
-
-                <div class="mini-avatar">
-                  🧑
-                </div>
-
-                <div class="leader-name">
-                  EcoKnight
-                </div>
-
-              </div>
-
-              <div class="leader-xp">
-                4,710 XP
-              </div>
-
-            </div>
-
-
-            <div class="leader-row">
-
-              <div class="rank">
-                3
-              </div>
-
-              <div class="leader-user">
-
-                <div class="mini-avatar">
-                  👨
-                </div>
-
-                <div class="leader-name">
-                  RecyclerX
-                </div>
-
-              </div>
-
-              <div class="leader-xp">
-                4,320 XP
-              </div>
-
-            </div>
-
-
-            <div class="leader-row">
-
-              <div class="rank">
-                4
-              </div>
-
-              <div class="leader-user">
-
-                <div class="mini-avatar">
-                  🧑
-                </div>
-
-                <div class="leader-name">
-                  WasteWarrior
-                </div>
-
-              </div>
-
-              <div class="leader-xp">
-                3,980 XP
-              </div>
-
-            </div>
-
-
-            <div class="leader-row you-row">
-
-              <div class="rank">
-                17
-              </div>
-
-              <div class="leader-user">
-
-                <div class="mini-avatar">
-                  👨🏻‍💻
-                </div>
-
-                <div class="leader-name">
-                  You
-                </div>
-
-              </div>
-
-              <div class="leader-xp">
-                2,450 XP
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- BADGES -->
-
-        <div
-          class="panel"
-          id="rewards"
-        >
-
-          <div class="panel-header">
-
-            <span class="panel-title">
-              BADGES
-            </span>
-
-            <span class="panel-subtitle">
-              View All
-            </span>
-
-          </div>
-
-
-          <div class="badges">
-
-
-            <div class="badge">
-
-              <div class="badge-circle">
-                ★
-              </div>
-
-              First Deposit
-
-            </div>
-
-
-            <div class="badge">
-
-              <div class="badge-circle">
-                ♨
-              </div>
-
-              5 Deposits
-
-            </div>
-
-
-            <div class="badge">
-
-              <div class="badge-circle">
-                ♻
-              </div>
-
-              Clean Streak
-
-            </div>
-
-
-            <div class="badge">
-
-              <div class="badge-circle">
-                ✦
-              </div>
-
-              10 kg Recycled
-
-            </div>
-
-
-            <div class="badge">
-
-              <div class="badge-circle">
-                ♛
-              </div>
-
-              Token Earner
-
-            </div>
-
-
-            <div class="badge">
-
-              <div class="badge-circle">
-                🔒
-              </div>
-
-              Unlocks at Lv. 3
-
-            </div>
-
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-    </main>
-
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 text-xs transition">
+          Complete Registration
+        </button>
+      </form>
+    </div>
   </div>
 
+  <!-- App Script -->
+  <script>
+    const API_BASE_URL = 'http://localhost:8000';
 
-  <!-- =====================================================
-       REACT MOUNT POINT
+    const WASTE_IMAGES = {
+      Plastic: 'https://images.unsplash.com/photo-1637251393207-6c870eaca402?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      Metal: 'https://images.unsplash.com/photo-1721622248852-b22f47e9b9ee?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      'E-Waste': 'https://images.unsplash.com/photo-1717667745934-53091623e8ee?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+    };
 
-       MUST remain OUTSIDE .app-shell.
+    function truncateAddress(addr) {
+      if (!addr || addr.length < 10) return addr;
+      return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
+    }
 
-       App.js will use React portals to inject its
-       dynamic elements into the dashboard above.
-  ====================================================== -->
+    let users = JSON.parse(localStorage.getItem('r2e_users')) || [];
+    let activeWallet = localStorage.getItem('r2e_active_wallet') || null;
 
-  <div id="root"></div>
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const binId = urlParams.get('bin');
+      if (binId) {
+        document.getElementById('qr-banner').classList.remove('hidden');
+        document.getElementById('active-bin-id').innerText = binId;
+      }
 
+      updateWasteCategoryPreview();
+      renderDashboard();
+    });
 
+    function switchView(viewName) {
+      document.querySelectorAll('.view-page').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-link').forEach(el => {
+        el.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+        el.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`view-${viewName}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${viewName}`);
+      if (activeNav) {
+        activeNav.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+        activeNav.classList.remove('text-slate-400');
+      }
+    }
+
+    function openRegisterModal() {
+      document.getElementById('register-modal').classList.remove('hidden');
+    }
+
+    function closeRegisterModal() {
+      document.getElementById('register-modal').classList.add('hidden');
+    }
+
+    function updateWasteCategoryPreview() {
+      const type = document.getElementById('waste-type').value;
+      const imgElem = document.getElementById('category-preview-img');
+      const tagElem = document.getElementById('category-tag');
+      const routeElem = document.getElementById('bin-route-display');
+
+      imgElem.src = WASTE_IMAGES[type] || WASTE_IMAGES['Plastic'];
+
+      if (type === 'Plastic') {
+        tagElem.innerText = 'PLASTIC';
+        routeElem.innerText = 'P (Plastic)';
+      } else if (type === 'Metal') {
+        tagElem.innerText = 'METAL CAN';
+        routeElem.innerText = 'M (Metal)';
+      } else {
+        tagElem.innerText = 'E-WASTE';
+        routeElem.innerText = 'E (E-Waste)';
+      }
+    }
+
+    function handleUserRegistration(e) {
+      e.preventDefault();
+      const username = document.getElementById('reg-username').value.trim();
+      const wallet = document.getElementById('reg-wallet').value.trim();
+
+      let user = users.find(u => u.wallet.toLowerCase() === wallet.toLowerCase());
+
+      if (!user) {
+        user = {
+          username: username,
+          wallet: wallet,
+          totalWeight: 0,
+          totalTokens: 0,
+          streak: 1,
+          deposits: []
+        };
+        users.push(user);
+      } else {
+        user.username = username;
+      }
+
+      activeWallet = wallet;
+      saveState();
+      closeRegisterModal();
+      renderDashboard();
+    }
+
+    function setActiveUser(wallet) {
+      activeWallet = wallet;
+      saveState();
+      renderDashboard();
+    }
+
+    async function handleDeposit(e) {
+      e.preventDefault();
+      if (!activeWallet) {
+        alert('Please register or select a Sepolia wallet user first!');
+        openRegisterModal();
+        return;
+      }
+
+      const user = users.find(u => u.wallet.toLowerCase() === activeWallet.toLowerCase());
+      if (!user) return;
+
+      const weight = parseFloat(document.getElementById('waste-weight').value);
+      const label = document.getElementById('waste-type').value;
+
+      const formData = new FormData();
+      formData.append('label', label);
+      formData.append('real_weight_g', weight);
+      formData.append('wallet_address', activeWallet);
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Processing RAG & Sepolia Transaction...";
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/rag/evaluate`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const tokensEarned = data.calculated_credits || 0;
+
+        const deposit = {
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: label.toUpperCase(),
+          weight: weight,
+          tokens: tokensEarned,
+          txHash: data.web3_reward ? data.web3_reward.tx_hash : null
+        };
+
+        user.deposits.unshift(deposit);
+        user.totalWeight += weight;
+        user.totalTokens += tokensEarned;
+        user.streak += 1;
+
+        saveState();
+        renderDashboard();
+        switchView('history');
+      } catch (err) {
+        alert(`Failed to complete transaction: ${err.message}`);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia`;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem('r2e_users', JSON.stringify(users));
+      localStorage.setItem('r2e_active_wallet', activeWallet || '');
+    }
+
+    function renderDashboard() {
+      const activeUser = users.find(u => u.wallet.toLowerCase() === (activeWallet || '').toLowerCase());
+
+      const widgetAvatar = document.getElementById('widget-avatar');
+      const widgetUsername = document.getElementById('widget-username');
+      const widgetWallet = document.getElementById('widget-wallet');
+
+      if (activeUser) {
+        widgetAvatar.innerText = activeUser.username.charAt(0).toUpperCase();
+        widgetUsername.innerText = activeUser.username;
+        widgetWallet.innerText = truncateAddress(activeUser.wallet);
+      } else {
+        widgetAvatar.innerText = '?';
+        widgetUsername.innerText = 'Not Registered';
+        widgetWallet.innerText = 'No Wallet Linked';
+      }
+
+      const streakCount = document.getElementById('streak-count');
+      const badgeCount = document.getElementById('badge-count');
+
+      const streak = activeUser ? activeUser.streak : 0;
+      const totalWeight = activeUser ? activeUser.totalWeight : 0;
+      const totalTokens = activeUser ? activeUser.totalTokens : 0;
+      const depositCount = activeUser ? activeUser.deposits.length : 0;
+
+      streakCount.innerText = streak;
+      document.getElementById('dash-total-weight').innerText = `${totalWeight.toFixed(1)} kg`;
+      document.getElementById('dash-total-tokens').innerText = `${totalTokens.toFixed(1)} $RECYCLE`;
+      document.getElementById('dash-total-deposits').innerText = depositCount;
+
+      let unlockedBadges = 0;
+      
+      const badgeFirst = document.getElementById('badge-first');
+      const badgeStreak = document.getElementById('badge-streak');
+      const badgeHeavy = document.getElementById('badge-heavy');
+      const badgeMaster = document.getElementById('badge-master');
+
+      const applyBadgeState = (elem, isUnlocked) => {
+        if (isUnlocked) {
+          elem.className = 'gold-badge-active p-3 rounded-xl flex flex-col items-center text-center transition duration-500';
+          unlockedBadges++;
+        } else {
+          elem.className = 'p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500';
+        }
+      };
+
+      applyBadgeState(badgeFirst, depositCount >= 1);
+      applyBadgeState(badgeStreak, streak >= 3);
+      applyBadgeState(badgeHeavy, totalWeight >= 10);
+      applyBadgeState(badgeMaster, totalWeight >= 50);
+
+      badgeCount.innerText = `${unlockedBadges} / 4 Unlocked`;
+
+      // Render Deposit History
+      const historyTbody = document.getElementById('history-tbody');
+      historyTbody.innerHTML = '';
+
+      if (activeUser && activeUser.deposits.length > 0) {
+        activeUser.deposits.forEach(d => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-slate-800/40 transition';
+          const txLink = d.txHash 
+            ? `<a href="https://sepolia.etherscan.io/tx/${d.txHash}" target="_blank" class="text-emerald-400 hover:underline font-mono">${truncateAddress(d.txHash)} ↗</a>`
+            : truncateAddress(activeUser.wallet);
+
+          row.innerHTML = `
+            <td class="py-3 px-4 text-slate-400 font-mono">${d.timestamp}</td>
+            <td class="py-3 px-4 font-bold text-white">${activeUser.username}</td>
+            <td class="py-3 px-4 font-semibold">${d.type}</td>
+            <td class="py-3 px-4 font-bold text-slate-300">${d.weight.toFixed(1)} kg</td>
+            <td class="py-3 px-4 font-bold text-emerald-400">+${d.tokens.toFixed(1)} $RECYCLE</td>
+            <td class="py-3 px-4 font-mono text-slate-400">${txLink}</td>
+          `;
+          historyTbody.appendChild(row);
+        });
+      } else {
+        historyTbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-400">No deposit history found for this user.</td></tr>`;
+      }
+
+      // Render Leaderboard
+      const membersTbody = document.getElementById('members-tbody');
+      membersTbody.innerHTML = '';
+
+      if (users.length > 0) {
+        users.forEach(u => {
+          const isCurrent = activeUser && activeUser.wallet.toLowerCase() === u.wallet.toLowerCase();
+          const row = document.createElement('tr');
+          row.className = isCurrent ? 'bg-emerald-950/50 hover:bg-emerald-950/70 transition' : 'hover:bg-slate-800/50 transition';
+          row.innerHTML = `
+            <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-emerald-800 flex items-center justify-center text-[10px] font-black">${u.username.charAt(0)}</span>
+              ${u.username} ${isCurrent ? '<span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">Active</span>' : ''}
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-300">${truncateAddress(u.wallet)}</td>
+            <td class="py-3 px-4 font-bold text-slate-200">${u.totalWeight.toFixed(1)} kg</td>
+            <td class="py-3 px-4 font-bold text-emerald-400">${u.totalTokens.toFixed(1)} $RECYCLE</td>
+            <td class="py-3 px-4">
+              <button onclick="setActiveUser('${u.wallet}')" class="text-xs font-bold text-emerald-400 hover:underline">Switch User</button>
+            </td>
+          `;
+          membersTbody.appendChild(row);
+        });
+      } else {
+        membersTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">No registered members yet.</td></tr>`;
+      }
+    }
+  </script>
 </body>
-
 </html>
