@@ -7,11 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from web3 import Web3
 
+import chromadb
+from sentence_transformers import SentenceTransformer
+
 load_dotenv()
 
 app = FastAPI(title="Smart Bin RAG & Web3 API")
 
-# Enable CORS for all origins (Allows React on port 3000/5173 to connect)
+# Enable CORS for all origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,6 +37,28 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
+# ---------------------------------------------------------
+# CHROMADB & SEMANTIC RAG INITIALIZATION
+# ---------------------------------------------------------
+CHROMA_PATH = os.path.join(os.path.dirname(__file__), "mpp-semantic-rag", "chroma_db")
+
+try:
+    # Initialize Persistent ChromaDB client targeting the vector DB folder
+    chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
+    # Initialize sentence transformer model for query embeddings
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    # Get existing collection or create default
+    collections = chroma_client.list_collections()
+    collection_name = collections[0].name if collections else "brand_rewards"
+    chroma_collection = chroma_client.get_or_create_collection(name=collection_name)
+    print(f"--- ChromaDB successfully loaded from '{CHROMA_PATH}' (Collection: {collection_name}) ---")
+except Exception as e:
+    print(f"--- ChromaDB Load Warning: {e}. Falling back to default scoring. ---")
+    chroma_collection = None
+    embedding_model = None
+
+# Web3 Configuration
 SEPOLIA_RPC_URL = os.getenv("SEPOLIA_RPC_URL", "https://eth-sepolia.g.alchemy.com/v2/_wokhAu3_ees-Kn_dPfyJ")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")
@@ -46,32 +71,41 @@ try:
 except Exception:
     CONTRACT_ABI = []
 
-# Reference database for dynamic RAG/similarity credit scoring
-KNOWN_ITEMS_DB = [
-    {"brand": "Coca-Cola Can (330ml)", "material": "Metal", "base_weight_g": 13.0, "credits": 15},
-    {"brand": "Pepsi Can (330ml)", "material": "Metal", "base_weight_g": 13.5, "credits": 15},
-    {"brand": "Generic Aluminum Can", "material": "Metal", "base_weight_g": 14.0, "credits": 12},
-    {"brand": "Pepsi Bottle (500ml)", "material": "Plastic", "base_weight_g": 18.0, "credits": 10},
-    {"brand": "Coca-Cola Bottle (500ml)", "material": "Plastic", "base_weight_g": 18.5, "credits": 10},
-    {"brand": "Generic Plastic Bottle", "material": "Plastic", "base_weight_g": 20.0, "credits": 8},
-    {"brand": "Circuit Board / Battery", "material": "E-Waste", "base_weight_g": 50.0, "credits": 30},
-]
-
-def calculate_dynamic_credits(label: str, real_weight_g: float) -> int:
+def calculate_dynamic_credits_rag(label: str, real_weight_g: float) -> tuple[int, str]:
     """
-    Dynamically calculates reward points using nearest-neighbor similarity match 
-    against known baseline items (RAG retrieval step).
+    Performs semantic vector search against ChromaDB vector store.
+    Matches unknown inputs (e.g. 'unknown chocolate wrapper') to nearest known brands (e.g. 'Cadbury Wrapper').
     """
-    matched_items = [item for item in KNOWN_ITEMS_DB if item["material"].lower() == label.lower()]
+    matched_brand = "Generic Similarity Match"
+    
+    if chroma_collection and embedding_model:
+        try:
+            # Generate vector embedding for the input query label
+            query_embedding = embedding_model.encode(label).tolist()
+            
+            # Retrieve top 1 semantic nearest neighbor from vector DB
+            results = chroma_collection.query(
+                query_embeddings=[query_embedding],
+                n_results=1
+            )
 
-    if not matched_items:
-        return max(1, int(real_weight_g * 0.5))
+            if results and results.get("metadatas") and len(results["metadatas"][0]) > 0:
+                metadata = results["metadatas"][0][0]
+                matched_brand = metadata.get("brand", metadata.get("name", "Matched Brand"))
+                
+                # Fetch baseline credits from nearest vector match
+                base_credits = metadata.get("credits", metadata.get("base_credits", 10))
+                base_weight = metadata.get("base_weight_g", 15.0)
 
-    nearest_item = min(matched_items, key=lambda x: abs(x["base_weight_g"] - real_weight_g))
-    weight_ratio = real_weight_g / nearest_item["base_weight_g"]
-    calculated_credits = int(nearest_item["credits"] * weight_ratio)
+                weight_ratio = real_weight_g / base_weight if base_weight > 0 else 1.0
+                calculated_credits = int(base_credits * weight_ratio)
+                return max(1, min(calculated_credits, 100)), matched_brand
+        except Exception as err:
+            print(f"RAG Query Error: {err}")
 
-    return max(1, min(calculated_credits, 100))
+    # Fallback heuristic if ChromaDB query fails or is empty
+    base_calc = max(1, int(real_weight_g * 0.5))
+    return min(base_calc, 100), matched_brand
 
 def mint_reward_tokens(recipient_wallet: str, amount: int = 10, label: str = "Plastic", weight_g: float = 0.0):
     if not PRIVATE_KEY or not CONTRACT_ADDRESS:
@@ -89,7 +123,6 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10, label: str = "Pl
     # Scale integer credit score to 18 decimal places (wei)
     token_amount_wei = w3.to_wei(amount, 'ether')
 
-    # Calls contract function mint(address to, uint256 amount, string material, uint256 weight)
     tx = contract.functions.mint(
         Web3.to_checksum_address(recipient_wallet), 
         token_amount_wei,
@@ -123,8 +156,8 @@ async def evaluate_sensor_fusion(
         if image:
             await image.read()
 
-        # Compute dynamic points based on RAG similarity match
-        dynamic_credits = calculate_dynamic_credits(label, real_weight_g)
+        # Execute true vector RAG similarity match
+        dynamic_credits, matched_brand = calculate_dynamic_credits_rag(label, real_weight_g)
 
         tx_hash = None
         if wallet_address and wallet_address.strip().startswith("0x"):
@@ -141,12 +174,12 @@ async def evaluate_sensor_fusion(
                 print(f"------------------------------------")
                 tx_hash = None
 
-        # Hardware signal mapping based on material input
         signal_map = {"Metal": "M", "Plastic": "W", "E-Waste": "E"}
         route_signal = signal_map.get(label, "M")
 
         return {
             "predicted_label": label,
+            "matched_brand_reference": matched_brand,
             "stable_weight_g": real_weight_g,
             "hardware_route_signal": route_signal,
             "calculated_credits": dynamic_credits,
