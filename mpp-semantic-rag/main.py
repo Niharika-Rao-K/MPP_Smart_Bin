@@ -71,19 +71,23 @@ try:
 except Exception:
     CONTRACT_ABI = []
 
+
 def calculate_dynamic_credits_rag(label: str, real_weight_g: float) -> tuple[int, str]:
     """
     Performs semantic vector search against ChromaDB vector store.
-    Matches unknown inputs (e.g. 'unknown chocolate wrapper') to nearest known brands (e.g. 'Cadbury Wrapper').
+    Matches unknown inputs to nearest known brands and calculates proportional rewards.
     """
-    matched_brand = "Generic Similarity Match"
+    matched_brand = "Generic Item Match"
+    
+    # Normalize weight: Ensure real_weight_g is in grams (e.g., if sent as 1.85 kg -> 1850 g)
+    weight_in_grams = real_weight_g * 1000.0 if real_weight_g < 100.0 else real_weight_g
     
     if chroma_collection and embedding_model:
         try:
-            # Generate vector embedding for the input query label
+            # Generate vector embedding for the input label/description
             query_embedding = embedding_model.encode(label).tolist()
             
-            # Retrieve top 1 semantic nearest neighbor from vector DB
+            # Retrieve top 1 semantic match from ChromaDB
             results = chroma_collection.query(
                 query_embeddings=[query_embedding],
                 n_results=1
@@ -93,39 +97,47 @@ def calculate_dynamic_credits_rag(label: str, real_weight_g: float) -> tuple[int
                 metadata = results["metadatas"][0][0]
                 matched_brand = metadata.get("brand", metadata.get("name", "Matched Brand"))
                 
-                # Fetch baseline credits from nearest vector match
-                base_credits = metadata.get("credits", metadata.get("base_credits", 10))
-                base_weight = metadata.get("base_weight_g", 15.0)
+                # Retrieve reference credits and base weight (in grams) from DB
+                base_credits = float(metadata.get("credits", metadata.get("base_credits", 10)))
+                base_weight_g = float(metadata.get("base_weight_g", 15.0))
 
-                weight_ratio = real_weight_g / base_weight if base_weight > 0 else 1.0
+                # Proportional scaling based on actual weight vs reference weight
+                weight_ratio = weight_in_grams / base_weight_g if base_weight_g > 0 else 1.0
+                
+                # Calculate reward points with a reasonable ceiling
                 calculated_credits = int(base_credits * weight_ratio)
-                return max(1, min(calculated_credits, 100)), matched_brand
+                return max(1, min(calculated_credits, 200)), matched_brand
         except Exception as err:
             print(f"RAG Query Error: {err}")
 
-    # Fallback heuristic if ChromaDB query fails or is empty
-    base_calc = max(1, int(real_weight_g * 0.5))
-    return min(base_calc, 100), matched_brand
+    # Fallback calculation if ChromaDB search fails
+    fallback_credits = max(1, int(weight_in_grams * 0.05))
+    return min(fallback_credits, 200), matched_brand
+
 
 def mint_reward_tokens(recipient_wallet: str, amount: int = 10, label: str = "Plastic", weight_g: float = 0.0):
     if not PRIVATE_KEY or not CONTRACT_ADDRESS:
         raise ValueError("Missing PRIVATE_KEY or CONTRACT_ADDRESS in .env file.")
         
     w3 = Web3(Web3.HTTPProvider(SEPOLIA_RPC_URL))
-    if not w3.is_address(recipient_wallet):
-        raise ValueError(f"Invalid recipient wallet address: {recipient_wallet}")
+    checksum_wallet = Web3.to_checksum_address(recipient_wallet)
 
     account = w3.eth.account.from_key(PRIVATE_KEY)
     contract = w3.eth.contract(address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=CONTRACT_ABI)
 
     nonce = w3.eth.get_transaction_count(account.address)
     
+    # Scale integer credit score to 18 decimal places (wei) for standard ERC-20 contract
+    token_amount_wei = w3.to_wei(amount, 'ether')
+
+    # Ensure weight passed to contract is an integer in grams
+    weight_in_grams = int(weight_g * 1000) if weight_g < 100 else int(weight_g)
 
     tx = contract.functions.mint(
-        Web3.to_checksum_address(recipient_wallet), 
-        int(amount),
+        checksum_wallet, 
+        token_amount_wei,
         label,
-        int(weight_g)
+        weight_in_grams
     ).build_transaction({
         'from': account.address,
         'nonce': nonce,
@@ -139,9 +151,11 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10, label: str = "Pl
     tx_hash = w3.eth.send_raw_transaction(raw_tx)
     return w3.to_hex(tx_hash)
 
+
 @app.get("/")
 async def root():
     return {"message": "Smart Bin RAG & Web3 API is running"}
+
 
 @app.post("/api/rag/evaluate")
 async def evaluate_sensor_fusion(
@@ -154,7 +168,7 @@ async def evaluate_sensor_fusion(
         if image:
             await image.read()
 
-        # Execute true vector RAG similarity match
+        # Execute true vector RAG similarity match with standardized weight calculation
         dynamic_credits, matched_brand = calculate_dynamic_credits_rag(label, real_weight_g)
 
         tx_hash = None
