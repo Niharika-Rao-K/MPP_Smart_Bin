@@ -120,12 +120,10 @@ def mint_reward_tokens(recipient_wallet: str, amount: int = 10, label: str = "Pl
 
     nonce = w3.eth.get_transaction_count(account.address)
     
-    # Scale integer credit score to 18 decimal places (wei)
-    token_amount_wei = w3.to_wei(amount, 'ether')
 
     tx = contract.functions.mint(
         Web3.to_checksum_address(recipient_wallet), 
-        token_amount_wei,
+        int(amount),
         label,
         int(weight_g)
     ).build_transaction({
