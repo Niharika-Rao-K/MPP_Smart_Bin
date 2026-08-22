@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Auth from './components/Auth'; // Make sure Auth.js and Auth.css are inside src/components/
 
 const API_BASE =
   process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 export default function App() {
+  const [user, setUser] = useState(null);
   const [logs, setLogs] = useState([]);
 
   const [depositWeight, setDepositWeight] = useState(1.85);
@@ -24,6 +26,17 @@ export default function App() {
   const totalRejections = logs.filter(
     (log) => log.isContaminated || log.route === 'R'
   ).length;
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    if (userData.walletAddress) {
+      setWalletAddress(userData.walletAddress);
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+  };
 
   /*
    * ---------------------------------------------------------
@@ -114,12 +127,44 @@ export default function App() {
 
   /*
    * ---------------------------------------------------------
+   * GATEKEEPER / AUTH ROUTER
+   * ---------------------------------------------------------
+   */
+
+  if (!user) {
+    return <Auth onLoginSuccess={handleLogin} />;
+  }
+
+  /*
+   * ---------------------------------------------------------
    * RENDER
    * ---------------------------------------------------------
    */
 
   return (
     <>
+      {/* LOGOUT BUTTON PORTAL (if element exists) OR INLINE HEADER */}
+      {renderPortal(
+        'portal-user-header',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span>Welcome, <strong>{user.username}</strong></span>
+          <button 
+            onClick={handleLogout}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#e53935',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
+
       {/* TOTAL DEPOSITS */}
       {renderPortal(
         'portal-total-deposits',
