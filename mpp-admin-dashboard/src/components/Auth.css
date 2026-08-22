@@ -1,0 +1,82 @@
+.auth-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #eaf5ed 0%, #d4ebda 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.auth-header { text-align: center; margin-bottom: 20px; }
+.brand-title { color: #1b5e20; font-size: 2.2rem; font-weight: 800; margin: 0; }
+.brand-title span { color: #2e7d32; }
+.brand-subtitle { color: #388e3c; font-size: 0.95rem; margin-top: 5px; }
+.eco-illustration { font-size: 3rem; margin-top: 10px; }
+
+.auth-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 30px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+.auth-card h2 { color: #1b5e20; margin: 0; text-align: center; }
+.card-sub { color: #666; text-align: center; font-size: 0.85rem; margin-bottom: 20px; }
+
+.input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid #dcdcdc;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 15px;
+  background: #fdfdfd;
+}
+
+.input-group input {
+  border: none;
+  outline: none;
+  width: 100%;
+  margin-left: 10px;
+  font-size: 0.95rem;
+}
+
+.forgot-pass { text-align: right; color: #2e7d32; font-size: 0.8rem; margin-bottom: 15px; cursor: pointer; }
+
+.btn-primary {
+  width: 100%;
+  background: #1b5e20;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.divider { text-align: center; margin: 15px 0; border-bottom: 1px solid #eee; line-height: 0.1em; }
+.divider span { background:#fff; padding:0 10px; color: #999; font-size: 0.8rem; }
+
+.btn-metamask {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #dcdcdc;
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-metamask img { width: 22px; height: 22px; }
+
+.toggle-auth { text-align: center; margin-top: 20px; font-size: 0.85rem; color: #555; }
+.toggle-auth span { color: #1b5e20; font-weight: bold; cursor: pointer; }
