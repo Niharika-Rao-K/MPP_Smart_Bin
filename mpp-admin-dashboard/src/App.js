@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Auth from './components/Auth'; // Make sure Auth.js and Auth.css are inside src/components/
+import Auth from './components/Auth'; // Ensure Auth.js & Auth.css exist in src/components/
 
 const API_BASE =
   process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
@@ -27,15 +27,18 @@ export default function App() {
     (log) => log.isContaminated || log.route === 'R'
   ).length;
 
-  const handleLogin = (userData) => {
+  // Handle Login or Registration Success
+  const handleLoginSuccess = (userData) => {
     setUser(userData);
     if (userData.walletAddress) {
       setWalletAddress(userData.walletAddress);
     }
   };
 
+  // Handle Logout
   const handleLogout = () => {
     setUser(null);
+    setAnalysis(null);
   };
 
   /*
@@ -127,33 +130,35 @@ export default function App() {
 
   /*
    * ---------------------------------------------------------
-   * GATEKEEPER / AUTH ROUTER
+   * 1. GATEKEEPER - SHOW LOGIN/REGISTER FIRST
    * ---------------------------------------------------------
    */
 
   if (!user) {
-    return <Auth onLoginSuccess={handleLogin} />;
+    return <Auth onLoginSuccess={handleLoginSuccess} />;
   }
 
   /*
    * ---------------------------------------------------------
-   * RENDER
+   * 2. MAIN APP - RENDER PORTALS ONLY AFTER LOGIN
    * ---------------------------------------------------------
    */
 
   return (
     <>
-      {/* LOGOUT BUTTON PORTAL (if element exists) OR INLINE HEADER */}
+      {/* USER PROFILE & LOGOUT BANNER PORTAL */}
       {renderPortal(
         'portal-user-header',
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span>Welcome, <strong>{user.username}</strong></span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}>
+          <div>
+            Logged in as: <strong>{user.username || user.fullName || 'User'}</strong>
+          </div>
           <button 
             onClick={handleLogout}
             style={{
-              padding: '6px 12px',
-              backgroundColor: '#e53935',
-              color: '#fff',
+              padding: '6px 14px',
+              backgroundColor: '#d32f2f',
+              color: '#ffffff',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
