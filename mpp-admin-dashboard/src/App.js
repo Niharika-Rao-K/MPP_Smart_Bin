@@ -120,7 +120,14 @@ export default function App() {
 
       const newLog = {
         id: Date.now(),
-        timestamp: `${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        timestamp: new Date().toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
         material: data.predicted_label || depositMaterial,
         weight: data.stable_weight_g || depositWeight,
         route: data.hardware_route_signal || 'M',
