@@ -365,7 +365,7 @@
     <div class="auth-card">
       
       <!-- 1. LOGIN FORM -->
-      <form id="login-form" onsubmit="event.preventDefault(); alert('Logging in...');">
+      <form id="login-form" onsubmit="event.preventDefault(); window.location.href='dashboard.html';">
         <div class="card-title">Welcome Back!</div>
         <div class="card-subtitle">Login to continue</div>
 
@@ -399,7 +399,7 @@
       </form>
 
       <!-- 2. REGISTER FORM -->
-      <form id="register-form" class="hidden" onsubmit="event.preventDefault(); alert('Account registered successfully!');">
+      <form id="register-form" class="hidden" onsubmit="event.preventDefault(); window.location.href='dashboard.html';">
         <div class="card-title">Create Account</div>
         <div class="card-subtitle">Join Recycle2Earn and start earning!</div>
 
@@ -525,10 +525,29 @@
     const customWalletSrc = 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg';
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Set wallet images
       document.querySelectorAll('.wallet-icon-img, .footer-wallet-img').forEach(img => {
         img.src = customWalletSrc;
       });
-    });
+
+      // Handle Login Submit
+      const loginForm = document.getElementById('login-form');
+      if (loginForm) {
+        loginForm.onsubmit = function(event) {
+          event.preventDefault();
+          window.location.href = 'dashboard.html'; // Redirects to main page
+        };
+      }
+
+      // Handle Register Submit
+      const registerForm = document.getElementById('register-form');
+      if (registerForm) {
+        registerForm.onsubmit = function(event) {
+          event.preventDefault();
+          window.location.href = 'dashboard.html'; // Redirects to main page
+        };
+      }
+    }); // <-- DOMContentLoaded ends cleanly here
 
     function showRegister() {
       document.getElementById('login-form').classList.add('hidden');
