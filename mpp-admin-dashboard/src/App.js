@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Auth from './components/Auth'; // Ensure Auth.js & Auth.css exist in src/components/
 
@@ -6,8 +6,24 @@ const API_BASE =
   process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [logs, setLogs] = useState([]);
+  // 1. PERSISTENT USER SESSION STATE
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('r2e_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  // Derive a dynamic, user-unique storage key
+  const userKey = user?.username || user?.walletAddress || user?.fullName || 'guest';
+
+  // 2. USER-SCOPED LOGS STATE
+  const [logs, setLogs] = useState(() => {
+    const savedUser = localStorage.getItem('r2e_user');
+    if (!savedUser) return [];
+    const parsedUser = JSON.parse(savedUser);
+    const key = parsedUser.username || parsedUser.walletAddress || parsedUser.fullName || 'guest';
+    const savedLogs = localStorage.getItem(`r2e_logs_${key}`);
+    return savedLogs ? JSON.parse(savedLogs) : [];
+  });
 
   const [depositWeight, setDepositWeight] = useState(1.85);
   const [depositMaterial, setDepositMaterial] = useState('Plastic');
@@ -16,13 +32,29 @@ export default function App() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-
   const [analysis, setAnalysis] = useState(null);
 
   const fileInputRef = useRef(null);
 
-  const totalDetections = logs.length;
+  // Synchronize logs whenever the logged-in user changes
+  useEffect(() => {
+    if (user) {
+      const activeUserKey = user.username || user.walletAddress || user.fullName || 'guest';
+      const savedLogs = localStorage.getItem(`r2e_logs_${activeUserKey}`);
+      setLogs(savedLogs ? JSON.parse(savedLogs) : []);
+    } else {
+      setLogs([]);
+    }
+  }, [user]);
 
+  // Save logs under the specific user's storage key whenever logs change
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(`r2e_logs_${userKey}`, JSON.stringify(logs));
+    }
+  }, [logs, userKey, user]);
+
+  const totalDetections = logs.length;
   const totalRejections = logs.filter(
     (log) => log.isContaminated || log.route === 'R'
   ).length;
@@ -30,15 +62,18 @@ export default function App() {
   // Handle Login or Registration Success
   const handleLoginSuccess = (userData) => {
     setUser(userData);
+    localStorage.setItem('r2e_user', JSON.stringify(userData));
     if (userData.walletAddress) {
       setWalletAddress(userData.walletAddress);
     }
   };
 
-  // Handle Logout
+  // Handle Logout & Clear local view state
   const handleLogout = () => {
     setUser(null);
     setAnalysis(null);
+    setLogs([]); // Wipes active UI state so the next user sees a fresh slate
+    localStorage.removeItem('r2e_user');
   };
 
   /*
@@ -54,7 +89,6 @@ export default function App() {
     setErrorMessage(null);
 
     const formData = new FormData();
-
     formData.append('label', depositMaterial);
     formData.append('real_weight_g', String(depositWeight));
     formData.append('wallet_address', walletAddress);
@@ -103,7 +137,6 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-
       setErrorMessage(
         err.message || 'Unable to evaluate the deposit.'
       );
