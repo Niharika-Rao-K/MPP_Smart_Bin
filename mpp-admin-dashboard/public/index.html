@@ -365,13 +365,13 @@
     <div class="auth-card">
       
       <!-- 1. LOGIN FORM -->
-      <form id="login-form" onsubmit="event.preventDefault(); window.location.href='dashboard.html';">
+      <form id="login-form">
         <div class="card-title">Welcome Back!</div>
         <div class="card-subtitle">Login to continue</div>
 
         <div class="input-group">
           <i class="fa-regular fa-user input-icon"></i>
-          <input class="auth-input" type="text" placeholder="Username" required />
+          <input class="auth-input" id="login-username" type="text" placeholder="Username" required />
         </div>
 
         <div class="input-group">
@@ -399,18 +399,18 @@
       </form>
 
       <!-- 2. REGISTER FORM -->
-      <form id="register-form" class="hidden" onsubmit="event.preventDefault(); window.location.href='dashboard.html';">
+      <form id="register-form" class="hidden">
         <div class="card-title">Create Account</div>
         <div class="card-subtitle">Join Recycle2Earn and start earning!</div>
 
         <div class="input-group">
           <i class="fa-regular fa-user input-icon"></i>
-          <input class="auth-input" type="text" placeholder="Full Name" required />
+          <input class="auth-input" id="reg-full-name" type="text" placeholder="Full Name" required />
         </div>
 
         <div class="input-group">
           <i class="fa-regular fa-user input-icon"></i>
-          <input class="auth-input" type="text" placeholder="Username" required />
+          <input class="auth-input" id="reg-username" type="text" placeholder="Username" required />
         </div>
 
         <div class="input-group">
@@ -423,7 +423,7 @@
 
         <div class="input-group">
           <i class="fa-regular fa-credit-card input-icon"></i>
-          <input class="auth-input" type="text" placeholder="MetaMask Wallet Address" required />
+          <input class="auth-input" id="reg-wallet" type="text" placeholder="MetaMask Wallet Address" required />
           <button type="button" class="eye-btn" style="right: 12px;" onclick="alert('MetaMask Wallet is required to receive rewards.')">
             <i class="fa-circle-info fa-regular"></i>
           </button>
@@ -524,30 +524,96 @@
   <script>
     const customWalletSrc = 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg';
 
-    document.addEventListener('DOMContentLoaded', () => {
-      // Set wallet images
-      document.querySelectorAll('.wallet-icon-img, .footer-wallet-img').forEach(img => {
-        img.src = customWalletSrc;
-      });
+    const USERS_KEY = 'r2e_users';
+const ACTIVE_WALLET_KEY = 'r2e_active_wallet';
 
-      // Handle Login Submit
-      const loginForm = document.getElementById('login-form');
-      if (loginForm) {
-        loginForm.onsubmit = function(event) {
-          event.preventDefault();
-          window.location.href = 'dashboard.html'; // Redirects to main page
-        };
-      }
+function getUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
 
-      // Handle Register Submit
-      const registerForm = document.getElementById('register-form');
-      if (registerForm) {
-        registerForm.onsubmit = function(event) {
-          event.preventDefault();
-          window.location.href = 'dashboard.html'; // Redirects to main page
-        };
-      }
-    }); // <-- DOMContentLoaded ends cleanly here
+document.addEventListener('DOMContentLoaded', () => {
+  // Keep your existing MetaMask image setup.
+  document.querySelectorAll('.wallet-icon-img, .footer-wallet-img').forEach(img => {
+    img.src = customWalletSrc;
+  });
+
+  // If already logged in, go directly to the dashboard.
+  const users = getUsers();
+  const activeWallet = localStorage.getItem(ACTIVE_WALLET_KEY);
+  const activeUser = users.find(
+    user => user.wallet.toLowerCase() === (activeWallet || '').toLowerCase()
+  );
+
+  if (activeUser) {
+    window.location.replace('dashboard.html');
+    return;
+  }
+
+  document.getElementById('login-form').onsubmit = function (event) {
+    event.preventDefault();
+
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-pass').value;
+    const user = getUsers().find(
+      item =>
+        item.username.toLowerCase() === username.toLowerCase() &&
+        item.password === password
+    );
+
+    if (!user) {
+      alert('Invalid username or password. Please try again.');
+      return;
+    }
+
+    localStorage.setItem(ACTIVE_WALLET_KEY, user.wallet);
+    window.location.replace('dashboard.html');
+  };
+
+  document.getElementById('register-form').onsubmit = function (event) {
+    event.preventDefault();
+
+    const fullName = document.getElementById('reg-full-name').value.trim();
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-pass').value;
+    const wallet = document.getElementById('reg-wallet').value.trim();
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      alert('Please enter a valid MetaMask wallet address starting with 0x.');
+      return;
+    }
+
+    const users = getUsers();
+    const alreadyRegistered = users.some(
+      item =>
+        item.username.toLowerCase() === username.toLowerCase() ||
+        item.wallet.toLowerCase() === wallet.toLowerCase()
+    );
+
+    if (alreadyRegistered) {
+      alert('That username or wallet address is already registered.');
+      return;
+    }
+
+    users.push({
+      fullName,
+      username,
+      password,
+      wallet,
+      totalWeight: 0,
+      totalTokens: 0,
+      streak: 1,
+      deposits: []
+    });
+
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    localStorage.setItem(ACTIVE_WALLET_KEY, wallet);
+    window.location.replace('dashboard.html');
+  };
+});
 
     function showRegister() {
       document.getElementById('login-form').classList.add('hidden');
