@@ -218,17 +218,32 @@
 
             <form id="deposit-form" onsubmit="handleDeposit(event)" class="space-y-4">
               <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Waste Category</label>
-                <select id="waste-type" onchange="updateWasteCategoryPreview()" class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  <option value="Plastic">Plastic Waste</option>
-                  <option value="Metal">Metal Cans</option>
-                  <option value="E-Waste">E-Waste / Circuitry</option>
-                </select>
+                <label for="waste-image" class="block text-xs font-bold text-slate-300 mb-1">
+                  Waste Image
+                </label>
+                <input
+                  type="file"
+                  id="waste-image"
+                  accept="image/jpeg,image/png,image/webp"
+                  required
+                  onchange="previewWasteImage()"
+                  class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">Weight (kg)</label>
-                <input type="number" id="waste-weight" step="0.1" min="0.1" value="1.5" required class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-bold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Measured Weight (g)
+                </label>
+                <input
+                  type="number"
+                  id="waste-weight"
+                  step="0.1"
+                  min="0.1"
+                  value="18"
+                  required
+                  class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-bold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
               </div>
 
               <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 text-xs transition">
@@ -242,21 +257,21 @@
             <div>
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
-                  <i class="fa-solid fa-image text-emerald-400"></i> Selected Waste Category
+                  <i class="fa-solid fa-image text-emerald-400"></i> Uploaded Waste Image
                 </h3>
                 <span id="category-tag" class="text-[10px] font-black uppercase px-2.5 py-1 bg-emerald-950 text-emerald-400 rounded-md border border-emerald-800">
-                  PLASTIC
+                  AWAITING AI
                 </span>
               </div>
 
               <!-- Dynamic Category Image Display -->
               <div id="preview-container" class="w-full h-56 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800 relative">
-                <img id="category-preview-img" src="" alt="Selected Waste Category" class="w-full h-full object-cover rounded-xl transition duration-300" />
+                <img id="category-preview-img" src="" alt="Uploaded waste preview" class="w-full h-full object-cover rounded-xl transition duration-300" />
               </div>
             </div>
 
             <div class="mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-medium text-slate-400">
-              <span><i class="fa-solid fa-network-wire text-emerald-400 mr-1"></i> Signal: <strong id="bin-route-display" class="text-white">P (Plastic)</strong></span>
+              <span><i class="fa-solid fa-network-wire text-emerald-400 mr-1"></i> Signal: <strong id="bin-route-display" class="text-white">Awaiting AI analysis</strong></span>
               <span><i class="fa-solid fa-coins text-amber-400 mr-1"></i> Dynamic RAG Scoring Active</span>
             </div>
           </div>
@@ -362,7 +377,7 @@
         document.getElementById('active-bin-id').innerText = binId;
       }
 
-      updateWasteCategoryPreview();
+      resetWastePreview();
       renderDashboard();
     });
 
@@ -388,11 +403,59 @@
       window.location.replace('index.html');
     }
 
-    function updateWasteCategoryPreview() {
-      const type = document.getElementById('waste-type').value;
+    let activePreviewUrl = null;
+
+    function resetWastePreview() {
       const imgElem = document.getElementById('category-preview-img');
       const tagElem = document.getElementById('category-tag');
       const routeElem = document.getElementById('bin-route-display');
+
+      imgElem.src = WASTE_IMAGES.Plastic;
+      tagElem.innerText = 'AWAITING AI';
+      routeElem.innerText = 'Awaiting AI analysis';
+    }
+
+    function previewWasteImage() {
+      const imageInput = document.getElementById('waste-image');
+      const imageFile = imageInput.files[0];
+
+      if (!imageFile) {
+        resetWastePreview();
+        return;
+      }
+
+      if (activePreviewUrl) {
+        URL.revokeObjectURL(activePreviewUrl);
+      }
+
+      activePreviewUrl = URL.createObjectURL(imageFile);
+
+      document.getElementById('category-preview-img').src = activePreviewUrl;
+      document.getElementById('category-tag').innerText = 'AWAITING AI';
+      document.getElementById('bin-route-display').innerText = 'Awaiting AI analysis';
+    }
+
+  function updateDetectionPreview(data) {
+    const metadata = data.fusion_result?.rag_result?.metadata || {};
+    const detectedCategory = metadata.category || data.predicted_label || 'Unknown';
+    const route = data.hardware_route_signal || 'R';
+
+    const routeNames = {
+      P: 'P (Plastic)',
+      M: 'M (Metal)',
+      E: 'E (E-Waste)',
+      R: 'R (Reject)'
+    };
+
+    const isAccepted = data.status === 'SUCCESS';
+
+    document.getElementById('category-tag').innerText = isAccepted
+      ? detectedCategory.toUpperCase()
+      : 'REJECTED';
+
+    document.getElementById('bin-route-display').innerText =
+      routeNames[route] || 'R (Reject)';
+  }
 
       imgElem.src = WASTE_IMAGES[type] || WASTE_IMAGES['Plastic'];
 
@@ -416,16 +479,34 @@
         return;
       }
 
-      const user = users.find(u => u.wallet.toLowerCase() === activeWallet.toLowerCase());
+      const user = users.find(
+        u => u.wallet.toLowerCase() === activeWallet.toLowerCase()
+      );
       if (!user) return;
 
-      const weight = parseFloat(document.getElementById('waste-weight').value);
-      const label = document.getElementById('waste-type').value;
+      const imageInput = document.getElementById('waste-image');
+      const imageFile = imageInput.files[0];
+      const weightG = parseFloat(document.getElementById('waste-weight').value);
+
+      if (!imageFile) {
+        alert('Please upload a waste image.');
+        return;
+      }
+
+      if (!Number.isFinite(weightG) || weightG <= 0) {
+        alert('Please enter a valid measured weight in grams.');
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const binId = urlParams.get('bin') || 'UNKNOWN';
 
       const formData = new FormData();
-      formData.append('label', label);
-      formData.append('real_weight_g', weight);
-      formData.append('wallet_address', activeWallet);
+       formData.append('image', imageFile);
+       formData.append('label', 'uploaded_image');
+       formData.append('real_weight_g', weightG);
+       formData.append('wallet_address', activeWallet);
+       formData.append('bin_id', binId);
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
@@ -437,29 +518,50 @@
           body: formData
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
           throw new Error(`API Error: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        const tokensEarned = data.calculated_credits || 0;
+        updateDetectionPreview(data);
+
+        const tokensEarned = Number(data.calculated_credits || 0);
+        const metadata = data.fusion_result?.rag_result?.metadata || {};
+        const detectedCategory = metadata.category || data.predicted_label || 'UNKNOWN';
+        const isAccepted = data.status === 'SUCCESS';
+
+        // Keep local dashboard totals in kilograms, although the API uses grams.
+        const weightKg = Number(data.stable_weight_g || weightG) / 1000;
 
         const deposit = {
-          createdAt: new Date().toISOString(),
-          type: label.toUpperCase(),
-          weight: weight,
+          createdAt: data.created_at || new Date().toISOString(),
+          type: isAccepted
+            ? detectedCategory.toUpperCase()
+            : `REJECTED — ${detectedCategory.toUpperCase()}`,
+          weight: weightKg,
           tokens: tokensEarned,
-          txHash: data.web3_reward ? data.web3_reward.tx_hash : null
+          txHash: data.web3_reward ? .tx_hash || null
         };
 
+        // Preserve rejected attempts in history, but do not include them in rewards/totals.
         user.deposits.unshift(deposit);
-        user.totalWeight += weight;
-        user.totalTokens += tokensEarned;
-        user.streak += 1;
+
+        if (isAccepted) {
+          user.totalWeight += weightKg;
+          user.totalTokens += tokensEarned;
+          user.streak += 1;
+        }
 
         saveState();
         renderDashboard();
         switchView('history');
+        if (!isAccepted) {
+          alert(
+            data.fusion_result?.action ||
+            'Item rejected. Please use a clearer image or check the measured weight.'
+          );
+        }
       } catch (err) {
         alert(`Failed to complete transaction: ${err.message}`);
       } finally {
