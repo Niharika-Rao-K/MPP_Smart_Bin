@@ -131,11 +131,6 @@
           </h2>
           <p class="text-xs font-medium text-slate-400 mt-1">Scan bin QR code, deposit waste, and earn $RECYCLE on Sepolia.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <button id="auth-main-btn" onclick="openAuthModal('login')" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-950 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-right-to-bracket"></i> Login / Register
-          </button>
-        </div>
       </div>
 
       <!-- PAGE 1: DASHBOARD VIEW -->
@@ -280,7 +275,7 @@
             <table class="w-full text-left text-xs text-slate-300">
               <thead class="bg-slate-950/80 text-emerald-400 font-extrabold uppercase border-b border-slate-800">
                 <tr>
-                  <th class="py-3 px-4">Time</th>
+                  <th class="py-3 px-4">Date &amp; Time</th>
                   <th class="py-3 px-4">User</th>
                   <th class="py-3 px-4">Material</th>
                   <th class="py-3 px-4">Weight</th>
@@ -315,7 +310,6 @@
                   <th class="py-3 px-4">Sepolia Address</th>
                   <th class="py-3 px-4">Total Recycled</th>
                   <th class="py-3 px-4">Total Tokens</th>
-                  <th class="py-3 px-4">Actions</th>
                 </tr>
               </thead>
               <tbody id="members-tbody" class="divide-y divide-slate-800/80 font-medium bg-slate-950/60">
@@ -326,49 +320,6 @@
       </div>
 
     </main>
-  </div>
-
-  <!-- Unified Auth Modal (Login / Register Tabs) -->
-  <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden z-50">
-    <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-emerald-700/40 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <!-- Auth Tabs -->
-        <div class="flex gap-4">
-          <button id="tab-login" onclick="switchAuthTab('login')" class="font-extrabold text-sm text-emerald-400 border-b-2 border-emerald-400 pb-1">Login</button>
-          <button id="tab-register" onclick="switchAuthTab('register')" class="font-extrabold text-sm text-slate-400 pb-1 hover:text-white">Register</button>
-        </div>
-        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <!-- Login Form -->
-      <form id="login-form" onsubmit="handleUserLogin(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Sepolia Wallet Address</label>
-          <input type="text" id="login-wallet" required pattern="^0x[a-fA-F0-9]{40}$" placeholder="0x..." class="w-full bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-xl font-mono text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        </div>
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 text-xs transition">
-          Log In
-        </button>
-      </form>
-
-      <!-- Register Form -->
-      <form id="register-form" onsubmit="handleUserRegistration(event)" class="space-y-4 hidden">
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Full Name / Username</label>
-          <input type="text" id="reg-username" required placeholder="e.g. Alex Rivera" class="w-full bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Sepolia Wallet Address</label>
-          <input type="text" id="reg-wallet" required pattern="^0x[a-fA-F0-9]{40}$" placeholder="0x..." class="w-full bg-slate-950 border border-slate-800 px-3 py-2.5 rounded-xl font-mono text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          <span class="text-[10px] text-slate-400">Must be a valid Ethereum Sepolia address starting with 0x</span>
-        </div>
-
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 text-xs transition">
-          Create Account
-        </button>
-      </form>
-    </div>
   </div>
 
   <!-- App Script -->
@@ -390,6 +341,15 @@
     let activeWallet = localStorage.getItem('r2e_active_wallet') || null;
 
     window.addEventListener('DOMContentLoaded', () => {
+      const activeUser = users.find(
+        user => user.wallet.toLowerCase() === (activeWallet || '').toLowerCase()
+      );
+
+      if (!activeWallet || !activeUser) {
+        localStorage.removeItem('r2e_active_wallet');
+        window.location.replace('index.html');
+        return;
+      }
       const urlParams = new URLSearchParams(window.location.search);
       const binId = urlParams.get('bin');
       if (binId) {
@@ -417,83 +377,9 @@
     }
 
     /* Auth Modal Switcher */
-    function openAuthModal(mode = 'login') {
-      document.getElementById('auth-modal').classList.remove('hidden');
-      switchAuthTab(mode);
-    }
-
-    function closeAuthModal() {
-      document.getElementById('auth-modal').classList.add('hidden');
-    }
-
-    function switchAuthTab(tab) {
-      const loginForm = document.getElementById('login-form');
-      const regForm = document.getElementById('register-form');
-      const tabLogin = document.getElementById('tab-login');
-      const tabReg = document.getElementById('tab-register');
-
-      if (tab === 'login') {
-        loginForm.classList.remove('hidden');
-        regForm.classList.add('hidden');
-        tabLogin.className = "font-extrabold text-sm text-emerald-400 border-b-2 border-emerald-400 pb-1";
-        tabReg.className = "font-extrabold text-sm text-slate-400 pb-1 hover:text-white";
-      } else {
-        loginForm.classList.add('hidden');
-        regForm.classList.remove('hidden');
-        tabReg.className = "font-extrabold text-sm text-emerald-400 border-b-2 border-emerald-400 pb-1";
-        tabLogin.className = "font-extrabold text-sm text-slate-400 pb-1 hover:text-white";
-      }
-    }
-
-    function handleUserLogin(e) {
-      e.preventDefault();
-      const wallet = document.getElementById('login-wallet').value.trim();
-      const user = users.find(u => u.wallet.toLowerCase() === wallet.toLowerCase());
-
-      if (!user) {
-        alert('Account not found! Please register first.');
-        switchAuthTab('register');
-        document.getElementById('reg-wallet').value = wallet;
-        return;
-      }
-
-      activeWallet = user.wallet;
-      saveState();
-      closeAuthModal();
-      renderDashboard();
-    }
-
-    function handleUserRegistration(e) {
-      e.preventDefault();
-      const username = document.getElementById('reg-username').value.trim();
-      const wallet = document.getElementById('reg-wallet').value.trim();
-
-      let user = users.find(u => u.wallet.toLowerCase() === wallet.toLowerCase());
-
-      if (!user) {
-        user = {
-          username: username,
-          wallet: wallet,
-          totalWeight: 0,
-          totalTokens: 0,
-          streak: 1,
-          deposits: []
-        };
-        users.push(user);
-      } else {
-        user.username = username;
-      }
-
-      activeWallet = wallet;
-      saveState();
-      closeAuthModal();
-      renderDashboard();
-    }
-
     function handleLogout() {
       activeWallet = null;
-      saveState();
-      renderDashboard();
+      localStorage.removeItem('r2e_active_wallet');
       window.location.href = 'index.html';
     }
 
@@ -526,8 +412,8 @@
     async function handleDeposit(e) {
       e.preventDefault();
       if (!activeWallet) {
-        alert('Please log in or register your Sepolia wallet first!');
-        openAuthModal('login');
+        alert('Your session has expired. Please log in again.');
+        window.location.replace('index.html');
         return;
       }
 
@@ -560,7 +446,7 @@
         const tokensEarned = data.calculated_credits || 0;
 
         const deposit = {
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          createdAt: new Date().toISOString(),
           type: label.toUpperCase(),
           weight: weight,
           tokens: tokensEarned,
@@ -595,7 +481,7 @@
       const widgetUsername = document.getElementById('widget-username');
       const widgetWallet = document.getElementById('widget-wallet');
       const logoutBtn = document.getElementById('logout-btn');
-      const authMainBtn = document.getElementById('auth-main-btn');
+    
 
       if (activeUser) {
         widgetAvatar.innerText = activeUser.username.charAt(0).toUpperCase();
@@ -603,16 +489,12 @@
         widgetWallet.innerText = truncateAddress(activeUser.wallet);
         logoutBtn.classList.remove('hidden');
 
-        authMainBtn.innerHTML = `<i class="fa-solid fa-user-check"></i> ${activeUser.username}`;
-        authMainBtn.onclick = () => openAuthModal('login');
       } else {
         widgetAvatar.innerText = '?';
         widgetUsername.innerText = 'Not Logged In';
         widgetWallet.innerText = 'No Wallet Linked';
         logoutBtn.classList.add('hidden');
 
-        authMainBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Login / Register`;
-        authMainBtn.onclick = () => openAuthModal('login');
       }
 
       const streakCount = document.getElementById('streak-count');
@@ -664,7 +546,9 @@
             : truncateAddress(activeUser.wallet);
 
           row.innerHTML = `
-            <td class="py-3 px-4 text-slate-400 font-mono">${d.timestamp}</td>
+            <td class="py-3 px-4 text-slate-400">
+              ${d.createdAt ? formatDepositDate(d.createdAt) : d.timestamp}
+            </td>
             <td class="py-3 px-4 font-bold text-white">${activeUser.username}</td>
             <td class="py-3 px-4 font-semibold">${d.type}</td>
             <td class="py-3 px-4 font-bold text-slate-300">${d.weight.toFixed(1)} kg</td>
