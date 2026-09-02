@@ -27,7 +27,9 @@ export default function App() {
 
   const [depositWeight, setDepositWeight] = useState(1.85);
   const [depositMaterial, setDepositMaterial] = useState('Plastic');
-  const [walletAddress, setWalletAddress] = useState('');
+  const [walletAddress, setWalletAddress] = useState(
+    () => user?.walletAddress || user?.wallet || ''
+  );
   const [depositFile, setDepositFile] = useState(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,6 +47,10 @@ export default function App() {
     } else {
       setLogs([]);
     }
+  }, [user]);
+
+  useEffect(() => {
+    setWalletAddress(user?.walletAddress || user?.wallet || '');
   }, [user]);
 
   // Save logs under the specific user's storage key whenever logs change
@@ -361,9 +367,7 @@ export default function App() {
                 type="text"
                 placeholder="0x..."
                 value={walletAddress}
-                onChange={(e) =>
-                  setWalletAddress(e.target.value)
-                }
+                readOnly
               />
             </label>
 
