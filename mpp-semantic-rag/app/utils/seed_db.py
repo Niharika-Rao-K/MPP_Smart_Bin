@@ -1,30 +1,82 @@
-import os
+from pathlib import Path
+
 import chromadb
 
-# Connect to local ChromaDB instance
-CHROMA_DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "chroma_db")
-chroma_client = chromadb.PersistentClient(path=CHROMA_DATA_PATH)
+CHROMA_DATA_PATH = Path(__file__).resolve().parents[2] / "chroma_db"
 
-# Get or create collection
-collection = chroma_client.get_or_create_collection(name="recycling_standards")
+chroma_client = chromadb.PersistentClient(
+    path=str(CHROMA_DATA_PATH)
+)
 
-# Define baseline training documents & reference metadata
+collection = chroma_client.get_or_create_collection(
+    name="recycling_standards"
+)
+
 documents = [
-    "Aluminum beverage can standard thin metal beverage container 13.5g",
-    "PET clear plastic water bottle standard screw cap 18g",
-    "Multilayer plastic snack food wrapper aluminum foil lining 5g",
-    "Printed circuit board electronic waste motherboards scrap 45g"
+    (
+        "Coca Cola can, Pepsi can, aluminum beverage can, soft drink can, "
+        "thin metal beverage container, aluminium tin, 13.5 grams."
+    ),
+    (
+        "PET water bottle, clear plastic water bottle, mineral water bottle, "
+        "plastic drink bottle, screw-cap bottle, 18 grams."
+    ),
+    (
+        "Snack wrapper, chocolate wrapper, chips packet, food wrapper, "
+        "multilayer plastic wrapper, foil-lined plastic wrapper, 5 grams."
+    ),
+    (
+        "Printed circuit board, PCB, motherboard, electronic circuit board, "
+        "electronic waste, e-waste scrap, 45 grams."
+    )
 ]
 
 metadatas = [
-    {"target_weight_g": 13.5, "margin_g": 3.0, "category": "metal", "signal": "M"},
-    {"target_weight_g": 18.0, "margin_g": 4.0, "category": "plastic", "signal": "W"},
-    {"target_weight_g": 5.0, "margin_g": 2.0, "category": "wrapper", "signal": "W"},
-    {"target_weight_g": 45.0, "margin_g": 10.0, "category": "ewaste", "signal": "E"}
+    {
+        "target_weight_g": 13.5,
+        "margin_g": 3.0,
+        "category": "metal",
+        "signal": "M",
+        "resale_rate_per_kg": 28.0,
+        "quality_factor": 1.0
+    },
+    {
+        "target_weight_g": 18.0,
+        "margin_g": 4.0,
+        "category": "plastic",
+        "signal": "P",
+        "resale_rate_per_kg": 20.0,
+        "quality_factor": 0.9
+    },
+    {
+        "target_weight_g": 5.0,
+        "margin_g": 2.0,
+        "category": "plastic",
+        "signal": "P",
+        "resale_rate_per_kg": 14.0,
+        "quality_factor": 0.7
+    },
+    {
+        "target_weight_g": 45.0,
+        "margin_g": 10.0,
+        "category": "ewaste",
+        "signal": "E",
+        "resale_rate_per_kg": 180.0,
+        "quality_factor": 1.2
+    }
 ]
 
-ids = ["doc_metal", "doc_plastic", "doc_wrapper", "doc_ewaste"]
+ids = [
+    "coca_cola_can",
+    "water_bottle",
+    "snack_wrapper",
+    "circuit_board"
+]
 
-collection.add(documents=documents, metadatas=metadatas, ids=ids)
+collection.upsert(
+    documents=documents,
+    metadatas=metadatas,
+    ids=ids
+)
 
-print(f"Successfully seeded {collection.count()} items into ChromaDB!")
+print(f"Successfully seeded {collection.count()} material profiles into ChromaDB.")
