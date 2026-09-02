@@ -88,8 +88,10 @@ async def deposit_item(
 
             try:
                 reward_result = mint_recycling_reward(
-                    wallet_address,
-                    amount_tokens=calculated_credits
+                    user_wallet_address=wallet_address,
+                    amount_tokens=calculated_credits,
+                    material=detected_label,
+                    weight_grams=stable_weight_g
                 )
             except Exception as exc:
                 reward_result = {
