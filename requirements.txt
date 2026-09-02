@@ -4,3 +4,4 @@ chromadb
 web3
 python-dotenv
 python-multipart
+sentence-transformers
