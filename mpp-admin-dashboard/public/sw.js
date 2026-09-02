@@ -2,7 +2,7 @@ const CACHE_NAME = 'r2e-pwa-v2';
 
 const urlsToCache = [
   '/',
-  '/login.html',
+  '/index.html',
   '/dashboard.html',
   '/manifest.json',
   '/favicon.ico',
