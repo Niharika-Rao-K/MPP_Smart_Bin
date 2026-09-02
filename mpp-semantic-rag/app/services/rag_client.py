@@ -49,6 +49,25 @@ REFERENCE_METADATA = {
         "quality_factor": 1.2
     }
 }
+LABEL_ALIASES = {
+    "bottle": "water_bottle",
+    "plastic_bottle": "water_bottle",
+    "water_bottle": "water_bottle",
+
+    "can": "coca_cola_can",
+    "tin_can": "coca_cola_can",
+    "soda_can": "coca_cola_can",
+    "coca_cola_can": "coca_cola_can",
+    "pepsi_can": "pepsi_can",
+
+    "wrapper": "snack_wrapper",
+    "snack_wrapper": "snack_wrapper",
+    "chocolate_wrapper": "snack_wrapper",
+
+    "circuit_board": "circuit_board",
+    "pcb": "circuit_board",
+    "motherboard": "circuit_board"
+}
 
 def evaluate_with_rag(label: str, real_weight_g: float):
     """
@@ -57,6 +76,7 @@ def evaluate_with_rag(label: str, real_weight_g: float):
     """
 
     normalized_label = label.lower().strip().replace(" ", "_")
+    profile_label = LABEL_ALIASES.get(normalized_label, normalized_label)
 
     matched_profile_id = None
     match_type = "none"
@@ -64,9 +84,9 @@ def evaluate_with_rag(label: str, real_weight_g: float):
     item_info = None
 
     # Exact known-profile match.
-    if normalized_label in REFERENCE_METADATA:
-        matched_profile_id = normalized_label
-        item_info = REFERENCE_METADATA[normalized_label]
+    if profile_label in REFERENCE_METADATA:
+        matched_profile_id = profile_label
+        item_info = REFERENCE_METADATA[profile_label]
         match_type = "exact"
 
     # Semantic ChromaDB fallback for an unknown YOLO label.
