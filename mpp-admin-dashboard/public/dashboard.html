@@ -336,7 +336,12 @@
       if (!addr || addr.length < 10) return addr;
       return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
     }
-
+    function formatDepositDate(dateValue) {
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(new Date(dateValue));
+    }
     let users = JSON.parse(localStorage.getItem('r2e_users')) || [];
     let activeWallet = localStorage.getItem('r2e_active_wallet') || null;
 
@@ -380,13 +385,7 @@
     function handleLogout() {
       activeWallet = null;
       localStorage.removeItem('r2e_active_wallet');
-      window.location.href = 'index.html';
-    }
-
-    function setActiveUser(wallet) {
-      activeWallet = wallet;
-      saveState();
-      renderDashboard();
+      window.location.replace('index.html');
     }
 
     function updateWasteCategoryPreview() {
@@ -578,9 +577,6 @@
             <td class="py-3 px-4 font-mono text-slate-300">${truncateAddress(u.wallet)}</td>
             <td class="py-3 px-4 font-bold text-slate-200">${u.totalWeight.toFixed(1)} kg</td>
             <td class="py-3 px-4 font-bold text-emerald-400">${u.totalTokens.toFixed(1)} $RECYCLE</td>
-            <td class="py-3 px-4">
-              <button onclick="setActiveUser('${u.wallet}')" class="text-xs font-bold text-emerald-400 hover:underline">Switch User</button>
-            </td>
           `;
           membersTbody.appendChild(row);
         });
