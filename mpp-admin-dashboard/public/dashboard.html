@@ -437,7 +437,8 @@
 
   function updateDetectionPreview(data) {
     const metadata = data.fusion_result?.rag_result?.metadata || {};
-    const detectedCategory = metadata.category || data.predicted_label || 'Unknown';
+    const detectedCategory = 
+      metadata.category || data.predicted_label || 'Unknown';
     const route = data.hardware_route_signal || 'R';
 
     const routeNames = {
@@ -449,27 +450,12 @@
 
     const isAccepted = data.status === 'SUCCESS';
 
-    document.getElementById('category-tag').innerText = isAccepted
-      ? detectedCategory.toUpperCase()
-      : 'REJECTED';
+    document.getElementById('category-tag').innerText = 
+      isAccepted ? detectedCategory.toUpperCase() : 'REJECTED';
 
     document.getElementById('bin-route-display').innerText =
       routeNames[route] || 'R (Reject)';
   }
-
-      imgElem.src = WASTE_IMAGES[type] || WASTE_IMAGES['Plastic'];
-
-      if (type === 'Plastic') {
-        tagElem.innerText = 'PLASTIC';
-        routeElem.innerText = 'P (Plastic)';
-      } else if (type === 'Metal') {
-        tagElem.innerText = 'METAL CAN';
-        routeElem.innerText = 'M (Metal)';
-      } else {
-        tagElem.innerText = 'E-WASTE';
-        routeElem.innerText = 'E (E-Waste)';
-      }
-    }
 
     async function handleDeposit(e) {
       e.preventDefault();
@@ -541,7 +527,7 @@
             : `REJECTED — ${detectedCategory.toUpperCase()}`,
           weight: weightKg,
           tokens: tokensEarned,
-          txHash: data.web3_reward ? .tx_hash || null
+          txHash: data.web3_reward?.tx_hash || null
         };
 
         // Preserve rejected attempts in history, but do not include them in rewards/totals.
