@@ -14,6 +14,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000"
+        "https://stunning-sniffle-pj9wv5gpwq5vcxxp-3000.app.github.dev",
     ],
     allow_credentials=True,
     allow_methods=["*"],
