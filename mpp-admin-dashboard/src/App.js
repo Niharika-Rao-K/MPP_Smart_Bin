@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import Auth from './components/Auth'; // Ensure Auth.js & Auth.css exist in src/components/
 
 const API_BASE =
-  process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+  process.env.REACT_APP_API_URL || 'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
 
 export default function App() {
   // 1. PERSISTENT USER SESSION STATE
