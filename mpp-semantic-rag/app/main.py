@@ -38,6 +38,12 @@ app.include_router(
     tags=["Bins"],
 )
 
+app.include_router(
+    deposits_router,
+    prefix="/api/deposits",
+    tags=["Deposits"],
+)
+
 @app.get("/")
 def read_root():
     return {
