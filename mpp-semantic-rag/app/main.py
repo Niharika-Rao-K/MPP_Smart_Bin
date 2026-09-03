@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database.database import Base, engine
 from app.database import models
 from app.routes.deposit import router as deposit_router
+from app.routes.bin import router as bin_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -29,6 +30,12 @@ app.include_router(
     deposit_router,
     prefix="/api/rag",
     tags=["RAG Deposits"]
+)
+
+app.include_router(
+    bin_router,
+    prefix="/api/bins",
+    tags=["Bins"],
 )
 
 @app.get("/")
