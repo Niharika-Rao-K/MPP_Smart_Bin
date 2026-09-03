@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database.database import Base, engine
 from app.database import models
+from app.routes.deposit import router as deposit_router
 from app.routes.deposits import router as deposits_router
 from app.routes.bin import router as bin_router
 
@@ -27,7 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(
-    deposits_router,
+    deposit_router,
     prefix="/api/rag",
     tags=["RAG Deposits"]
 )
