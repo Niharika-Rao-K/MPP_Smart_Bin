@@ -468,7 +468,11 @@
       const user = users.find(
         u => u.wallet.toLowerCase() === activeWallet.toLowerCase()
       );
-      if (!user) return;
+      
+      if (!user) {
+        alert('Active user not found. Please log in again.');
+        return;
+      }
 
       const imageInput = document.getElementById('waste-image');
       const imageFile = imageInput.files[0];
@@ -488,6 +492,7 @@
       const binId = urlParams.get('bin') || 'UNKNOWN';
 
       const formData = new FormData();
+      
       formData.append('label', 'uploaded_image');
       formData.append('image', imageFile);
       formData.append('real_weight_g', weightG);
@@ -495,6 +500,7 @@
       formData.append('bin_id', binId);
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
+      
       submitBtn.disabled = true;
       submitBtn.innerText = "Processing RAG & Sepolia Transaction...";
 
@@ -564,13 +570,14 @@
             data.fusion_result?.action ||
             'Item rejected. No tokens were minted.'
           );
-        }
-      } else if (!txHash) {
+        } else if (!txHash) {
 
-        alert(
-          'Waste was verified, but no blockchain transaction was created.'
-        );
+          alert(
+            'Waste was verified, but no blockchain transaction was created.'
+          );
+        }
       } catch (err) {
+        console.error('Deposit processing error:', err);
         alert(`Failed to complete transaction: ${err.message}`);
       } finally {
         submitBtn.disabled = false;
