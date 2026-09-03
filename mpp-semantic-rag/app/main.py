@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.database.database import Base, engine
+from app.database import models
 from app.routes.deposit import router as deposit_router
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Smart Recycling Bin RAG & Fusion Backend",
