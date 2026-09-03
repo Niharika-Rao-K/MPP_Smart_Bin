@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(
-    deposit_router,
+    deposits_router,
     prefix="/api/rag",
     tags=["RAG Deposits"]
 )
