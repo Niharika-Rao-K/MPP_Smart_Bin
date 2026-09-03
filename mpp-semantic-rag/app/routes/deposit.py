@@ -2,7 +2,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
+
+from sqlalchemy.orm import Session
+
+from app.database.database import get_db
+from app.database.models import Bin
 
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
@@ -27,8 +39,28 @@ async def deposit_item(
     label: str = Form(""),
     real_weight_g: float = Form(...),
     wallet_address: str = Form(...),
-    bin_id: str = Form("UNKNOWN")
+    bin_id: str = Form("UNKNOWN"),
+    db: Session = Depends(get_db),
 ):
+
+    bin_record = (
+        db.query(Bin)
+        .filter(Bin.bin_code == bin_id)
+        .first()
+    )
+
+    if not bin_record:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown bin: {bin_id}",
+        )
+
+    if bin_record.status != "ACTIVE":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Bin {bin_id} is not active.",
+        )
+    
     if image.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=415,
