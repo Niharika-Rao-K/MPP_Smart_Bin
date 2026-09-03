@@ -14,7 +14,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.database.models import Bin
+from app.database.models import Bin, Deposit
 
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
@@ -140,6 +140,23 @@ async def deposit_item(
             reward_result.get("explorer_url")
             or reward_result.get("etherscan_url")
         )
+
+        deposit = Deposit(
+            transaction_id=transaction_id,
+            bin_id=bin_record.id,
+            wallet_address=wallet_address,
+            predicted_label=detected_label,
+            confidence=confidence,
+            weight_g=stable_weight_g,
+            decision=fusion_result["decision"],
+            hardware_route_signal=route_signal,
+            reward_amount=calculated_credits,
+            reward_status=reward_result.get("status", "UNKNOWN"),
+            tx_hash=tx_hash,
+        )
+
+        db.add(deposit)
+        db.commit()
 
         return {
             "transaction_id": transaction_id,
