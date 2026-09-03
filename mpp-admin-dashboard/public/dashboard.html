@@ -436,9 +436,9 @@
     }
 
   function updateDetectionPreview(data) {
-    const metadata = data.fusion_result?.rag_result?.metadata || {};
+    
     const detectedCategory = 
-      metadata.category || data.predicted_label || 'Unknown';
+      data.predicted_label || 'Unknown';
     const route = data.hardware_route_signal || 'R';
 
     const routeNames = {
@@ -488,11 +488,11 @@
       const binId = urlParams.get('bin') || 'UNKNOWN';
 
       const formData = new FormData();
-       formData.append('image', imageFile);
-       formData.append('label', 'uploaded_image');
-       formData.append('real_weight_g', weightG);
-       formData.append('wallet_address', activeWallet);
-       formData.append('bin_id', binId);
+      formData.append('label', 'uploaded_image');
+      formData.append('image', imageFile);
+      formData.append('real_weight_g', weightG);
+      formData.append('wallet_address', activeWallet);
+      formData.append('bin_id', binId);
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
@@ -507,33 +507,50 @@
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(`API Error: ${response.statusText}`);
+          throw new Error(
+            data.detail ||
+            `API Error: ${response.status}`
+          );
         }
 
         updateDetectionPreview(data);
-
-        const tokensEarned = Number(data.calculated_credits || 0);
-        const metadata = data.fusion_result?.rag_result?.metadata || {};
-        const detectedCategory = metadata.category || data.predicted_label || 'UNKNOWN';
         const isAccepted = data.status === 'SUCCESS';
+        const detectedCategory =
+          data.predicted_label ||
+          'UNKNOWN';
+        
+        const weightGReturned =
+          Number(
+            data.stable_weight_g || weightG
+          );
 
         // Keep local dashboard totals in kilograms, although the API uses grams.
-        const weightKg = Number(data.stable_weight_g || weightG) / 1000;
+        const txHash =
+          data.web3_reward?.tx_hash || null;
 
+        const tokensEarned =
+          isAccepted && txHash
+            ? Number(
+                data.web3_reward?.tokens_minted || 0
+              )
+            : 0;
+        
         const deposit = {
           createdAt: data.created_at || new Date().toISOString(),
           type: isAccepted
             ? detectedCategory.toUpperCase()
             : `REJECTED — ${detectedCategory.toUpperCase()}`,
-          weight: weightKg,
+          weightG: weightGReturned,
           tokens: tokensEarned,
-          txHash: data.web3_reward?.tx_hash || null
+          txHash: tx_hash,
+          status: data.status || 'REJECTED'
         };
 
         // Preserve rejected attempts in history, but do not include them in rewards/totals.
         user.deposits.unshift(deposit);
 
-        if (isAccepted) {
+        if (isAccepted && txHash) {
+          const weightKg = weightGReturned / 1000;
           user.totalWeight += weightKg;
           user.totalTokens += tokensEarned;
           user.streak += 1;
@@ -545,9 +562,14 @@
         if (!isAccepted) {
           alert(
             data.fusion_result?.action ||
-            'Item rejected. Please use a clearer image or check the measured weight.'
+            'Item rejected. No tokens were minted.'
           );
         }
+      } else if (!txHash) {
+
+        alert(
+          'Waste was verified, but no blockchain transaction was created.'
+        );
       } catch (err) {
         alert(`Failed to complete transaction: ${err.message}`);
       } finally {
@@ -628,18 +650,38 @@
         activeUser.deposits.forEach(d => {
           const row = document.createElement('tr');
           row.className = 'hover:bg-slate-800/40 transition';
-          const txLink = d.txHash 
-            ? `<a href="https://sepolia.etherscan.io/tx/${d.txHash}" target="_blank" class="text-emerald-400 hover:underline font-mono">${truncateAddress(d.txHash)} ↗</a>`
-            : truncateAddress(activeUser.wallet);
-
+          const txLink = d.txHash
+            ? `<a
+                href="https://sepolia.etherscan.io/tx/${d.txHash}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-emerald-400 hover:underline font-mono"
+              >
+                ${truncateAddress(d.txHash)} ↗
+              </a>`
+            : `<span class="text-slate-500">
+                No blockchain transaction
+              </span>`;
           row.innerHTML = `
             <td class="py-3 px-4 text-slate-400">
               ${d.createdAt ? formatDepositDate(d.createdAt) : d.timestamp}
             </td>
             <td class="py-3 px-4 font-bold text-white">${activeUser.username}</td>
             <td class="py-3 px-4 font-semibold">${d.type}</td>
-            <td class="py-3 px-4 font-bold text-slate-300">${d.weight.toFixed(1)} kg</td>
-            <td class="py-3 px-4 font-bold text-emerald-400">+${d.tokens.toFixed(1)} $RECYCLE</td>
+            <td class="py-3 px-4 font-bold text-slate-300">
+              ${Number(d.weightG || 0).toFixed(1)} g
+            </td>
+
+            <td class="py-3 px-4 font-bold ${
+              d.tokens > 0
+                ? 'text-emerald-400'
+                : 'text-slate-500'
+            }">
+              ${d.tokens > 0
+                ? `+${Number(d.tokens).toFixed(1)} $RECYCLE`
+                : '0 $RECYCLE'
+              }
+            </td>
             <td class="py-3 px-4 font-mono text-slate-400">${txLink}</td>
           `;
           historyTbody.appendChild(row);
