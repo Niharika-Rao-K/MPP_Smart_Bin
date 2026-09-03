@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database.database import Base, engine
 from app.database import models
-from app.routes.deposit import router as deposit_router
+from app.routes.deposits import router as deposits_router
 from app.routes.bin import router as bin_router
 
 Base.metadata.create_all(bind=engine)
