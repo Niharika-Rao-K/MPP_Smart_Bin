@@ -357,10 +357,31 @@
         timeStyle: 'short'
       }).format(new Date(dateValue));
     }
+
+    async function verifyBin(binCode) {
+      const response = await fetch(
+        `${API_BASE_URL}/api/bins/${encodeURIComponent(binCode)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || `Unable to verify bin: ${response.status}`
+        );
+      }
+
+      if (!data.active) {
+        throw new Error(`Bin ${binCode} is currently inactive.`);
+      }
+
+      return data;
+    }
+    
     let users = JSON.parse(localStorage.getItem('r2e_users')) || [];
     let activeWallet = localStorage.getItem('r2e_active_wallet') || null;
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       const activeUser = users.find(
         user => user.wallet.toLowerCase() === (activeWallet || '').toLowerCase()
       );
@@ -372,13 +393,27 @@
       }
       const urlParams = new URLSearchParams(window.location.search);
       const binId = urlParams.get('bin');
-      if (binId) {
-        document.getElementById('qr-banner').classList.remove('hidden');
-        document.getElementById('active-bin-id').innerText = binId;
+      if (!binId) {
+        alert('No smart bin was specified. Please scan a valid bin QR code.');
+        return;
       }
 
-      resetWastePreview();
-      renderDashboard();
+      try {
+        const bin = await verifyBin(binId);
+
+        console.log('Verified smart bin:', bin);
+
+        document.getElementById('qr-banner').classList.remove('hidden');
+        document.getElementById('active-bin-id').innerText = bin.bin_code;
+
+        resetWastePreview();
+        renderDashboard();
+
+      } catch (err) {
+        console.error('Bin verification failed:', err);
+
+        alert(`Unable to connect to smart bin: ${err.message}`);
+      }
     });
 
     function switchView(viewName) {
