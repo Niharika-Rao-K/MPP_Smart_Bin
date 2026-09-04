@@ -302,10 +302,126 @@ function Auth({ onLoginSuccess }) {
       return;
     }
 
-    alert(
-      "MetaMask registration will be connected to the backend in the next step."
-    );
+    if (!fullName.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (!username.trim()) {
+      setError("Please enter a username.");
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter a password.");
+      return;
+    }
+
+    if (password.length < 4) {
+      setError("Password must be at least 4 characters.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // 1. Connect to MetaMask
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No MetaMask account was selected.");
+      }
+
+      const walletAddress = accounts[0];
+
+      // 2. Create a registration message
+      const message =
+        `Register for Recycle2Earn\n\n` +
+        `Username: ${username.trim()}\n` +
+        `Wallet: ${walletAddress}\n\n` +
+        `This signature proves that you own this wallet. ` +
+        `It does not authorize any blockchain transaction.`;
+
+      // 3. Ask MetaMask to sign the message
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [message, walletAddress],
+      });
+
+      // 4. Send registration data to backend
+      const response = await fetch(
+        `${API_BASE}/api/auth/metamask/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            full_name: fullName.trim(),
+            username: username.trim(),
+            password,
+            wallet_address: walletAddress,
+            signature,
+            message,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "MetaMask registration failed."
+        );
+      }
+
+      // 5. Backend created the account
+      const user = data.user;
+
+      localStorage.setItem(
+        "r2e_user",
+        JSON.stringify(user)
+      );
+
+      localStorage.setItem(
+        ACTIVE_WALLET_KEY,
+        user.wallet_address
+      );
+
+      alert("Account created successfully with MetaMask!");
+
+      if (onLoginSuccess) {
+        onLoginSuccess(user);
+      }
+
+      // 6. Preserve QR bin code
+      const bin = new URLSearchParams(window.location.search).get("bin");
+
+      if (bin) {
+        window.location.replace(
+          `/dashboard.html?bin=${encodeURIComponent(bin)}`
+        );
+      } else {
+        window.location.replace("/dashboard.html");
+      }
+
+    } catch (err) {
+      console.error("MetaMask registration error:", err);
+
+      if (err.code === 4001) {
+        setError("MetaMask signature was rejected.");
+      } else {
+        setError(
+          err.message || "Unable to register with MetaMask."
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   const togglePassword = (type) => {
     if (type === "login") {
