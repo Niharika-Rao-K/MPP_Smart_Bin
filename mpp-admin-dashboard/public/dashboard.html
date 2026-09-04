@@ -668,14 +668,44 @@
       const badgeCount = document.getElementById('badge-count');
 
       const streak = activeUser ? activeUser.streak : 0;
-      const totalWeight = activeUser ? activeUser.totalWeight : 0;
-      const totalTokens = activeUser ? activeUser.totalTokens : 0;
-      const depositCount = activeUser ? activeUser.deposits.length : 0;
 
+      // Load deposit data from backend database
+      let databaseDeposits = [];
+
+      if (activeUser) {
+        try {
+          databaseDeposits = await fetchDepositHistory(activeUser.wallet);
+        } catch (err) {
+          console.error('Failed to load deposit history:', err);
+        }
+      }
+
+      // Calculate dashboard statistics from database
+      const depositCount = databaseDeposits.length;
+
+      const totalWeightGrams = databaseDeposits.reduce(
+        (sum, deposit) => sum + Number(deposit.weight_g || 0),
+        0
+      );
+
+      const totalWeightKg = totalWeightGrams / 1000;
+
+      const totalTokens = databaseDeposits.reduce(
+        (sum, deposit) => sum + Number(deposit.reward_amount || 0),
+        0
+      );
+
+      // Update dashboard statistics
       streakCount.innerText = streak;
-      document.getElementById('dash-total-weight').innerText = `${totalWeight.toFixed(1)} kg`;
-      document.getElementById('dash-total-tokens').innerText = `${totalTokens.toFixed(1)} $RECYCLE`;
-      document.getElementById('dash-total-deposits').innerText = depositCount;
+
+      document.getElementById('dash-total-weight').innerText =
+        `${totalWeightKg.toFixed(3)} kg`;
+
+      document.getElementById('dash-total-tokens').innerText =
+        `${totalTokens.toFixed(1)} $RECYCLE`;
+
+      document.getElementById('dash-total-deposits').innerText =
+        depositCount;
 
       let unlockedBadges = 0;
       
@@ -695,8 +725,8 @@
 
       applyBadgeState(badgeFirst, depositCount >= 1);
       applyBadgeState(badgeStreak, streak >= 3);
-      applyBadgeState(badgeHeavy, totalWeight >= 10);
-      applyBadgeState(badgeMaster, totalWeight >= 50);
+      applyBadgeState(badgeHeavy, totalWeightKg >= 10);
+      applyBadgeState(badgeMaster, totalWeightKg >= 50);
 
       badgeCount.innerText = `${unlockedBadges} / 4 Unlocked`;
 
@@ -704,23 +734,6 @@
       const historyTbody = document.getElementById('history-tbody');
       historyTbody.innerHTML = '';
 
-      let databaseDeposits = [];
-
-      if (activeUser) {
-        try {
-          databaseDeposits = await fetchDepositHistory(activeUser.wallet);
-        } catch (err) {
-          console.error('Failed to load deposit history:', err);
-
-          historyTbody.innerHTML = `
-            <tr>
-              <td colspan="6" class="py-4 text-center text-red-400">
-                Unable to load deposit history.
-              </td>
-            </tr>
-          `;
-        }
-      }
 
       if (databaseDeposits.length > 0) {
         databaseDeposits.forEach(d => {
