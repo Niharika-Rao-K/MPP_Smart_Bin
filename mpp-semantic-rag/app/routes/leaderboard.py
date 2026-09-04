@@ -20,7 +20,10 @@ def get_leaderboard(
             func.count(Deposit.id).label("deposit_count"),
         )
         .group_by(Deposit.wallet_address)
-        .order_by(func.sum(Deposit.reward_amount).desc())
+        .order_by(
+            func.sum(Deposit.reward_amount).desc(),
+            func.sum(Deposit.weight_g).desc(),
+        )
         .all()
     )
 
