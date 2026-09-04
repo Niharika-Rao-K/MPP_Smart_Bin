@@ -71,11 +71,7 @@ function Auth({ onLoginSuccess }) {
 
       localStorage.setItem(
         "r2e_user",
-        JSON.stringify({
-          fullName: user.full_name,
-          username: user.username,
-          walletAddress: user.wallet_address,
-        })
+        JSON.stringify(user)
       );
 
       localStorage.setItem(
@@ -84,15 +80,19 @@ function Auth({ onLoginSuccess }) {
       );
 
       if (onLoginSuccess) {
-        onLoginSuccess({
-          fullName: user.full_name,
-          username: user.username,
-          walletAddress: user.wallet_address,
-        });
+        onLoginSuccess(user);
       }
 
-      // Your existing dashboard is still dashboard.html.
-      window.location.replace("/dashboard.html");
+      // Preserve the bin code if the user came through a QR code.
+      const bin = new URLSearchParams(window.location.search).get("bin");
+
+      if (bin) {
+        window.location.replace(
+          `/dashboard.html?bin=${encodeURIComponent(bin)}`
+        );
+      } else {
+        window.location.replace("/dashboard.html");
+      }
     } catch (err) {
       setError(err.message || "Unable to login.");
     } finally {
@@ -156,11 +156,7 @@ function Auth({ onLoginSuccess }) {
 
       localStorage.setItem(
         "r2e_user",
-        JSON.stringify({
-          fullName: user.full_name,
-          username: user.username,
-          walletAddress: user.wallet_address,
-        })
+        JSON.stringify(user)
       );
 
       localStorage.setItem(
@@ -171,14 +167,18 @@ function Auth({ onLoginSuccess }) {
       alert("Account created successfully!");
 
       if (onLoginSuccess) {
-        onLoginSuccess({
-          fullName: user.full_name,
-          username: user.username,
-          walletAddress: user.wallet_address,
-        });
+        onLoginSuccess(user);
       }
+      // Preserve the bin code if the user came through a QR code.
+      const bin = new URLSearchParams(window.location.search).get("bin");
 
-      window.location.replace("/dashboard.html");
+      if (bin) {
+        window.location.replace(
+          `/dashboard.html?bin=${encodeURIComponent(bin)}`
+        );
+      } else {
+        window.location.replace("/dashboard.html");
+      }
     } catch (err) {
       setError(err.message || "Unable to create account.");
     } finally {
