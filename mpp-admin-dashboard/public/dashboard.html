@@ -410,19 +410,40 @@
       return data;
     }
     
-    let users = JSON.parse(localStorage.getItem('r2e_users')) || [];
-    let activeWallet = localStorage.getItem('r2e_active_wallet') || null;
+    let activeUser = null;
+    let activeWallet = null;
+
+    function loadActiveUser() {
+      const savedUser = localStorage.getItem('r2e_user');
+
+      if (!savedUser) {
+        return null;
+      }
+
+      try {
+        const user = JSON.parse(savedUser);
+
+        if (!user || !user.wallet_address) {
+          return null;
+        }
+
+        return user;
+      } catch (err) {
+        console.error('Invalid saved user session:', err);
+        return null;
+      }
+    }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      const activeUser = users.find(
-        user => user.wallet.toLowerCase() === (activeWallet || '').toLowerCase()
-      );
+      activeUser = loadActiveUser();
 
-      if (!activeWallet || !activeUser) {
-        localStorage.removeItem('r2e_active_wallet');
+      if (!activeUser || !activeUser.wallet_address) {
+        localStorage.removeItem('r2e_user');
         window.location.replace('index.html');
         return;
       }
+      activeWallet = activeUser.wallet_address;
+      
       const urlParams = new URLSearchParams(window.location.search);
       const binId = urlParams.get('bin');
       if (!binId) {
@@ -465,8 +486,12 @@
 
     /* Auth Modal Switcher */
     function handleLogout() {
+      activeUser = null;
       activeWallet = null;
+
+      localStorage.removeItem('r2e_user');
       localStorage.removeItem('r2e_active_wallet');
+      
       window.location.replace('index.html');
     }
 
@@ -526,20 +551,12 @@
 
     async function handleDeposit(e) {
       e.preventDefault();
-      if (!activeWallet) {
+      if (!activeUser || !activeWallet) {
         alert('Your session has expired. Please log in again.');
         window.location.replace('index.html');
         return;
       }
 
-      const user = users.find(
-        u => u.wallet.toLowerCase() === activeWallet.toLowerCase()
-      );
-      
-      if (!user) {
-        alert('Active user not found. Please log in again.');
-        return;
-      }
 
       const imageInput = document.getElementById('waste-image');
       const imageFile = imageInput.files[0];
@@ -608,30 +625,14 @@
               )
             : 0;
         
-        const deposit = {
-          createdAt: data.created_at || new Date().toISOString(),
-          type: isAccepted
-            ? detectedCategory.toUpperCase()
-            : `REJECTED — ${detectedCategory.toUpperCase()}`,
-          weightG: weightGReturned,
-          tokens: tokensEarned,
-          txHash: txHash,
-          status: data.status || 'REJECTED'
-        };
 
-        // Preserve rejected attempts in history, but do not include them in rewards/totals.
-        user.deposits.unshift(deposit);
+        
+        // The backend has already persisted this deposit.
+        // Do not modify or duplicate user data in localStorage.
 
-        if (isAccepted && txHash) {
-          const weightKg = weightGReturned / 1000;
-          user.totalWeight += weightKg;
-          user.totalTokens += tokensEarned;
-          user.streak += 1;
-        }
-
-        saveState();
-        renderDashboard();
+        await renderDashboard();
         switchView('history');
+        
         if (!isAccepted) {
           alert(
             data.fusion_result?.action ||
@@ -652,14 +653,10 @@
       }
     }
 
-    function saveState() {
-      localStorage.setItem('r2e_users', JSON.stringify(users));
-      localStorage.setItem('r2e_active_wallet', activeWallet || '');
-    }
-
     async function renderDashboard() {
-      const activeUser = users.find(u => u.wallet.toLowerCase() === (activeWallet || '').toLowerCase());
-
+      if (!activeUser || !activeWallet) {
+        return;
+      }
       const widgetAvatar = document.getElementById('widget-avatar');
       const widgetUsername = document.getElementById('widget-username');
       const widgetWallet = document.getElementById('widget-wallet');
@@ -669,7 +666,7 @@
       if (activeUser) {
         widgetAvatar.innerText = activeUser.username.charAt(0).toUpperCase();
         widgetUsername.innerText = activeUser.username;
-        widgetWallet.innerText = truncateAddress(activeUser.wallet);
+        widgetWallet.innerText = truncateAddress(activeUser.wallet_address);
         logoutBtn.classList.remove('hidden');
 
       } else {
@@ -683,7 +680,7 @@
       const streakCount = document.getElementById('streak-count');
       const badgeCount = document.getElementById('badge-count');
 
-      const streak = activeUser ? activeUser.streak : 0;
+      const streak = activeUser ? Number(activeUser.streak || 0) : 0;
 
       // Load deposit data from backend database
       let databaseDeposits = [];
@@ -840,7 +837,7 @@
         leaderboardData.forEach((u, index) => {
           const isCurrent =
             activeUser &&
-            activeUser.wallet.toLowerCase() === u.wallet_address.toLowerCase();
+            activeUser.wallet_address.toLowerCase() === u.wallet_address.toLowerCase();
 
           const row = document.createElement('tr');
 
