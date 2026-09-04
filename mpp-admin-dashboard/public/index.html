@@ -249,6 +249,11 @@
       background: #0f4d2d;
     }
 
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
     .divider {
       display: flex;
       align-items: center;
@@ -361,13 +366,17 @@
 ```
 <!-- Top SVG Decorative Leaves -->
 <svg class="leaf-bg-tl" viewBox="0 0 120 120" fill="none">
-  <path d="M-10 -10 C30 20, 60 40, 90 20 C60 80, 0 90, -10 110 Z" fill="#68a85d" opacity="0.4"/>
-  <path d="M0 -20 C40 10, 80 10, 110 0 C70 50, 20 60, 0 80 Z" fill="#2d7a42" opacity="0.6"/>
+  <path d="M-10 -10 C30 20, 60 40, 90 20 C60 80, 0 90, -10 110 Z"
+        fill="#68a85d" opacity="0.4"/>
+  <path d="M0 -20 C40 10, 80 10, 110 0 C70 50, 20 60, 0 80 Z"
+        fill="#2d7a42" opacity="0.6"/>
 </svg>
 
 <svg class="leaf-bg-tr" viewBox="0 0 120 120" fill="none">
-  <path d="M130 -10 C90 20, 60 40, 30 20 C60 80, 120 90, 130 110 Z" fill="#68a85d" opacity="0.4"/>
-  <path d="M120 -20 C80 10, 40 10, 10 0 C50 50, 100 60, 120 80 Z" fill="#2d7a42" opacity="0.6"/>
+  <path d="M130 -10 C90 20, 60 40, 30 20 C60 80, 120 90, 130 110 Z"
+        fill="#68a85d" opacity="0.4"/>
+  <path d="M120 -20 C80 10, 40 10, 10 0 C50 50, 100 60, 120 80 Z"
+        fill="#2d7a42" opacity="0.6"/>
 </svg>
 
 <!-- Back Arrow -->
@@ -387,7 +396,7 @@
   </div>
 </div>
 
-<!-- Seamless Center Hero Artwork -->
+<!-- Hero Artwork -->
 <div class="hero-art">
   <img
     src="https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -472,12 +481,10 @@
 
   </form>
 
-
   <!-- REGISTER FORM -->
   <form id="register-form" class="hidden">
 
     <div class="card-title">Create Account</div>
-
     <div class="card-subtitle">
       Join Recycle2Earn and start earning!
     </div>
@@ -577,7 +584,6 @@
 
 </div>
 
-
 <!-- Footer Area -->
 <div class="footer-section">
 
@@ -589,7 +595,6 @@
 
     <!-- Modern Clean Recycle Bin -->
     <svg class="footer-icon-svg" viewBox="0 0 100 120" fill="none">
-
       <defs>
         <linearGradient id="binBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#388e3c"/>
@@ -627,7 +632,6 @@
       />
 
       <g transform="translate(50, 72) scale(0.65)">
-
         <path
           d="M 0 -22 L 7 -9 L 2 -9 C 2 -2, 8 4, 15 2 L 17 8 C 6 12 -4 3 -4 -9 L -9 -9 Z"
           fill="#ffffff"
@@ -646,11 +650,8 @@
             fill="#ffffff"
           />
         </g>
-
       </g>
-
     </svg>
-
 
     <!-- Dashed Arrow 1 -->
     <svg class="footer-arrow-svg" viewBox="0 0 50 20">
@@ -665,10 +666,8 @@
       />
     </svg>
 
-
-    <!-- Footer Coin with Dollar Symbol -->
+    <!-- Footer Coin -->
     <svg class="footer-icon-svg" viewBox="0 0 100 100" fill="none">
-
       <circle
         cx="50"
         cy="50"
@@ -712,9 +711,7 @@
           <stop offset="100%" stop-color="#f59e0b"/>
         </linearGradient>
       </defs>
-
     </svg>
-
 
     <!-- Dashed Arrow 2 -->
     <svg class="footer-arrow-svg" viewBox="0 0 50 20">
@@ -729,17 +726,14 @@
       />
     </svg>
 
-
     <!-- MetaMask Wallet -->
     <img class="footer-wallet-img" alt="MetaMask Wallet">
 
   </div>
 </div>
 
-
 <!-- Bottom Decorative Foliage -->
 <svg class="leaf-bg-bottom" viewBox="0 0 400 60" fill="none">
-
   <path
     d="M0 60 C50 20, 100 10, 150 40 C200 10, 280 20, 320 40 C360 20, 390 10, 400 30 L400 60 Z"
     fill="#2d7a42"
@@ -751,46 +745,51 @@
     fill="#4ea63b"
     opacity="0.9"
   />
-
 </svg>
 ```
 
   </div>
 
   <script>
-
-    /* ============================================================
-       CONFIGURATION
-       ============================================================ */
+    /*
+     * ============================================================
+     * RECYCLE2EARN AUTHENTICATION
+     * ============================================================
+     *
+     * Authentication is now handled by the FastAPI backend.
+     *
+     * Frontend:
+     *     username + password
+     *             ↓
+     * Backend:
+     *     POST /api/auth/login
+     *             ↓
+     * SQLite users table
+     *
+     * IMPORTANT:
+     * We are temporarily keeping the active wallet in localStorage
+     * because dashboard.html currently uses it to identify the user.
+     * This will be removed in a later step.
+     */
 
     const API_BASE_URL =
       'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
 
-    /*
-     * dashboard.html currently uses this value to identify
-     * the logged-in user's wallet.
-     *
-     * We are keeping this temporarily.
-     *
-     * Later, in Step 24G, we will replace this with proper
-     * backend-based user authentication.
-     */
     const ACTIVE_WALLET_KEY = 'r2e_active_wallet';
-
-
-    /* ============================================================
-       METAMASK IMAGE
-       ============================================================ */
 
     const customWalletSrc =
       'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg';
 
 
+    /*
+     * ============================================================
+     * PAGE INITIALIZATION
+     * ============================================================
+     */
+
     document.addEventListener('DOMContentLoaded', () => {
 
-      /*
-       * Set MetaMask images.
-       */
+      // Set MetaMask images.
       document
         .querySelectorAll('.wallet-icon-img, .footer-wallet-img')
         .forEach(img => {
@@ -800,11 +799,13 @@
     });
 
 
-    /* ============================================================
-       LOGIN
-       ============================================================ */
+    /*
+     * ============================================================
+     * LOGIN
+     * ============================================================
+     */
 
-    document.getElementById('login-form').onsubmit = async function(event) {
+    document.getElementById('login-form').onsubmit = async function (event) {
 
       event.preventDefault();
 
@@ -824,9 +825,6 @@
       }
 
 
-      /*
-       * Prevent double-clicking the Login button.
-       */
       loginButton.disabled = true;
       loginButton.textContent = 'Logging in...';
 
@@ -850,32 +848,23 @@
         );
 
 
-        let data;
-
-        try {
-          data = await response.json();
-        } catch {
-          data = {};
-        }
+        const data = await response.json();
 
 
         if (!response.ok) {
-
           throw new Error(
-            data.detail ||
-            'Invalid username or password. Please try again.'
+            data.detail || 'Login failed. Please try again.'
           );
-
         }
 
 
         /*
-         * Login succeeded.
+         * The backend returns the authenticated user's wallet.
          *
-         * The backend gives us the user's wallet address.
+         * Dashboard currently uses this wallet to load:
+         *     /api/deposits/{wallet}
          *
-         * dashboard.html currently needs this value to load
-         * the user's deposits.
+         * Therefore we temporarily keep the wallet in localStorage.
          */
         localStorage.setItem(
           ACTIVE_WALLET_KEY,
@@ -883,11 +872,8 @@
         );
 
 
-        /*
-         * Go to dashboard.
-         */
+        // Login successful.
         window.location.replace('dashboard.html');
-
 
       } catch (error) {
 
@@ -897,7 +883,6 @@
           error.message ||
           'Unable to connect to the authentication server.'
         );
-
 
       } finally {
 
@@ -909,11 +894,13 @@
     };
 
 
-    /* ============================================================
-       REGISTRATION
-       ============================================================ */
+    /*
+     * ============================================================
+     * REGISTRATION
+     * ============================================================
+     */
 
-    document.getElementById('register-form').onsubmit = async function(event) {
+    document.getElementById('register-form').onsubmit = async function (event) {
 
       event.preventDefault();
 
@@ -952,23 +939,14 @@
       }
 
 
-      /*
-       * Validate Ethereum wallet address.
-       */
       if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
-
         alert(
           'Please enter a valid MetaMask wallet address starting with 0x.'
         );
-
         return;
-
       }
 
 
-      /*
-       * Prevent double-clicking Register.
-       */
       registerButton.disabled = true;
       registerButton.textContent = 'Creating account...';
 
@@ -994,30 +972,25 @@
         );
 
 
-        let data;
-
-        try {
-          data = await response.json();
-        } catch {
-          data = {};
-        }
+        const data = await response.json();
 
 
         if (!response.ok) {
-
           throw new Error(
             data.detail ||
             'Registration failed. Please try again.'
           );
-
         }
 
 
         /*
          * Registration succeeded.
          *
-         * The password has already been securely hashed
-         * by the FastAPI backend before being stored in SQLite.
+         * The backend has already created the SQLite user and
+         * securely hashed the password.
+         *
+         * We temporarily save only the wallet address because
+         * dashboard.html currently uses it as the user's identity.
          */
         localStorage.setItem(
           ACTIVE_WALLET_KEY,
@@ -1027,12 +1000,7 @@
 
         alert('Account created successfully!');
 
-
-        /*
-         * Go directly to dashboard.
-         */
         window.location.replace('dashboard.html');
-
 
       } catch (error) {
 
@@ -1042,7 +1010,6 @@
           error.message ||
           'Unable to connect to the authentication server.'
         );
-
 
       } finally {
 
@@ -1054,9 +1021,11 @@
     };
 
 
-    /* ============================================================
-       LOGIN / REGISTER SCREEN SWITCHING
-       ============================================================ */
+    /*
+     * ============================================================
+     * SCREEN SWITCHING
+     * ============================================================
+     */
 
     function showRegister() {
 
@@ -1092,9 +1061,11 @@
     }
 
 
-    /* ============================================================
-       PASSWORD VISIBILITY
-       ============================================================ */
+    /*
+     * ============================================================
+     * PASSWORD VISIBILITY
+     * ============================================================
+     */
 
     function toggleVisibility(inputId, btn) {
 
@@ -1124,16 +1095,16 @@
     }
 
 
-    /* ============================================================
-       FORGOT PASSWORD
-       ============================================================
-       
-       This remains a placeholder for Step 24E.
-       
-       We will implement password recovery using MetaMask
-       signature verification rather than a weak username +
-       wallet-address reset.
-    */
+    /*
+     * ============================================================
+     * FORGOT PASSWORD
+     * ============================================================
+     *
+     * This will be implemented in Step 24E.
+     *
+     * We intentionally do not implement a weak
+     * "username + wallet = reset password" mechanism.
+     */
 
     function handleForgotPassword(event) {
 
@@ -1146,12 +1117,13 @@
     }
 
 
-    /* ============================================================
-       METAMASK LOGIN
-       ============================================================
-       
-       This remains a placeholder for Step 24F.
-    */
+    /*
+     * ============================================================
+     * METAMASK LOGIN
+     * ============================================================
+     *
+     * This will be implemented in Step 24F.
+     */
 
     function handleMetaMaskLogin() {
 
@@ -1162,12 +1134,13 @@
     }
 
 
-    /* ============================================================
-       METAMASK REGISTRATION
-       ============================================================
-       
-       This remains a placeholder for Step 24F.
-    */
+    /*
+     * ============================================================
+     * METAMASK REGISTRATION
+     * ============================================================
+     *
+     * This will also be implemented in Step 24F.
+     */
 
     function handleMetaMaskRegister() {
 
