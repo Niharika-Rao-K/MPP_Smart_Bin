@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,6 +7,7 @@
   <title>Recycle2Earn - Login & Register</title>
 
   <!-- FontAwesome Icons & Google Fonts -->
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
@@ -53,6 +55,7 @@
       pointer-events: none;
       z-index: 1;
     }
+
     .leaf-bg-tr {
       position: absolute;
       top: 0;
@@ -61,6 +64,7 @@
       pointer-events: none;
       z-index: 1;
     }
+
     .leaf-bg-bottom {
       position: absolute;
       bottom: -5px;
@@ -91,6 +95,7 @@
       text-align: center;
       padding-top: 10px;
     }
+
     .brand-title {
       font-size: 32px;
       font-weight: 800;
@@ -101,11 +106,13 @@
       justify-content: center;
       gap: 4px;
     }
+
     .brand-title .sprout-icon {
       font-size: 22px;
       color: #43a047;
       margin-top: -12px;
     }
+
     .brand-subtitle {
       font-size: 13px;
       font-weight: 600;
@@ -126,6 +133,7 @@
       height: 150px;
       background: transparent;
     }
+
     .hero-art img {
       width: 100%;
       height: 100%;
@@ -153,6 +161,7 @@
       color: #163e26;
       margin-bottom: 2px;
     }
+
     .card-subtitle {
       text-align: center;
       font-size: 12px;
@@ -166,6 +175,7 @@
       position: relative;
       margin-bottom: 10px;
     }
+
     .input-icon {
       position: absolute;
       left: 14px;
@@ -174,6 +184,7 @@
       color: #6e7e72;
       font-size: 16px;
     }
+
     .auth-input {
       width: 100%;
       height: 44px;
@@ -186,14 +197,17 @@
       outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
+
     .auth-input:focus {
       border-color: #1f7a46;
       background: #ffffff;
       box-shadow: 0 0 0 3px rgba(31, 122, 70, 0.1);
     }
+
     .auth-input::placeholder {
       color: #6e7e72;
     }
+
     .eye-btn {
       position: absolute;
       right: 14px;
@@ -230,6 +244,7 @@
       box-shadow: 0 4px 12px rgba(20, 94, 56, 0.2);
       transition: background 0.2s;
     }
+
     .btn-primary:hover {
       background: #0f4d2d;
     }
@@ -242,7 +257,9 @@
       color: #839487;
       font-size: 12px;
     }
-    .divider::before, .divider::after {
+
+    .divider::before,
+    .divider::after {
       content: "";
       flex: 1;
       height: 1px;
@@ -264,6 +281,7 @@
       gap: 8px;
       cursor: pointer;
     }
+
     .btn-metamask img {
       width: 22px;
       height: 22px;
@@ -277,6 +295,7 @@
       margin-top: 12px;
       font-weight: 500;
     }
+
     .switch-text button {
       background: none;
       border: none;
@@ -293,12 +312,14 @@
       text-align: center;
       padding: 10px 20px 18px;
     }
+
     .footer-text {
       font-size: 11.5px;
       font-weight: 700;
       color: #183e28;
       margin-bottom: 4px;
     }
+
     .footer-art {
       display: flex;
       align-items: flex-end;
@@ -306,16 +327,19 @@
       gap: 10px;
       margin-top: 18px;
     }
+
     .footer-icon-svg {
       width: 40px;
       height: 42px;
       object-fit: contain;
     }
+
     .footer-arrow-svg {
       width: 32px;
       height: 16px;
       margin-bottom: 12px;
     }
+
     .footer-wallet-img {
       width: 36px;
       height: 36px;
@@ -327,317 +351,833 @@
       display: none !important;
     }
   </style>
+
 </head>
+
 <body>
 
   <div class="mobile-frame">
-    <!-- Top SVG Decorative Leaves -->
-    <svg class="leaf-bg-tl" viewBox="0 0 120 120" fill="none">
-      <path d="M-10 -10 C30 20, 60 40, 90 20 C60 80, 0 90, -10 110 Z" fill="#68a85d" opacity="0.4"/>
-      <path d="M0 -20 C40 10, 80 10, 110 0 C70 50, 20 60, 0 80 Z" fill="#2d7a42" opacity="0.6"/>
-    </svg>
-    <svg class="leaf-bg-tr" viewBox="0 0 120 120" fill="none">
-      <path d="M130 -10 C90 20, 60 40, 30 20 C60 80, 120 90, 130 110 Z" fill="#68a85d" opacity="0.4"/>
-      <path d="M120 -20 C80 10, 40 10, 10 0 C50 50, 100 60, 120 80 Z" fill="#2d7a42" opacity="0.6"/>
-    </svg>
 
-    <!-- Back Arrow (Visible on Register Screen) -->
-    <button id="back-button" class="back-btn" onclick="showLogin()">
-      <i class="fa-solid fa-arrow-left"></i>
+```
+<!-- Top SVG Decorative Leaves -->
+<svg class="leaf-bg-tl" viewBox="0 0 120 120" fill="none">
+  <path d="M-10 -10 C30 20, 60 40, 90 20 C60 80, 0 90, -10 110 Z" fill="#68a85d" opacity="0.4"/>
+  <path d="M0 -20 C40 10, 80 10, 110 0 C70 50, 20 60, 0 80 Z" fill="#2d7a42" opacity="0.6"/>
+</svg>
+
+<svg class="leaf-bg-tr" viewBox="0 0 120 120" fill="none">
+  <path d="M130 -10 C90 20, 60 40, 30 20 C60 80, 120 90, 130 110 Z" fill="#68a85d" opacity="0.4"/>
+  <path d="M120 -20 C80 10, 40 10, 10 0 C50 50, 100 60, 120 80 Z" fill="#2d7a42" opacity="0.6"/>
+</svg>
+
+<!-- Back Arrow -->
+<button id="back-button" class="back-btn" onclick="showLogin()">
+  <i class="fa-solid fa-arrow-left"></i>
+</button>
+
+<!-- Brand Header -->
+<div class="brand-header">
+  <div class="brand-title">
+    <i class="fa-solid fa-leaf sprout-icon"></i> Recycle2Earn
+  </div>
+
+  <div class="brand-subtitle">
+    Recycle waste. Earn tokens.<br>
+    Build a cleaner tomorrow.
+  </div>
+</div>
+
+<!-- Seamless Center Hero Artwork -->
+<div class="hero-art">
+  <img
+    src="https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    alt="Recycle Token Icon"
+  />
+</div>
+
+<!-- Form Container Card -->
+<div class="auth-card">
+
+  <!-- LOGIN FORM -->
+  <form id="login-form">
+
+    <div class="card-title">Welcome Back!</div>
+    <div class="card-subtitle">Login to continue</div>
+
+    <div class="input-group">
+      <i class="fa-regular fa-user input-icon"></i>
+
+      <input
+        class="auth-input"
+        id="login-username"
+        type="text"
+        placeholder="Username"
+        required
+      />
+    </div>
+
+    <div class="input-group">
+      <i class="fa-solid fa-lock input-icon"></i>
+
+      <input
+        class="auth-input"
+        id="login-pass"
+        type="password"
+        placeholder="Password"
+        required
+      />
+
+      <button
+        type="button"
+        class="eye-btn"
+        onclick="toggleVisibility('login-pass', this)"
+      >
+        <i class="fa-regular fa-eye"></i>
+      </button>
+    </div>
+
+    <a
+      href="#"
+      class="forgot-link"
+      onclick="handleForgotPassword(event)"
+    >
+      Forgot Password?
+    </a>
+
+    <button
+      type="submit"
+      class="btn-primary"
+      id="login-button"
+    >
+      Login
     </button>
 
-    <!-- Brand Header -->
-    <div class="brand-header">
-      <div class="brand-title">
-        <i class="fa-solid fa-leaf sprout-icon"></i> Recycle2Earn
-      </div>
-      <div class="brand-subtitle">
-        Recycle waste. Earn tokens.<br>Build a cleaner tomorrow.
-      </div>
+    <div class="divider">or</div>
+
+    <button
+      type="button"
+      class="btn-metamask"
+      onclick="handleMetaMaskLogin()"
+    >
+      <img class="wallet-icon-img" alt="MetaMask Wallet">
+      Login with MetaMask
+    </button>
+
+    <div class="switch-text">
+      Don't have an account?
+      <button type="button" onclick="showRegister()">
+        Register
+      </button>
     </div>
 
-    <!-- Seamless Center Hero Artwork -->
-    <div class="hero-art">
-      <img src="https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Recycle Token Icon" />
+  </form>
+
+
+  <!-- REGISTER FORM -->
+  <form id="register-form" class="hidden">
+
+    <div class="card-title">Create Account</div>
+
+    <div class="card-subtitle">
+      Join Recycle2Earn and start earning!
     </div>
 
-    <!-- Form Container Card -->
-    <div class="auth-card">
-      
-      <!-- 1. LOGIN FORM -->
-      <form id="login-form">
-        <div class="card-title">Welcome Back!</div>
-        <div class="card-subtitle">Login to continue</div>
+    <div class="input-group">
+      <i class="fa-regular fa-user input-icon"></i>
 
-        <div class="input-group">
-          <i class="fa-regular fa-user input-icon"></i>
-          <input class="auth-input" id="login-username" type="text" placeholder="Username" required />
-        </div>
-
-        <div class="input-group">
-          <i class="fa-solid fa-lock input-icon"></i>
-          <input class="auth-input" id="login-pass" type="password" placeholder="Password" required />
-          <button type="button" class="eye-btn" onclick="toggleVisibility('login-pass', this)">
-            <i class="fa-regular fa-eye"></i>
-          </button>
-        </div>
-
-        <a href="#" class="forgot-link" onclick="alert('Password reset linked.')">Forgot Password?</a>
-
-        <button type="submit" class="btn-primary">Login</button>
-
-        <div class="divider">or</div>
-
-        <button type="button" class="btn-metamask" onclick="alert('Connecting with MetaMask...')">
-          <img class="wallet-icon-img" alt="MetaMask Wallet">
-          Login with MetaMask
-        </button>
-
-        <div class="switch-text">
-          Don't have an account? <button type="button" onclick="showRegister()">Register</button>
-        </div>
-      </form>
-
-      <!-- 2. REGISTER FORM -->
-      <form id="register-form" class="hidden">
-        <div class="card-title">Create Account</div>
-        <div class="card-subtitle">Join Recycle2Earn and start earning!</div>
-
-        <div class="input-group">
-          <i class="fa-regular fa-user input-icon"></i>
-          <input class="auth-input" id="reg-full-name" type="text" placeholder="Full Name" required />
-        </div>
-
-        <div class="input-group">
-          <i class="fa-regular fa-user input-icon"></i>
-          <input class="auth-input" id="reg-username" type="text" placeholder="Username" required />
-        </div>
-
-        <div class="input-group">
-          <i class="fa-solid fa-lock input-icon"></i>
-          <input class="auth-input" id="reg-pass" type="password" placeholder="Password" required />
-          <button type="button" class="eye-btn" onclick="toggleVisibility('reg-pass', this)">
-            <i class="fa-regular fa-eye"></i>
-          </button>
-        </div>
-
-        <div class="input-group">
-          <i class="fa-regular fa-credit-card input-icon"></i>
-          <input class="auth-input" id="reg-wallet" type="text" placeholder="MetaMask Wallet Address" required />
-          <button type="button" class="eye-btn" style="right: 12px;" onclick="alert('MetaMask Wallet is required to receive rewards.')">
-            <i class="fa-circle-info fa-regular"></i>
-          </button>
-        </div>
-
-        <button type="submit" class="btn-primary">Register</button>
-
-        <div class="divider">or</div>
-
-        <button type="button" class="btn-metamask" onclick="alert('Connecting MetaMask wallet...')">
-          <img class="wallet-icon-img" alt="MetaMask Wallet">
-          Connect with MetaMask
-        </button>
-
-        <div class="switch-text">
-          Already have an account? <button type="button" onclick="showLogin()">Login</button>
-        </div>
-      </form>
-
+      <input
+        class="auth-input"
+        id="reg-full-name"
+        type="text"
+        placeholder="Full Name"
+        required
+      />
     </div>
 
-    <!-- Footer Area -->
-    <div class="footer-section">
-      <div class="footer-text">Recycle today, earn tokens tomorrow.</div>
-      <div class="footer-art">
-        
-        <!-- Modern Clean Recycle Bin -->
-        <svg class="footer-icon-svg" viewBox="0 0 100 120" fill="none">
-          <defs>
-            <linearGradient id="binBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#388e3c"/>
-              <stop offset="100%" stop-color="#1b5e20"/>
-            </linearGradient>
-            <linearGradient id="binLidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#4caf50"/>
-              <stop offset="100%" stop-color="#2e7d32"/>
-            </linearGradient>
-          </defs>
-          <!-- Lid Handle -->
-          <rect x="42" y="10" width="16" height="6" rx="3" fill="#1b5e20"/>
-          <!-- Lid -->
-          <rect x="15" y="16" width="70" height="12" rx="4" fill="url(#binLidGrad)" stroke="#1b5e20" stroke-width="1.5"/>
-          <!-- Bin Body -->
-          <path d="M 22 28 L 27 108 C 27.5 112 31 115 35 115 L 65 115 C 69 115 72.5 112 73 108 L 78 28 Z" fill="url(#binBodyGrad)"/>
-          <!-- Front Subtle Shadow Accent -->
-          <path d="M 22 28 L 23.5 52 C 40 58 60 58 76.5 52 L 78 28 Z" fill="#ffffff" opacity="0.08"/>
-          <!-- Clean Universal Recycling Symbol -->
-          <g transform="translate(50, 72) scale(0.65)">
-            <!-- Arrow 1 (Top) -->
-            <path d="M 0 -22 L 7 -9 L 2 -9 C 2 -2, 8 4, 15 2 L 17 8 C 6 12 -4 3 -4 -9 L -9 -9 Z" fill="#ffffff"/>
-            <!-- Arrow 2 (Bottom Right) -->
-            <g transform="rotate(120)">
-              <path d="M 0 -22 L 7 -9 L 2 -9 C 2 -2, 8 4, 15 2 L 17 8 C 6 12 -4 3 -4 -9 L -9 -9 Z" fill="#ffffff"/>
-            </g>
-            <!-- Arrow 3 (Bottom Left) -->
-            <g transform="rotate(240)">
-              <path d="M 0 -22 L 7 -9 L 2 -9 C 2 -2, 8 4, 15 2 L 17 8 C 6 12 -4 3 -4 -9 L -9 -9 Z" fill="#ffffff"/>
-            </g>
-          </g>
-        </svg>
+    <div class="input-group">
+      <i class="fa-regular fa-user input-icon"></i>
 
-        <!-- Dashed Arrow 1 -->
-        <svg class="footer-arrow-svg" viewBox="0 0 50 20">
-          <path d="M 2 10 L 40 10 M 32 3 L 42 10 L 32 17" stroke="#1f7a46" stroke-width="3" stroke-dasharray="4,4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        </svg>
-
-        <!-- Footer Coin with Dollar Symbol -->
-        <svg class="footer-icon-svg" viewBox="0 0 100 100" fill="none">
-          <circle cx="50" cy="50" r="44" fill="#f8c325" stroke="#e0a300" stroke-width="2"/>
-          <circle cx="50" cy="50" r="37" fill="url(#coinGrad)" stroke="#fef08a" stroke-width="2"/>
-          <text x="50" y="65" font-family="'Plus Jakarta Sans', sans-serif" font-size="44" font-weight="900" fill="#1b5e20" text-anchor="middle">$</text>
-          <defs>
-            <linearGradient id="coinGrad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#ffea6a"/>
-              <stop offset="100%" stop-color="#f59e0b"/>
-            </linearGradient>
-          </defs>
-        </svg>
-
-        <!-- Dashed Arrow 2 -->
-        <svg class="footer-arrow-svg" viewBox="0 0 50 20">
-          <path d="M 2 10 L 40 10 M 32 3 L 42 10 L 32 17" stroke="#1f7a46" stroke-width="3" stroke-dasharray="4,4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        </svg>
-
-        <!-- MetaMask Wallet -->
-        <img class="footer-wallet-img" alt="MetaMask Wallet">
-
-      </div>
+      <input
+        class="auth-input"
+        id="reg-username"
+        type="text"
+        placeholder="Username"
+        required
+      />
     </div>
 
-    <!-- Bottom Decorative Foliage -->
-    <svg class="leaf-bg-bottom" viewBox="0 0 400 60" fill="none">
-      <path d="M0 60 C50 20, 100 10, 150 40 C200 10, 280 20, 320 40 C360 20, 390 10, 400 30 L400 60 Z" fill="#2d7a42" opacity="0.7"/>
-      <path d="M0 60 C30 40, 80 30, 120 50 C180 30, 240 40, 300 50 C350 30, 380 40, 400 60 Z" fill="#4ea63b" opacity="0.9"/>
+    <div class="input-group">
+      <i class="fa-solid fa-lock input-icon"></i>
+
+      <input
+        class="auth-input"
+        id="reg-pass"
+        type="password"
+        placeholder="Password"
+        required
+      />
+
+      <button
+        type="button"
+        class="eye-btn"
+        onclick="toggleVisibility('reg-pass', this)"
+      >
+        <i class="fa-regular fa-eye"></i>
+      </button>
+    </div>
+
+    <div class="input-group">
+      <i class="fa-regular fa-credit-card input-icon"></i>
+
+      <input
+        class="auth-input"
+        id="reg-wallet"
+        type="text"
+        placeholder="MetaMask Wallet Address"
+        required
+      />
+
+      <button
+        type="button"
+        class="eye-btn"
+        style="right: 12px;"
+        onclick="alert('MetaMask Wallet is required to receive rewards.')"
+      >
+        <i class="fa-circle-info fa-regular"></i>
+      </button>
+    </div>
+
+    <button
+      type="submit"
+      class="btn-primary"
+      id="register-button"
+    >
+      Register
+    </button>
+
+    <div class="divider">or</div>
+
+    <button
+      type="button"
+      class="btn-metamask"
+      onclick="handleMetaMaskRegister()"
+    >
+      <img class="wallet-icon-img" alt="MetaMask Wallet">
+      Connect with MetaMask
+    </button>
+
+    <div class="switch-text">
+      Already have an account?
+      <button type="button" onclick="showLogin()">
+        Login
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
+
+<!-- Footer Area -->
+<div class="footer-section">
+
+  <div class="footer-text">
+    Recycle today, earn tokens tomorrow.
+  </div>
+
+  <div class="footer-art">
+
+    <!-- Modern Clean Recycle Bin -->
+    <svg class="footer-icon-svg" viewBox="0 0 100 120" fill="none">
+
+      <defs>
+        <linearGradient id="binBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#388e3c"/>
+          <stop offset="100%" stop-color="#1b5e20"/>
+        </linearGradient>
+
+        <linearGradient id="binLidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#4caf50"/>
+          <stop offset="100%" stop-color="#2e7d32"/>
+        </linearGradient>
+      </defs>
+
+      <rect x="42" y="10" width="16" height="6" rx="3" fill="#1b5e20"/>
+
+      <rect
+        x="15"
+        y="16"
+        width="70"
+        height="12"
+        rx="4"
+        fill="url(#binLidGrad)"
+        stroke="#1b5e20"
+        stroke-width="1.5"
+      />
+
+      <path
+        d="M 22 28 L 27 108 C 27.5 112 31 115 35 115 L 65 115 C 69 115 72.5 112 73 108 L 78 28 Z"
+        fill="url(#binBodyGrad)"
+      />
+
+      <path
+        d="M 22 28 L 23.5 52 C 40 58 60 58 76.5 52 L 78 28 Z"
+        fill="#ffffff"
+        opacity="0.08"
+      />
+
+      <g transform="translate(50, 72) scale(0.65)">
+
+        <path
+          d="M 0 -22 L 7 -9 L 2 -9 C 2 -2, 8 4, 15 2 L 17 8 C 6 12 -4 3 -4 -9 L -9 -9 Z"
+          fill="#ffffff"
+        />
+
+        <g transform="rotate(120)">
+          <path
+            d="M 0 -22 L 7 -9 L 2 -9 C 2 -2, 8 4, 15 2 L 17 8 C 6 12 -4 3 -4 -9 L -9 -9 Z"
+            fill="#ffffff"
+          />
+        </g>
+
+        <g transform="rotate(240)">
+          <path
+            d="M 0 -22 L 7 -9 L 2 -9 C 2 -2, 8 4, 15 2 L 17 8 C 6 12 -4 3 -4 -9 L -9 -9 Z"
+            fill="#ffffff"
+          />
+        </g>
+
+      </g>
+
     </svg>
+
+
+    <!-- Dashed Arrow 1 -->
+    <svg class="footer-arrow-svg" viewBox="0 0 50 20">
+      <path
+        d="M 2 10 L 40 10 M 32 3 L 42 10 L 32 17"
+        stroke="#1f7a46"
+        stroke-width="3"
+        stroke-dasharray="4,4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+    </svg>
+
+
+    <!-- Footer Coin with Dollar Symbol -->
+    <svg class="footer-icon-svg" viewBox="0 0 100 100" fill="none">
+
+      <circle
+        cx="50"
+        cy="50"
+        r="44"
+        fill="#f8c325"
+        stroke="#e0a300"
+        stroke-width="2"
+      />
+
+      <circle
+        cx="50"
+        cy="50"
+        r="37"
+        fill="url(#coinGrad)"
+        stroke="#fef08a"
+        stroke-width="2"
+      />
+
+      <text
+        x="50"
+        y="65"
+        font-family="'Plus Jakarta Sans', sans-serif"
+        font-size="44"
+        font-weight="900"
+        fill="#1b5e20"
+        text-anchor="middle"
+      >
+        $
+      </text>
+
+      <defs>
+        <linearGradient
+          id="coinGrad"
+          x1="20"
+          y1="20"
+          x2="80"
+          y2="80"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stop-color="#ffea6a"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
+      </defs>
+
+    </svg>
+
+
+    <!-- Dashed Arrow 2 -->
+    <svg class="footer-arrow-svg" viewBox="0 0 50 20">
+      <path
+        d="M 2 10 L 40 10 M 32 3 L 42 10 L 32 17"
+        stroke="#1f7a46"
+        stroke-width="3"
+        stroke-dasharray="4,4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+    </svg>
+
+
+    <!-- MetaMask Wallet -->
+    <img class="footer-wallet-img" alt="MetaMask Wallet">
+
+  </div>
+</div>
+
+
+<!-- Bottom Decorative Foliage -->
+<svg class="leaf-bg-bottom" viewBox="0 0 400 60" fill="none">
+
+  <path
+    d="M0 60 C50 20, 100 10, 150 40 C200 10, 280 20, 320 40 C360 20, 390 10, 400 30 L400 60 Z"
+    fill="#2d7a42"
+    opacity="0.7"
+  />
+
+  <path
+    d="M0 60 C30 40, 80 30, 120 50 C180 30, 240 40, 300 50 C350 30, 380 40, 400 60 Z"
+    fill="#4ea63b"
+    opacity="0.9"
+  />
+
+</svg>
+```
+
   </div>
 
   <script>
-    const customWalletSrc = 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg';
 
-    const USERS_KEY = 'r2e_users';
-const ACTIVE_WALLET_KEY = 'r2e_active_wallet';
+    /* ============================================================
+       CONFIGURATION
+       ============================================================ */
 
-function getUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
+    const API_BASE_URL =
+      'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Keep your existing MetaMask image setup.
-  document.querySelectorAll('.wallet-icon-img, .footer-wallet-img').forEach(img => {
-    img.src = customWalletSrc;
-  });
+    /*
+     * dashboard.html currently uses this value to identify
+     * the logged-in user's wallet.
+     *
+     * We are keeping this temporarily.
+     *
+     * Later, in Step 24G, we will replace this with proper
+     * backend-based user authentication.
+     */
+    const ACTIVE_WALLET_KEY = 'r2e_active_wallet';
 
-  // If already logged in, go directly to the dashboard.
-  const users = getUsers();
-  const activeWallet = localStorage.getItem(ACTIVE_WALLET_KEY);
-  const activeUser = users.find(
-    user => user.wallet.toLowerCase() === (activeWallet || '').toLowerCase()
-  );
 
-  if (activeUser) {
-    window.location.replace('dashboard.html');
-    return;
-  }
+    /* ============================================================
+       METAMASK IMAGE
+       ============================================================ */
 
-  document.getElementById('login-form').onsubmit = function (event) {
-    event.preventDefault();
+    const customWalletSrc =
+      'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg';
 
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-pass').value;
-    const user = getUsers().find(
-      item =>
-        item.username.toLowerCase() === username.toLowerCase() &&
-        item.password === password
-    );
 
-    if (!user) {
-      alert('Invalid username or password. Please try again.');
-      return;
-    }
+    document.addEventListener('DOMContentLoaded', () => {
 
-    localStorage.setItem(ACTIVE_WALLET_KEY, user.wallet);
-    window.location.replace('dashboard.html');
-  };
+      /*
+       * Set MetaMask images.
+       */
+      document
+        .querySelectorAll('.wallet-icon-img, .footer-wallet-img')
+        .forEach(img => {
+          img.src = customWalletSrc;
+        });
 
-  document.getElementById('register-form').onsubmit = function (event) {
-    event.preventDefault();
-
-    const fullName = document.getElementById('reg-full-name').value.trim();
-    const username = document.getElementById('reg-username').value.trim();
-    const password = document.getElementById('reg-pass').value;
-    const wallet = document.getElementById('reg-wallet').value.trim();
-
-    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
-      alert('Please enter a valid MetaMask wallet address starting with 0x.');
-      return;
-    }
-
-    const users = getUsers();
-    const alreadyRegistered = users.some(
-      item =>
-        item.username.toLowerCase() === username.toLowerCase() ||
-        item.wallet.toLowerCase() === wallet.toLowerCase()
-    );
-
-    if (alreadyRegistered) {
-      alert('That username or wallet address is already registered.');
-      return;
-    }
-
-    users.push({
-      fullName,
-      username,
-      password,
-      wallet,
-      totalWeight: 0,
-      totalTokens: 0,
-      streak: 1,
-      deposits: []
     });
 
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    localStorage.setItem(ACTIVE_WALLET_KEY, wallet);
-    window.location.replace('dashboard.html');
-  };
-});
+
+    /* ============================================================
+       LOGIN
+       ============================================================ */
+
+    document.getElementById('login-form').onsubmit = async function(event) {
+
+      event.preventDefault();
+
+      const username =
+        document.getElementById('login-username').value.trim();
+
+      const password =
+        document.getElementById('login-pass').value;
+
+      const loginButton =
+        document.getElementById('login-button');
+
+
+      if (!username || !password) {
+        alert('Please enter your username and password.');
+        return;
+      }
+
+
+      /*
+       * Prevent double-clicking the Login button.
+       */
+      loginButton.disabled = true;
+      loginButton.textContent = 'Logging in...';
+
+
+      try {
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/auth/login`,
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+              username: username,
+              password: password
+            })
+          }
+        );
+
+
+        let data;
+
+        try {
+          data = await response.json();
+        } catch {
+          data = {};
+        }
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.detail ||
+            'Invalid username or password. Please try again.'
+          );
+
+        }
+
+
+        /*
+         * Login succeeded.
+         *
+         * The backend gives us the user's wallet address.
+         *
+         * dashboard.html currently needs this value to load
+         * the user's deposits.
+         */
+        localStorage.setItem(
+          ACTIVE_WALLET_KEY,
+          data.user.wallet_address
+        );
+
+
+        /*
+         * Go to dashboard.
+         */
+        window.location.replace('dashboard.html');
+
+
+      } catch (error) {
+
+        console.error('Login error:', error);
+
+        alert(
+          error.message ||
+          'Unable to connect to the authentication server.'
+        );
+
+
+      } finally {
+
+        loginButton.disabled = false;
+        loginButton.textContent = 'Login';
+
+      }
+
+    };
+
+
+    /* ============================================================
+       REGISTRATION
+       ============================================================ */
+
+    document.getElementById('register-form').onsubmit = async function(event) {
+
+      event.preventDefault();
+
+
+      const fullName =
+        document.getElementById('reg-full-name').value.trim();
+
+      const username =
+        document.getElementById('reg-username').value.trim();
+
+      const password =
+        document.getElementById('reg-pass').value;
+
+      const wallet =
+        document.getElementById('reg-wallet').value.trim();
+
+      const registerButton =
+        document.getElementById('register-button');
+
+
+      if (!fullName) {
+        alert('Please enter your full name.');
+        return;
+      }
+
+
+      if (!username) {
+        alert('Please enter a username.');
+        return;
+      }
+
+
+      if (password.length < 4) {
+        alert('Password must contain at least 4 characters.');
+        return;
+      }
+
+
+      /*
+       * Validate Ethereum wallet address.
+       */
+      if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+
+        alert(
+          'Please enter a valid MetaMask wallet address starting with 0x.'
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Prevent double-clicking Register.
+       */
+      registerButton.disabled = true;
+      registerButton.textContent = 'Creating account...';
+
+
+      try {
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/auth/register`,
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+              full_name: fullName,
+              username: username,
+              password: password,
+              wallet_address: wallet
+            })
+          }
+        );
+
+
+        let data;
+
+        try {
+          data = await response.json();
+        } catch {
+          data = {};
+        }
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.detail ||
+            'Registration failed. Please try again.'
+          );
+
+        }
+
+
+        /*
+         * Registration succeeded.
+         *
+         * The password has already been securely hashed
+         * by the FastAPI backend before being stored in SQLite.
+         */
+        localStorage.setItem(
+          ACTIVE_WALLET_KEY,
+          data.user.wallet_address
+        );
+
+
+        alert('Account created successfully!');
+
+
+        /*
+         * Go directly to dashboard.
+         */
+        window.location.replace('dashboard.html');
+
+
+      } catch (error) {
+
+        console.error('Registration error:', error);
+
+        alert(
+          error.message ||
+          'Unable to connect to the authentication server.'
+        );
+
+
+      } finally {
+
+        registerButton.disabled = false;
+        registerButton.textContent = 'Register';
+
+      }
+
+    };
+
+
+    /* ============================================================
+       LOGIN / REGISTER SCREEN SWITCHING
+       ============================================================ */
 
     function showRegister() {
-      document.getElementById('login-form').classList.add('hidden');
-      document.getElementById('register-form').classList.remove('hidden');
-      document.getElementById('back-button').style.display = 'block';
+
+      document
+        .getElementById('login-form')
+        .classList.add('hidden');
+
+      document
+        .getElementById('register-form')
+        .classList.remove('hidden');
+
+      document
+        .getElementById('back-button')
+        .style.display = 'block';
+
     }
+
 
     function showLogin() {
-      document.getElementById('register-form').classList.add('hidden');
-      document.getElementById('login-form').classList.remove('hidden');
-      document.getElementById('back-button').style.display = 'none';
+
+      document
+        .getElementById('register-form')
+        .classList.add('hidden');
+
+      document
+        .getElementById('login-form')
+        .classList.remove('hidden');
+
+      document
+        .getElementById('back-button')
+        .style.display = 'none';
+
     }
 
+
+    /* ============================================================
+       PASSWORD VISIBILITY
+       ============================================================ */
+
     function toggleVisibility(inputId, btn) {
-      const input = document.getElementById(inputId);
-      const icon = btn.querySelector('i');
+
+      const input =
+        document.getElementById(inputId);
+
+      const icon =
+        btn.querySelector('i');
+
+
       if (input.type === 'password') {
+
         input.type = 'text';
-        icon.className = 'fa-regular fa-eye-slash';
+
+        icon.className =
+          'fa-regular fa-eye-slash';
+
       } else {
+
         input.type = 'password';
-        icon.className = 'fa-regular fa-eye';
+
+        icon.className =
+          'fa-regular fa-eye';
+
       }
+
     }
+
+
+    /* ============================================================
+       FORGOT PASSWORD
+       ============================================================
+       
+       This remains a placeholder for Step 24E.
+       
+       We will implement password recovery using MetaMask
+       signature verification rather than a weak username +
+       wallet-address reset.
+    */
+
+    function handleForgotPassword(event) {
+
+      event.preventDefault();
+
+      alert(
+        'Password recovery will be connected to MetaMask in the next step.'
+      );
+
+    }
+
+
+    /* ============================================================
+       METAMASK LOGIN
+       ============================================================
+       
+       This remains a placeholder for Step 24F.
+    */
+
+    function handleMetaMaskLogin() {
+
+      alert(
+        'MetaMask login will be connected in the next step.'
+      );
+
+    }
+
+
+    /* ============================================================
+       METAMASK REGISTRATION
+       ============================================================
+       
+       This remains a placeholder for Step 24F.
+    */
+
+    function handleMetaMaskRegister() {
+
+      alert(
+        'MetaMask registration will be connected in the next step.'
+      );
+
+    }
+
   </script>
+
 </body>
 </html>
