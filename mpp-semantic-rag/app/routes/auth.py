@@ -30,6 +30,15 @@ class MetaMaskLoginRequest(BaseModel):
     signature: str
     message: str
 
+class MetaMaskRegisterRequest(BaseModel):
+    full_name: str
+    username: str
+    password: str
+    wallet_address: str
+    signature: str
+    message: str
+
+
 
 @router.post("/register")
 def register_user(
@@ -211,3 +220,111 @@ def metamask_login(
             "wallet_address": user.wallet_address,
         },
     }
+
+@router.post("/metamask/register")
+def metamask_register(
+    request: MetaMaskRegisterRequest,
+    db: Session = Depends(get_db),
+):
+    full_name = request.full_name.strip()
+    username = request.username.strip()
+    wallet_address = request.wallet_address.strip()
+
+    # Basic validation
+    if not full_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Full name is required.",
+        )
+
+    if not username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username is required.",
+        )
+
+    if len(request.password) < 4:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least 4 characters.",
+        )
+
+    if not wallet_address.startswith("0x") or len(wallet_address) != 42:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid wallet address.",
+        )
+
+    # Check whether username already exists
+    existing_username = (
+        db.query(User)
+        .filter(User.username.ilike(username))
+        .first()
+    )
+
+    if existing_username:
+        raise HTTPException(
+            status_code=409,
+            detail="That username is already registered.",
+        )
+
+    # Check whether wallet already exists
+    existing_wallet = (
+        db.query(User)
+        .filter(User.wallet_address.ilike(wallet_address))
+        .first()
+    )
+
+    if existing_wallet:
+        raise HTTPException(
+            status_code=409,
+            detail="That wallet address is already registered.",
+        )
+
+    # Verify that the wallet actually signed the message
+    try:
+        message = encode_defunct(text=request.message)
+
+        recovered_address = Account.recover_message(
+            message,
+            signature=request.signature,
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid MetaMask signature.",
+        )
+
+    # Make sure the recovered wallet matches the submitted wallet
+    if recovered_address.lower() != wallet_address.lower():
+        raise HTTPException(
+            status_code=401,
+            detail="Wallet signature does not match the wallet address.",
+        )
+
+    # Hash the password before storing it
+    hashed_password = password_hash.hash(request.password)
+
+    user = User(
+        full_name=full_name,
+        username=username,
+        password_hash=hashed_password,
+        wallet_address=wallet_address,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "status": "SUCCESS",
+        "message": "MetaMask account registered successfully.",
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "username": user.username,
+            "wallet_address": user.wallet_address,
+        },
+    }
+
