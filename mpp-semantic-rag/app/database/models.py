@@ -13,6 +13,44 @@ from sqlalchemy.orm import relationship
 
 from app.database.database import Base
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    full_name = Column(
+        String(255),
+        nullable=True,
+    )
+
+    username = Column(
+        String(100),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    password_hash = Column(
+        String(255),
+        nullable=False,
+    )
+
+    wallet_address = Column(
+        String(100),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 class Bin(Base):
     __tablename__ = "bins"
