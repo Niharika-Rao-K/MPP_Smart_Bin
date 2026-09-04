@@ -393,6 +393,22 @@
 
       return data;
     }
+
+    async function fetchLeaderboard() {
+      const response = await fetch(
+        `${API_BASE_URL}/api/leaderboard`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || `Unable to load leaderboard: ${response.status}`
+        );
+      }
+
+      return data;
+    }
     
     let users = JSON.parse(localStorage.getItem('r2e_users')) || [];
     let activeWallet = localStorage.getItem('r2e_active_wallet') || null;
@@ -800,29 +816,89 @@
       `;
     }
 
-      // Render Leaderboard
+      // Render Leaderboard from backend database
       const membersTbody = document.getElementById('members-tbody');
       membersTbody.innerHTML = '';
 
-      if (users.length > 0) {
-        users.forEach(u => {
-          const isCurrent = activeUser && activeUser.wallet.toLowerCase() === u.wallet.toLowerCase();
+      let leaderboardData = [];
+
+      try {
+        leaderboardData = await fetchLeaderboard();
+      } catch (err) {
+        console.error('Failed to load leaderboard:', err);
+
+        membersTbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-4 text-center text-red-400">
+              Unable to load leaderboard.
+            </td>
+          </tr>
+        `;
+      }
+
+      if (leaderboardData.length > 0) {
+        leaderboardData.forEach((u, index) => {
+          const isCurrent =
+            activeUser &&
+            activeUser.wallet.toLowerCase() === u.wallet_address.toLowerCase();
+
           const row = document.createElement('tr');
-          row.className = isCurrent ? 'bg-emerald-950/50 hover:bg-emerald-950/70 transition' : 'hover:bg-slate-800/50 transition';
+
+          row.className = isCurrent
+            ? 'bg-emerald-950/50 hover:bg-emerald-950/70 transition'
+            : 'hover:bg-slate-800/50 transition';
+
+          const username =
+            isCurrent && activeUser
+              ? activeUser.username
+              : truncateAddress(u.wallet_address);
+
+          const totalWeightKg =
+            Number(u.total_weight_g || 0) / 1000;
+
+          const totalTokens =
+            Number(u.total_tokens || 0);
+
           row.innerHTML = `
             <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-emerald-800 flex items-center justify-center text-[10px] font-black">${u.username.charAt(0)}</span>
-              ${u.username} ${isCurrent ? '<span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">Active</span>' : ''}
+              <span class="w-6 h-6 rounded-full bg-emerald-800 flex items-center justify-center text-[10px] font-black">
+                ${index + 1}
+              </span>
+
+              ${username}
+
+              ${
+                isCurrent
+                  ? '<span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">Active</span>'
+                  : ''
+              }
             </td>
-            <td class="py-3 px-4 font-mono text-slate-300">${truncateAddress(u.wallet)}</td>
-            <td class="py-3 px-4 font-bold text-slate-200">${u.totalWeight.toFixed(1)} kg</td>
-            <td class="py-3 px-4 font-bold text-emerald-400">${u.totalTokens.toFixed(1)} $RECYCLE</td>
+
+            <td class="py-3 px-4 font-mono text-slate-300">
+              ${truncateAddress(u.wallet_address)}
+            </td>
+
+            <td class="py-3 px-4 font-bold text-slate-200">
+              ${totalWeightKg.toFixed(3)} kg
+            </td>
+
+            <td class="py-3 px-4 font-bold text-emerald-400">
+              ${totalTokens.toFixed(1)} $RECYCLE
+            </td>
           `;
+
           membersTbody.appendChild(row);
         });
       } else {
-        membersTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">No registered members yet.</td></tr>`;
+        membersTbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-4 text-center text-slate-400">
+              No registered members yet.
+            </td>
+          </tr>
+        `;
       }
+      
     }
   </script>
 </body>
