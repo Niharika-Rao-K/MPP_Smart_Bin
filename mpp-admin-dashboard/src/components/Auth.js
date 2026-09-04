@@ -204,9 +204,92 @@ function Auth({ onLoginSuccess }) {
       return;
     }
 
-    alert(
-      "MetaMask login will be connected to the backend in the next step."
+    try {
+      setLoading(true);
+
+      // 1. Ask MetaMask for the connected wallet
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No MetaMask account was selected.");
+      }
+
+      const walletAddress = accounts[0];
+
+      // 2. Create a message for the user to sign
+      const message =
+        `Login to Recycle2Earn\n\n` +
+        `Wallet: ${walletAddress}\n\n` +
+        `This signature proves that you own this wallet. ` +
+        `It does not authorize any blockchain transaction.`;
+      // 3. Ask MetaMask to sign the message
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [message, walletAddress],
+      });
+      
+      // 4. Send wallet + message + signature to backend
+      const response = await fetch(`${API_BASE}/api/auth/metamask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          wallet_address: walletAddress,
+          signature,
+          message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "MetaMask login failed.");
+      }
+
+      // 5. Backend successfully identified the user
+      const user = data.user;
+
+      localStorage.setItem(
+      "r2e_user",
+      JSON.stringify(user)
     );
+
+      localStorage.setItem(
+        ACTIVE_WALLET_KEY,
+        user.wallet_address
+      );
+
+      if (onLoginSuccess) {
+        onLoginSuccess(user);
+      }
+
+      // 6. Preserve the bin code if the user came through a QR code
+      const bin = new URLSearchParams(window.location.search).get("bin");
+
+      if (bin) {
+        window.location.replace(
+          `/dashboard.html?bin=${encodeURIComponent(bin)}`
+        );
+      } else {
+        window.location.replace("/dashboard.html");
+      }
+
+    } catch (err) {
+      console.error("MetaMask login error:", err);
+
+      if (err.code === 4001) {
+        setError("MetaMask signature was rejected.");
+      } else {
+        setError(
+          err.message || "Unable to login with MetaMask."
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMetaMaskRegister = async () => {
