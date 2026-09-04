@@ -1,19 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from pwdlib import PasswordHash
 
 from app.database.database import get_db
 from app.database.models import User
 
-from passlib.context import CryptContext
-
 
 router = APIRouter()
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-)
+password_hash = PasswordHash.recommended()
 
 
 class RegisterRequest(BaseModel):
@@ -36,24 +32,31 @@ def register_user(
     username = request.username.strip()
     wallet_address = request.wallet_address.strip()
 
+    # Validate username
     if not username:
         raise HTTPException(
             status_code=400,
             detail="Username is required.",
         )
 
+    # Validate password
     if len(request.password) < 4:
         raise HTTPException(
             status_code=400,
             detail="Password must contain at least 4 characters.",
         )
 
-    if not wallet_address.startswith("0x") or len(wallet_address) != 42:
+    # Validate wallet address
+    if (
+        not wallet_address.startswith("0x")
+        or len(wallet_address) != 42
+    ):
         raise HTTPException(
             status_code=400,
             detail="Invalid wallet address.",
         )
 
+    # Check username
     existing_username = (
         db.query(User)
         .filter(User.username.ilike(username))
@@ -66,11 +69,10 @@ def register_user(
             detail="That username is already registered.",
         )
 
+    # Check wallet
     existing_wallet = (
         db.query(User)
-        .filter(
-            User.wallet_address.ilike(wallet_address)
-        )
+        .filter(User.wallet_address.ilike(wallet_address))
         .first()
     )
 
@@ -80,12 +82,13 @@ def register_user(
             detail="That wallet address is already registered.",
         )
 
-    password_hash = pwd_context.hash(request.password)
+    # Hash password before storing it
+    hashed_password = password_hash.hash(request.password)
 
     user = User(
         full_name=request.full_name.strip(),
         username=username,
-        password_hash=password_hash,
+        password_hash=hashed_password,
         wallet_address=wallet_address,
     )
 
@@ -112,6 +115,7 @@ def login_user(
 ):
     username = request.username.strip()
 
+    # Find user by username
     user = (
         db.query(User)
         .filter(User.username.ilike(username))
@@ -124,7 +128,8 @@ def login_user(
             detail="Invalid username or password.",
         )
 
-    if not pwd_context.verify(
+    # Verify password against stored hash
+    if not password_hash.verify(
         request.password,
         user.password_hash,
     ):
