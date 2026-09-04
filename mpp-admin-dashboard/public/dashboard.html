@@ -687,7 +687,7 @@
 
       if (activeUser) {
         try {
-          databaseDeposits = await fetchDepositHistory(activeUser.wallet);
+          databaseDeposits = await fetchDepositHistory(activeUser.wallet_address);
         } catch (err) {
           console.error('Failed to load deposit history:', err);
         }
