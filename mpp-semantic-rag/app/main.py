@@ -6,6 +6,7 @@ from app.database import models
 from app.routes.deposit import router as deposit_router
 from app.routes.deposits import router as deposits_router
 from app.routes.bin import router as bin_router
+from app.routes.leaderboard import router as leaderboard_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -43,6 +44,12 @@ app.include_router(
     deposits_router,
     prefix="/api/deposits",
     tags=["Deposits"],
+)
+
+app.include_router(
+    leaderboard_router,
+    prefix="/api/leaderboard",
+    tags=["Leaderboard"],
 )
 
 @app.get("/")
