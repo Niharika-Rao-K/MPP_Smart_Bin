@@ -6,6 +6,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 /* Base Wrapper Scope */
 .auth-wrapper-body {
   background-color: #e5eee3;
@@ -24,10 +30,17 @@
   max-width: 410px;
   height: 100%;
   max-height: 890px;
-  background: linear-gradient(180deg, #f2f7ef 0%, #e3eee0 40%, #dbe8d8 100%);
+  background: linear-gradient(
+    180deg,
+    #f2f7ef 0%,
+    #e3eee0 40%,
+    #dbe8d8 100%
+  );
   border-radius: 36px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(25, 50, 30, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 20px 40px rgba(25, 50, 30, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -172,6 +185,7 @@
   transform: translateY(-50%);
   color: #6e7e72;
   font-size: 16px;
+  z-index: 2;
 }
 
 .auth-input {
@@ -184,7 +198,9 @@
   color: #213326;
   background: #fafcf9;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .auth-input:focus {
@@ -207,17 +223,27 @@
   color: #6e7e72;
   font-size: 15px;
   cursor: pointer;
+  z-index: 2;
+}
+
+.wallet-info-btn {
+  cursor: pointer;
 }
 
 /* Action Links & Buttons */
 .forgot-link {
   display: block;
+  width: 100%;
   text-align: right;
   font-size: 12px;
   font-weight: 700;
   color: #23864d;
   text-decoration: none;
   margin: -2px 0 12px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .btn-primary {
@@ -236,6 +262,11 @@
 
 .btn-primary:hover {
   background: #0f4d2d;
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .divider {
@@ -294,7 +325,19 @@
   font-size: 12.5px;
 }
 
-/* Footer Section */
+/* Error message */
+.auth-error {
+  background: #fff1f0;
+  border: 1px solid #f1c7c3;
+  color: #b42318;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: -2px 0 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* Footer */
 .footer-section {
   position: relative;
   z-index: 10;
