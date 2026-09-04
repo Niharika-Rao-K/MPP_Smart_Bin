@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pwdlib import PasswordHash
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
 from app.database.database import get_db
 from app.database.models import User
@@ -22,6 +24,11 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    
+class MetaMaskLoginRequest(BaseModel):
+    wallet_address: str
+    signature: str
+    message: str
 
 
 @router.post("/register")
@@ -141,6 +148,62 @@ def login_user(
     return {
         "status": "SUCCESS",
         "message": "Login successful.",
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "username": user.username,
+            "wallet_address": user.wallet_address,
+        },
+    }
+
+@router.post("/metamask")
+def metamask_login(
+    request: MetaMaskLoginRequest,
+    db: Session = Depends(get_db),
+):
+    wallet_address = request.wallet_address.strip()
+
+    if not wallet_address.startswith("0x") or len(wallet_address) != 42:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid wallet address.",
+        )
+
+    try:
+        message = encode_defunct(text=request.message)
+
+        recovered_address = Account.recover_message(
+            message,
+            signature=request.signature,
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid MetaMask signature.",
+        )
+
+    if recovered_address.lower() != wallet_address.lower():
+        raise HTTPException(
+            status_code=401,
+            detail="Wallet signature does not match the wallet address.",
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.wallet_address.ilike(wallet_address))
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="No account is registered with this wallet address.",
+        )
+
+    return {
+        "status": "SUCCESS",
+        "message": "MetaMask login successful.",
         "user": {
             "id": user.id,
             "full_name": user.full_name,
