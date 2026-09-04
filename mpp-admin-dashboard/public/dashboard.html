@@ -377,6 +377,22 @@
 
       return data;
     }
+
+    async function fetchDepositHistory(walletAddress) {
+      const response = await fetch(
+        `${API_BASE_URL}/api/deposits/${encodeURIComponent(walletAddress)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || `Unable to load deposit history: ${response.status}`
+        );
+      }
+
+      return data;
+    }
     
     let users = JSON.parse(localStorage.getItem('r2e_users')) || [];
     let activeWallet = localStorage.getItem('r2e_active_wallet') || null;
@@ -625,7 +641,7 @@
       localStorage.setItem('r2e_active_wallet', activeWallet || '');
     }
 
-    function renderDashboard() {
+    async function renderDashboard() {
       const activeUser = users.find(u => u.wallet.toLowerCase() === (activeWallet || '').toLowerCase());
 
       const widgetAvatar = document.getElementById('widget-avatar');
@@ -684,53 +700,92 @@
 
       badgeCount.innerText = `${unlockedBadges} / 4 Unlocked`;
 
-      // Render Deposit History
+      // Render Deposit History from backend database
       const historyTbody = document.getElementById('history-tbody');
       historyTbody.innerHTML = '';
 
-      if (activeUser && activeUser.deposits.length > 0) {
-        activeUser.deposits.forEach(d => {
+      let databaseDeposits = [];
+
+      if (activeUser) {
+        try {
+          databaseDeposits = await fetchDepositHistory(activeUser.wallet);
+        } catch (err) {
+          console.error('Failed to load deposit history:', err);
+
+          historyTbody.innerHTML = `
+            <tr>
+              <td colspan="6" class="py-4 text-center text-red-400">
+                Unable to load deposit history.
+              </td>
+            </tr>
+          `;
+        }
+      }
+
+      if (databaseDeposits.length > 0) {
+        databaseDeposits.forEach(d => {
           const row = document.createElement('tr');
+
           row.className = 'hover:bg-slate-800/40 transition';
-          const txLink = d.txHash
+
+          const txLink = d.tx_hash
             ? `<a
-                href="https://sepolia.etherscan.io/tx/${d.txHash}"
+                href="https://sepolia.etherscan.io/tx/${d.tx_hash}"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="text-emerald-400 hover:underline font-mono"
               >
-                ${truncateAddress(d.txHash)} ↗
+                ${truncateAddress(d.tx_hash)} ↗
               </a>`
             : `<span class="text-slate-500">
                 No blockchain transaction
               </span>`;
-          row.innerHTML = `
-            <td class="py-3 px-4 text-slate-400">
-              ${d.createdAt ? formatDepositDate(d.createdAt) : d.timestamp}
-            </td>
-            <td class="py-3 px-4 font-bold text-white">${activeUser.username}</td>
-            <td class="py-3 px-4 font-semibold">${d.type}</td>
-            <td class="py-3 px-4 font-bold text-slate-300">
-              ${Number(d.weightG || 0).toFixed(1)} g
-            </td>
 
-            <td class="py-3 px-4 font-bold ${
-              d.tokens > 0
-                ? 'text-emerald-400'
-                : 'text-slate-500'
-            }">
-              ${d.tokens > 0
-                ? `+${Number(d.tokens).toFixed(1)} $RECYCLE`
+        row.innerHTML = `
+          <td class="py-3 px-4 text-slate-400">
+            ${formatDepositDate(d.created_at)}
+          </td>
+
+          <td class="py-3 px-4 font-bold text-white">
+            ${activeUser.username}
+          </td>
+
+          <td class="py-3 px-4 font-semibold">
+            ${d.predicted_label}
+          </td>
+
+          <td class="py-3 px-4 font-bold text-slate-300">
+            ${Number(d.weight_g || 0).toFixed(1)} g
+          </td>
+
+          <td class="py-3 px-4 font-bold ${
+            Number(d.reward_amount || 0) > 0
+              ? 'text-emerald-400'
+              : 'text-slate-500'
+          }">
+            ${
+              Number(d.reward_amount || 0) > 0
+                ? `+${Number(d.reward_amount).toFixed(1)} $RECYCLE`
                 : '0 $RECYCLE'
-              }
-            </td>
-            <td class="py-3 px-4 font-mono text-slate-400">${txLink}</td>
-          `;
-          historyTbody.appendChild(row);
-        });
-      } else {
-        historyTbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-400">No deposit history found for this user.</td></tr>`;
-      }
+            }
+          </td>
+
+          <td class="py-3 px-4 font-mono text-slate-400">
+            ${txLink}
+          </td>
+        `;
+
+        historyTbody.appendChild(row);
+      });
+    } else if (activeUser) {
+      historyTbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-4 text-center text-slate-400">
+            No deposit history found for this user.
+          </td>
+        </tr>
+      `;
+    }
 
       // Render Leaderboard
       const membersTbody = document.getElementById('members-tbody');
