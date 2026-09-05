@@ -671,7 +671,7 @@ function Auth({ onLoginSuccess }) {
         <div className="footer-section">
 
           <div className="footer-text">
-            Recycle today, earn tokens tomorrow.
+            Small Actions. Real Rewards. Greener Tomorrow.
           </div>
 
           <div className="footer-art">
