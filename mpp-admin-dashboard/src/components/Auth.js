@@ -5,8 +5,6 @@ const API_BASE =
   process.env.REACT_APP_API_URL ||
   "https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev";
 
-const ACTIVE_WALLET_KEY = "r2e_active_wallet";
-
 const customWalletSrc =
   "https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg";
 
@@ -19,7 +17,6 @@ function Auth({ onLoginSuccess }) {
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [walletAddress, setWalletAddress] = useState("");
 
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
@@ -74,10 +71,6 @@ function Auth({ onLoginSuccess }) {
         JSON.stringify(user)
       );
 
-      localStorage.setItem(
-        ACTIVE_WALLET_KEY,
-        user.wallet_address
-      );
 
       if (onLoginSuccess) {
         onLoginSuccess(user);
@@ -95,92 +88,6 @@ function Auth({ onLoginSuccess }) {
       }
     } catch (err) {
       setError(err.message || "Unable to login.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegister = async (event) => {
-    event.preventDefault();
-
-    setError("");
-
-    if (!fullName.trim()) {
-      setError("Please enter your full name.");
-      return;
-    }
-
-    if (!username.trim()) {
-      setError("Please enter a username.");
-      return;
-    }
-
-    if (!password) {
-      setError("Please enter a password.");
-      return;
-    }
-
-    if (password.length < 4) {
-      setError("Password must be at least 4 characters.");
-      return;
-    }
-
-    if (!walletAddress.trim()) {
-      setError("Please enter your wallet address.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const response = await fetch(`${API_BASE}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          full_name: fullName.trim(),
-          username: username.trim(),
-          password,
-          wallet_address: walletAddress.trim(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Registration failed.");
-      }
-
-      const user = data.user;
-
-      localStorage.setItem(
-        "r2e_user",
-        JSON.stringify(user)
-      );
-
-      localStorage.setItem(
-        ACTIVE_WALLET_KEY,
-        user.wallet_address
-      );
-
-      alert("Account created successfully!");
-
-      if (onLoginSuccess) {
-        onLoginSuccess(user);
-      }
-      // Preserve the bin code if the user came through a QR code.
-      const bin = new URLSearchParams(window.location.search).get("bin");
-
-      if (bin) {
-        window.location.replace(
-          `/dashboard.html?bin=${encodeURIComponent(bin)}`
-        );
-      } else {
-        window.location.replace("/dashboard.html");
-      }
-    } catch (err) {
-      setError(err.message || "Unable to create account.");
     } finally {
       setLoading(false);
     }
@@ -253,13 +160,8 @@ function Auth({ onLoginSuccess }) {
       const user = data.user;
 
       localStorage.setItem(
-      "r2e_user",
-      JSON.stringify(user)
-    );
-
-      localStorage.setItem(
-        ACTIVE_WALLET_KEY,
-        user.wallet_address
+        "r2e_user",
+        JSON.stringify(user)
       );
 
       if (onLoginSuccess) {
@@ -383,11 +285,6 @@ function Auth({ onLoginSuccess }) {
       localStorage.setItem(
         "r2e_user",
         JSON.stringify(user)
-      );
-
-      localStorage.setItem(
-        ACTIVE_WALLET_KEY,
-        user.wallet_address
       );
 
       alert("Account created successfully with MetaMask!");
@@ -666,7 +563,7 @@ function Auth({ onLoginSuccess }) {
                 Join Recycle2Earn and start earning!
               </div>
 
-              <form onSubmit={handleRegister}>
+              <form onSubmit={(event) => event.preventDefault()}>
 
                 <div className="input-group">
                   <i className="fa-solid fa-id-card input-icon"></i>
@@ -734,67 +631,27 @@ function Auth({ onLoginSuccess }) {
                   </button>
                 </div>
 
-                <div className="input-group">
-                  <i className="fa-solid fa-wallet input-icon"></i>
-
-                  <input
-                    className="auth-input"
-                    type="text"
-                    placeholder="Wallet Address"
-                    value={walletAddress}
-                    onChange={(event) =>
-                      setWalletAddress(event.target.value)
-                    }
-                    autoComplete="off"
-                  />
-
-                  <button
-                    className="eye-btn wallet-info-btn"
-                    type="button"
-                    onClick={() =>
-                      alert(
-                        "Enter your Ethereum wallet address. MetaMask registration will be available soon."
-                      )
-                    }
-                    aria-label="Wallet information"
-                  >
-                    <i className="fa-solid fa-circle-info"></i>
-                  </button>
-                </div>
-
                 {error && (
                   <div className="auth-error">
                     {error}
                   </div>
                 )}
 
-                <button
-                  className="btn-primary"
-                  type="submit"
-                  disabled={loading}
-                >
-                  {loading
-                    ? "Creating Account..."
-                    : "Register"}
-                </button>
 
               </form>
-
-              <div className="divider">
-                <span>or</span>
-              </div>
 
               <button
                 className="btn-metamask"
                 type="button"
                 onClick={handleMetaMaskRegister}
+                disabled={loading}
               >
                 <img
                   className="wallet-icon-img"
                   src={customWalletSrc}
                   alt="MetaMask Wallet"
                 />
-                Connect MetaMask
+                 {loading ? "Registering..." : "Register with MetaMask"}
               </button>
 
               <div className="switch-text">
