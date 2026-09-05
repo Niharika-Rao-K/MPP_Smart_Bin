@@ -1,3 +1,5 @@
+import secrets
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -6,7 +8,7 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 
 from app.database.database import get_db
-from app.database.models import User
+from app.database.models import User, PasswordResetToken
 
 
 router = APIRouter()
@@ -29,6 +31,18 @@ class MetaMaskLoginRequest(BaseModel):
     wallet_address: str
     signature: str
     message: str
+
+class ForgotPasswordVerifyRequest(BaseModel):
+    username: str
+    wallet_address: str
+    signature: str
+    message: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 
 class MetaMaskRegisterRequest(BaseModel):
     full_name: str
@@ -328,3 +342,145 @@ def metamask_register(
         },
     }
 
+@router.post("/forgot-password/verify")
+def verify_forgot_password(
+    request: ForgotPasswordVerifyRequest,
+    db: Session = Depends(get_db),
+):
+    username = request.username.strip()
+    wallet_address = request.wallet_address.strip()
+
+    if not username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username is required.",
+        )
+
+    if not wallet_address.startswith("0x") or len(wallet_address) != 42:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid wallet address.",
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.username.ilike(username))
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="No account found with that username.",
+        )
+
+    if user.wallet_address.lower() != wallet_address.lower():
+        raise HTTPException(
+            status_code=401,
+            detail="This MetaMask wallet is not linked to this account.",
+        )
+
+    try:
+        message = encode_defunct(text=request.message)
+
+        recovered_address = Account.recover_message(
+            message,
+            signature=request.signature,
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid MetaMask signature.",
+        )
+
+    if recovered_address.lower() != wallet_address.lower():
+        raise HTTPException(
+            status_code=401,
+            detail="Wallet signature does not match the wallet address.",
+        )
+
+    token = secrets.token_urlsafe(48)
+
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    reset_token = PasswordResetToken(
+        token=token,
+        user_id=user.id,
+        expires_at=expires_at,
+        used=0,
+    )
+
+    db.add(reset_token)
+    db.commit()
+
+    return {
+        "status": "SUCCESS",
+        "message": "Wallet verified. You may now reset your password.",
+        "reset_token": token,
+    }
+
+@router.post("/reset-password")
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    if len(request.new_password) < 4:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least 4 characters.",
+        )
+
+    reset_token = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.token == request.token,
+            PasswordResetToken.used == 0,
+        )
+        .first()
+    )
+
+    if not reset_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or already used reset token.",
+        )
+
+    now = datetime.now(timezone.utc)
+
+    # SQLite may return a naive datetime.
+    expires_at = reset_token.expires_at
+
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at < now:
+        raise HTTPException(
+            status_code=400,
+            detail="This password reset request has expired.",
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.id == reset_token.user_id)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User account not found.",
+        )
+
+    user.password_hash = password_hash.hash(
+        request.new_password
+    )
+
+    reset_token.used = 1
+
+    db.commit()
+
+    return {
+        "status": "SUCCESS",
+        "message": "Password reset successfully.",
+    }
