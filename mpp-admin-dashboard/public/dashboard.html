@@ -257,7 +257,7 @@
             <div>
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
-                  <i class="fa-solid fa-image text-emerald-400"></i> Uploaded Waste Image
+                  <i class="fa-solid fa-image text-emerald-400"></i> Waste Preview
                 </h3>
                 <span id="category-tag" class="text-[10px] font-black uppercase px-2.5 py-1 bg-emerald-950 text-emerald-400 rounded-md border border-emerald-800">
                   AWAITING AI
@@ -341,11 +341,6 @@
   <script>
     const API_BASE_URL = 'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
 
-    const WASTE_IMAGES = {
-      Plastic: 'https://images.unsplash.com/photo-1637251393207-6c870eaca402?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      Metal: 'https://images.unsplash.com/photo-1721622248852-b22f47e9b9ee?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      'E-Waste': 'https://images.unsplash.com/photo-1717667745934-53091623e8ee?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
-    };
 
     function truncateAddress(addr) {
       if (!addr || addr.length < 10) return addr;
@@ -502,9 +497,10 @@
       const tagElem = document.getElementById('category-tag');
       const routeElem = document.getElementById('bin-route-display');
 
-      imgElem.src = WASTE_IMAGES.Plastic;
-      tagElem.innerText = 'AWAITING AI';
-      routeElem.innerText = 'Awaiting AI analysis';
+      imgElem.src ='https://unsplash.com/photos/3d-illustration-of-colorful-recycling-bins-for-various-types-of-litter-placed-in-row-against-blue-background-T9qitGYu0Tw';
+      imgElem.alt = 'Smart recycling bins';
+      tagElem.innerText = 'READY FOR DEPOSIT';
+      routeElem.innerText = 'Waiting for waste image';
     }
 
     function previewWasteImage() {
