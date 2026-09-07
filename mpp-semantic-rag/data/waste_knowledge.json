@@ -1,0 +1,46 @@
+[
+  {
+    "item": "Coca-Cola 330ml aluminum can",
+    "brand": "Coca-Cola",
+    "category": "Metal",
+    "material": "Aluminum",
+    "container_type": "Can",
+    "volume_ml": 330,
+    "typical_empty_weight_g": 14.0,
+    "weight_tolerance_percent": 20,
+    "recyclable": true
+  },
+  {
+    "item": "Pepsi 330ml aluminum can",
+    "brand": "Pepsi",
+    "category": "Metal",
+    "material": "Aluminum",
+    "container_type": "Can",
+    "volume_ml": 330,
+    "typical_empty_weight_g": 14.0,
+    "weight_tolerance_percent": 20,
+    "recyclable": true
+  },
+  {
+    "item": "500ml PET water bottle",
+    "brand": "Unknown",
+    "category": "Plastic",
+    "material": "PET",
+    "container_type": "Bottle",
+    "volume_ml": 500,
+    "typical_empty_weight_g": 12.0,
+    "weight_tolerance_percent": 25,
+    "recyclable": true
+  },
+  {
+    "item": "USB cable",
+    "brand": "Unknown",
+    "category": "E-Waste",
+    "material": "Copper/Plastic",
+    "container_type": "Cable",
+    "volume_ml": null,
+    "typical_empty_weight_g": 30.0,
+    "weight_tolerance_percent": 40,
+    "recyclable": true
+  }
+]
