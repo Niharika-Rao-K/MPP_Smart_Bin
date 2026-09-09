@@ -849,10 +849,7 @@
             ? 'bg-emerald-950/50 hover:bg-emerald-950/70 transition'
             : 'hover:bg-slate-800/50 transition';
 
-          const username =
-            isCurrent && activeUser
-              ? activeUser.username
-              : truncateAddress(u.wallet_address);
+          const username = u.username || 'Unknown User';
 
           const totalWeightKg =
             Number(u.total_weight_g || 0) / 1000;
