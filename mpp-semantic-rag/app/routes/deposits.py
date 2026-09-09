@@ -38,7 +38,11 @@ def get_deposits(
             "reward_amount": deposit.reward_amount,
             "reward_status": deposit.reward_status,
             "tx_hash": deposit.tx_hash,
-            "created_at": deposit.created_at,
+            "created_at": (
+                deposit.created_at.isoformat()
+                if deposit.created_at
+                else None
+            ),
         }
         for deposit in deposits
     ]
