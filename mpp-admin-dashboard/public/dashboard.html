@@ -347,10 +347,18 @@
       return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
     }
     function formatDepositDate(dateValue) {
+      if (!dateValue) return '-';
+
+      // Backend stores timestamps in UTC.
+      // Add Z so the browser knows the timestamp is UTC.
+      const utcDateValue = dateValue.endsWith('Z')
+        ? dateValue
+        : `${dateValue}Z`;
+
       return new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
-        timeStyle: 'short'
-      }).format(new Date(dateValue));
+        timeStyle: 'medium'
+      }).format(new Date(utcDateValue));
     }
 
     async function verifyBin(binCode) {
