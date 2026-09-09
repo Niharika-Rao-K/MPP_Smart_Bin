@@ -24,6 +24,9 @@ def get_leaderboard(
             User,
             User.wallet_address == Deposit.wallet_address,
         )
+        .filter(
+            Deposit.decision == "VERIFIED_CLEAN"
+        )
         .group_by(
             User.username,
             Deposit.wallet_address,
