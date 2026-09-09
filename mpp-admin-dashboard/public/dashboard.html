@@ -361,6 +361,72 @@
       }).format(new Date(utcDateValue));
     }
 
+    function calculateCurrentStreak(deposits) {
+  if (!Array.isArray(deposits) || deposits.length === 0) {
+    return 0;
+  }
+
+  // Only successfully verified deposits count.
+  const successfulDates = new Set();
+
+  deposits.forEach((deposit) => {
+    if (
+      deposit.decision === 'VERIFIED_CLEAN' &&
+      deposit.created_at
+    ) {
+      const date = new Date(
+        deposit.created_at.endsWith('Z')
+          ? deposit.created_at
+          : `${deposit.created_at}Z`
+      );
+
+      if (!isNaN(date.getTime())) {
+        // Use the user's browser/system local date.
+        const localDate = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, '0'),
+          String(date.getDate()).padStart(2, '0')
+        ].join('-');
+
+        successfulDates.add(localDate);
+      }
+    }
+  });
+
+  if (successfulDates.size === 0) {
+    return 0;
+  }
+
+  // Get today's date in the user's local timezone.
+  const today = new Date();
+
+  let currentDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  let streak = 0;
+
+  while (true) {
+    const dateKey = [
+      currentDate.getFullYear(),
+      String(currentDate.getMonth() + 1).padStart(2, '0'),
+      String(currentDate.getDate()).padStart(2, '0')
+    ].join('-');
+
+    if (!successfulDates.has(dateKey)) {
+      break;
+    }
+
+    streak++;
+
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return streak;
+}
+
     async function verifyBin(binCode) {
       const response = await fetch(
         `${API_BASE_URL}/api/bins/${encodeURIComponent(binCode)}`
@@ -684,8 +750,7 @@
       const streakCount = document.getElementById('streak-count');
       const badgeCount = document.getElementById('badge-count');
 
-      const streak = activeUser ? Number(activeUser.streak || 0) : 0;
-
+      
       // Load deposit data from backend database
       let databaseDeposits = [];
 
@@ -697,17 +762,25 @@
         }
       }
 
-      // Calculate dashboard statistics from database
-      const depositCount = databaseDeposits.length;
+      // Calculate current streak from successful deposit days
+      const streak = calculateCurrentStreak(databaseDeposits);
 
-      const totalWeightGrams = databaseDeposits.reduce(
+      // Only successful deposits count toward achievements
+const successfulDeposits = databaseDeposits.filter(
+  deposit => deposit.decision === 'VERIFIED_CLEAN'
+);
+
+      // Calculate dashboard statistics from database
+      const depositCount = successfulDeposits.length;
+
+      const totalWeightGrams = successfulDeposits.reduce(
         (sum, deposit) => sum + Number(deposit.weight_g || 0),
         0
       );
 
       const totalWeightKg = totalWeightGrams / 1000;
 
-      const totalTokens = databaseDeposits.reduce(
+      const totalTokens = successfulDeposits.reduce(
         (sum, deposit) => sum + Number(deposit.reward_amount || 0),
         0
       );
@@ -830,7 +903,7 @@
 
         membersTbody.innerHTML = `
           <tr>
-            <td colspan="5" class="py-4 text-center text-red-400">
+            <td colspan="4" class="py-4 text-center text-red-400">
               Unable to load leaderboard.
             </td>
           </tr>
@@ -890,7 +963,7 @@
       } else {
         membersTbody.innerHTML = `
           <tr>
-            <td colspan="5" class="py-4 text-center text-slate-400">
+            <td colspan="4" class="py-4 text-center text-slate-400">
               No registered members yet.
             </td>
           </tr>
