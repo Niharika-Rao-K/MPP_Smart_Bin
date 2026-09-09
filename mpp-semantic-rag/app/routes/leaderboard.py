@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database.database import get_db
-from app.database.models import Deposit
+from app.database.models import Deposit, User
 
 router = APIRouter()
 
