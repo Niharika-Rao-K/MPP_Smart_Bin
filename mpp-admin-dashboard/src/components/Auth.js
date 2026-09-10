@@ -97,10 +97,10 @@ function Auth({ onLoginSuccess }) {
 
       if (bin) {
         window.location.replace(
-          `/dashboard.html?bin=${encodeURIComponent(bin)}`
+          `./dashboard.html?bin=${encodeURIComponent(bin)}`
         );
       } else {
-        window.location.replace("/dashboard.html");
+        window.location.replace("./dashboard.html");
       }
     } catch (err) {
       setError(err.message || "Unable to login.");
@@ -358,10 +358,10 @@ function Auth({ onLoginSuccess }) {
 
       if (bin) {
         window.location.replace(
-          `/dashboard.html?bin=${encodeURIComponent(bin)}`
+          `./dashboard.html?bin=${encodeURIComponent(bin)}`
         );
       } else {
-        window.location.replace("/dashboard.html");
+        window.location.replace("./dashboard.html");
       }
 
     } catch (err) {
@@ -483,10 +483,10 @@ function Auth({ onLoginSuccess }) {
 
       if (bin) {
         window.location.replace(
-          `/dashboard.html?bin=${encodeURIComponent(bin)}`
+          `./dashboard.html?bin=${encodeURIComponent(bin)}`
         );
       } else {
-        window.location.replace("/dashboard.html");
+        window.location.replace("./dashboard.html");
       }
 
     } catch (err) {
