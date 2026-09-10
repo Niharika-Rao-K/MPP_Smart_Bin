@@ -1,0 +1,40 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Build / generated frontend files
+build/
+dist/
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db
+
+# ChromaDB
+chroma_db/
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/
+
+# Smart Bin runtime files
+mpp-semantic-rag/uploads/
+mpp-semantic-rag/yolov8n.pt
