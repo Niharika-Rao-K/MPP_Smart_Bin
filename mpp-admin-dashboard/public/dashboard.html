@@ -504,40 +504,71 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      activeUser = loadActiveUser();
 
-      if (!activeUser || !activeUser.wallet_address) {
-        localStorage.removeItem('r2e_user');
-        window.location.replace('index.html');
-        return;
-      }
-      activeWallet = activeUser.wallet_address;
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const binId = urlParams.get('bin');
-      if (!binId) {
-        alert('No smart bin was specified. Please scan a valid bin QR code.');
-        return;
-      }
+  // --------------------------------------------------
+  // 1. Remember the bin from the QR code
+  // --------------------------------------------------
+  const urlParams = new URLSearchParams(window.location.search);
+  let binId = urlParams.get('bin');
 
-      try {
-        const bin = await verifyBin(binId);
+  if (binId) {
+    // Store the scanned bin temporarily so login does not lose it.
+    sessionStorage.setItem('r2e_active_bin', binId);
+  } else {
+    // If login redirected back without ?bin=..., recover the bin.
+    binId = sessionStorage.getItem('r2e_active_bin');
 
-        console.log('Verified smart bin:', bin);
+    if (binId) {
+      // Restore ?bin=BIN001 in the browser URL.
+      const newUrl = `${window.location.pathname}?bin=${encodeURIComponent(binId)}`;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }
 
-        document.getElementById('qr-banner').classList.remove('hidden');
-        document.getElementById('active-bin-id').innerText = bin.bin_code;
+  // --------------------------------------------------
+  // 2. Check logged-in user
+  // --------------------------------------------------
+  activeUser = loadActiveUser();
 
-        resetWastePreview();
-        renderDashboard();
+  if (!activeUser || !activeUser.wallet_address) {
+    localStorage.removeItem('r2e_user');
 
-      } catch (err) {
-        console.error('Bin verification failed:', err);
+    // Keep the scanned bin in sessionStorage while going to login.
+    window.location.replace('index.html');
+    return;
+  }
 
-        alert(`Unable to connect to smart bin: ${err.message}`);
-      }
-    });
+  activeWallet = activeUser.wallet_address;
 
+  // --------------------------------------------------
+  // 3. Make sure we still have a bin
+  // --------------------------------------------------
+  if (!binId) {
+    alert('No smart bin was specified. Please scan a valid bin QR code.');
+    return;
+  }
+
+  // --------------------------------------------------
+  // 4. Verify the smart bin with the backend
+  // --------------------------------------------------
+  try {
+    const bin = await verifyBin(binId);
+
+    console.log('Verified smart bin:', bin);
+
+    document.getElementById('qr-banner').classList.remove('hidden');
+    document.getElementById('active-bin-id').innerText = bin.bin_code;
+
+    resetWastePreview();
+    renderDashboard();
+
+  } catch (err) {
+    console.error('Bin verification failed:', err);
+
+    alert(`Unable to connect to smart bin: ${err.message}`);
+  }
+});
+    
     function switchView(viewName) {
       document.querySelectorAll('.view-page').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-link').forEach(el => {
