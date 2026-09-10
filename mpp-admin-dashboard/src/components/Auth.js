@@ -93,8 +93,8 @@ function Auth({ onLoginSuccess }) {
       }
 
       // Preserve the bin code if the user came through a QR code.
-      const bin = new URLSearchParams(window.location.search).get("bin");
-
+      const params = new URLSearchParams(window.location.search);
+const bin = params.get("bin") || sessionStorage.getItem("r2e_active_bin");
       if (bin) {
         window.location.replace(
           `./dashboard.html?bin=${encodeURIComponent(bin)}`
@@ -354,8 +354,8 @@ function Auth({ onLoginSuccess }) {
       }
 
       // 6. Preserve the bin code if the user came through a QR code
-      const bin = new URLSearchParams(window.location.search).get("bin");
-
+      const params = new URLSearchParams(window.location.search);
+const bin = params.get("bin") || sessionStorage.getItem("r2e_active_bin");
       if (bin) {
         window.location.replace(
           `./dashboard.html?bin=${encodeURIComponent(bin)}`
@@ -479,7 +479,8 @@ function Auth({ onLoginSuccess }) {
       }
 
       // 6. Preserve QR bin code
-      const bin = new URLSearchParams(window.location.search).get("bin");
+      const params = new URLSearchParams(window.location.search);
+const bin = params.get("bin") || sessionStorage.getItem("r2e_active_bin");
 
       if (bin) {
         window.location.replace(
