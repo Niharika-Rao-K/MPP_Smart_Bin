@@ -502,19 +502,50 @@
         return null;
       }
     }
+      window.addEventListener('DOMContentLoaded', async () => {
 
-    window.addEventListener('DOMContentLoaded', async () => {
-      activeUser = loadActiveUser();
+  // Preserve the smart bin from the QR code before redirecting to login.
+  const urlParams = new URLSearchParams(window.location.search);
+  let binId = urlParams.get('bin');
 
-      if (!activeUser || !activeUser.wallet_address) {
-        localStorage.removeItem('r2e_user');
-        window.location.replace('index.html');
-        return;
-      }
-      activeWallet = activeUser.wallet_address;
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const binId = urlParams.get('bin');
+  if (binId) {
+    sessionStorage.setItem('r2e_active_bin', binId);
+  }
+
+  activeUser = loadActiveUser();
+
+  if (!activeUser || !activeUser.wallet_address) {
+    localStorage.removeItem('r2e_user');
+    window.location.replace('index.html');
+    return;
+  }
+
+  activeWallet = activeUser.wallet_address;
+
+  // Restore the bin if the URL lost ?bin= during login.
+  if (!binId) {
+    binId = sessionStorage.getItem('r2e_active_bin');
+  }
+
+  if (!binId) {
+    alert('No smart bin was specified. Please scan a valid bin QR code.');
+    return;
+  }
+
+  try {
+    const bin = await verifyBin(binId);
+
+    console.log('Verified smart bin:', bin);
+
+    document.getElementById('qr-banner').classList.remove('hidden');
+    document.getElementById('active-bin-id').innerText = bin.bin_code;
+
+    resetWastePreview();
+    renderDashboard();
+
+  } catch (err) {
+    console.error('Bin verification failed:', err);
+   
       if (!binId) {
         alert('No smart bin was specified. Please scan a valid bin QR code.');
         return;
