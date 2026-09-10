@@ -23,6 +23,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://solid-succotash-97w5vgqj54vr277wv-3000.app.github.dev",
+	"https://niharika-rao-k.github.io",
     ],
     allow_credentials=True,
     allow_methods=["*"],
