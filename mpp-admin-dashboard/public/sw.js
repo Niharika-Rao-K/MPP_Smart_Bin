@@ -1,13 +1,13 @@
-const CACHE_NAME = 'r2e-pwa-v2';
+const CACHE_NAME = 'r2e-pwa-v3';
 
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/dashboard.html',
-  '/manifest.json',
-  '/favicon.ico',
-  '/logo192.png',
-  '/logo512.png'
+  './',
+  './index.html',
+  './dashboard.html',
+  './manifest.json',
+  './favicon.ico',
+  './logo192.png',
+  './logo512.png'
 ];
 
 self.addEventListener('install', (event) => {
