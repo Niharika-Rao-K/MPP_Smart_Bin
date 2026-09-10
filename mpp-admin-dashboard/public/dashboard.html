@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 
   <!-- PWA Capabilities -->
-  <link rel="manifest" href="data:application/manifest+json;utf8,{%22short_name%22:%22Recycle2Earn%22,%22name%22:%22Recycle2Earn%20Smart%20Bin%20App%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22theme_color%22:%22%2310B981%22,%22background_color%22:%22%23000000%22}">
+  <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#10B981">
   <meta name="apple-mobile-web-app-capable" content="yes">
 
@@ -972,5 +972,16 @@ const successfulDeposits = databaseDeposits.filter(
       
     }
   </script>
+  <script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("Recycle2Earn service worker registered"))
+      .catch((error) =>
+        console.error("Service worker registration failed:", error)
+      );
+  });
+}
+</script>
 </body>
 </html>
