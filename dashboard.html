@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Recycle2Earn - Smart Bin Web App</title>
+  
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+
+  <!-- PWA Capabilities -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#10B981">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0d120e;
+    }
+
+    /* Main App Background Image */
+    .bg-recycle-pattern {
+      background-image: linear-gradient(rgba(10, 16, 12, 0.75), rgba(10, 16, 12, 0.85)), 
+                        url('https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    /* Leaderboard Custom Background */
+    .bg-leaderboard-pattern {
+      background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.90)), 
+                        url('https://plus.unsplash.com/premium_photo-1713628398199-17b97c1ec8a6?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    /* Gold Glowing Badge Animations */
+    @keyframes goldGlow {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(234, 179, 8, 0.4), inset 0 0 10px rgba(254, 240, 138, 0.5);
+        border-color: #facc15;
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(250, 204, 21, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.8);
+        border-color: #fef08a;
+      }
+    }
+
+    .gold-badge-active {
+      background: linear-gradient(135deg, #713f12 0%, #a16207 50%, #ca8a04 100%);
+      border: 2px solid #facc15 !important;
+      animation: goldGlow 2.5s infinite ease-in-out;
+      color: #fef08a !important;
+    }
+
+    .gold-badge-active .badge-icon {
+      filter: drop-shadow(0 0 8px #fde047);
+    }
+  </style>
+</head>
+<body class="bg-recycle-pattern text-slate-100 min-h-screen">
+
+  <!-- Mobile Quick Bin QR Banner -->
+  <div id="qr-banner" class="hidden bg-emerald-600/90 backdrop-blur-md text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-lg border-b border-emerald-400/30">
+    <span><i class="fa-solid fa-qrcode mr-2"></i> Connected Bin: <span id="active-bin-id" class="underline">BIN-001</span></span>
+    <span class="bg-emerald-950/60 text-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] border border-emerald-500/30">PWA Mode</span>
+  </div>
+
+  <div class="flex min-h-screen">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-slate-950/80 backdrop-blur-xl border-r border-emerald-900/30 p-6 flex flex-col justify-between hidden md:flex">
+      <div>
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-emerald-900/50">
+            <i class="fa-solid fa-recycle"></i>
+          </div>
+          <div>
+            <h1 class="font-black text-white text-lg leading-none tracking-wide">Recycle2Earn</h1>
+            <p class="text-[10px] font-semibold text-emerald-400/80 mt-1">Scan. Deposit. Earn.</p>
+          </div>
+        </div>
+
+        <nav class="space-y-2">
+          <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-sm transition">
+            <i class="fa-solid fa-chart-pie"></i> Dashboard
+          </button>
+          <button onclick="switchView('deposit')" id="nav-deposit" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white font-semibold text-sm transition">
+            <i class="fa-solid fa-dumpster-fire"></i> Quick Deposit
+          </button>
+          <button onclick="switchView('history')" id="nav-history" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white font-semibold text-sm transition">
+            <i class="fa-solid fa-clock-rotate-left"></i> History
+          </button>
+          <button onclick="switchView('members')" id="nav-members" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-white font-semibold text-sm transition">
+            <i class="fa-solid fa-users"></i> Leaderboard
+          </button>
+        </nav>
+      </div>
+
+      <!-- Current User Sidebar Widget -->
+      <div id="sidebar-user-widget" class="p-4 bg-slate-900/90 rounded-2xl border border-emerald-900/40 shadow-inner flex flex-col gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs" id="widget-avatar">
+            ?
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-xs font-bold text-slate-100 truncate" id="widget-username">Not Logged In</p>
+            <p class="text-[10px] font-mono text-emerald-400/70 truncate" id="widget-wallet">No Wallet Linked</p>
+          </div>
+        </div>
+        <button id="logout-btn" onclick="handleLogout()" class="hidden text-[10px] text-red-400 hover:text-red-300 font-bold self-end flex items-center gap-1 transition">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Display -->
+    <main class="flex-1 p-4 md:p-10 max-w-7xl mx-auto space-y-6">
+
+      <!-- Header Bar -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-2xl">
+        <div>
+          <h2 class="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+            Welcome to Recycle2Earn 👋
+          </h2>
+          <p class="text-xs font-medium text-slate-400 mt-1">Scan bin QR code, deposit waste, and earn $RECYCLE on Sepolia.</p>
+        </div>
+      </div>
+
+      <!-- PAGE 1: DASHBOARD VIEW -->
+      <div id="view-dashboard" class="view-page space-y-6">
+        
+        <!-- Streaks & Glowing Gold Badges -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Daily Streak Card -->
+          <div class="bg-gradient-to-br from-emerald-600/90 to-teal-900/90 backdrop-blur-md text-white p-6 rounded-2xl border border-emerald-400/30 shadow-xl flex items-center justify-between">
+            <div>
+              <span class="text-xs font-black uppercase tracking-wider text-emerald-200">Current Streak</span>
+              <div class="flex items-baseline gap-2 mt-1">
+                <span id="streak-count" class="text-4xl font-black text-white">0</span>
+                <span class="text-lg font-bold text-emerald-200">Days</span>
+              </div>
+              <p class="text-[11px] text-emerald-200 mt-1"><i class="fa-solid fa-fire mr-1 text-amber-400"></i> Deposit daily to maintain streak!</p>
+            </div>
+            <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl shadow-inner">
+              🔥
+            </div>
+          </div>
+
+          <!-- Gold Glowing Badges Container -->
+          <div class="md:col-span-2 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+                <i class="fa-solid fa-award text-amber-400"></i> Earned Badges
+              </h3>
+              <span class="text-xs text-amber-300 font-bold" id="badge-count">0 / 4 Unlocked</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div id="badge-first" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">🌱</span>
+                <span class="text-xs font-black tracking-wide">First Deposit</span>
+                <span class="text-[9px] text-slate-400">1 Deposit</span>
+              </div>
+              <div id="badge-streak" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">⚡</span>
+                <span class="text-xs font-black tracking-wide">Clean Streak</span>
+                <span class="text-[9px] text-slate-400">3-Day Streak</span>
+              </div>
+              <div id="badge-heavy" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">🏋️</span>
+                <span class="text-xs font-black tracking-wide">Heavy Recycler</span>
+                <span class="text-[9px] text-slate-400">10+ kg Total</span>
+              </div>
+              <div id="badge-master" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
+                <span class="text-3xl mb-1 badge-icon">👑</span>
+                <span class="text-xs font-black tracking-wide">Eco Champion</span>
+                <span class="text-[9px] text-slate-400">50+ kg Total</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
+            <p class="text-xs text-slate-400 font-bold uppercase">Total Recycled</p>
+            <p id="dash-total-weight" class="text-2xl font-black text-emerald-400 mt-1">0.0 kg</p>
+          </div>
+          <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
+            <p class="text-xs text-slate-400 font-bold uppercase">Total Tokens Earned</p>
+            <p id="dash-total-tokens" class="text-2xl font-black text-amber-400 mt-1">0.0 $RECYCLE</p>
+          </div>
+          <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
+            <p class="text-xs text-slate-400 font-bold uppercase">Total Deposits</p>
+            <p id="dash-total-deposits" class="text-2xl font-black text-teal-400 mt-1">0</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PAGE 2: QUICK DEPOSIT VIEW -->
+      <div id="view-deposit" class="view-page hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Left Deposit Form -->
+          <div class="lg:col-span-5 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl space-y-4">
+            <h3 class="font-extrabold text-white text-base flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> New Waste Deposit
+            </h3>
+
+            <form id="deposit-form" onsubmit="handleDeposit(event)" class="space-y-4">
+              <div>
+                <label for="waste-image" class="block text-xs font-bold text-slate-300 mb-1">
+                  Waste Image
+                </label>
+                <input
+                  type="file"
+                  id="waste-image"
+                  accept="image/jpeg,image/png,image/webp"
+                  required
+                  onchange="previewWasteImage()"
+                  class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">
+                  Measured Weight (g)
+                </label>
+                <input
+                  type="number"
+                  id="waste-weight"
+                  step="0.1"
+                  min="0.1"
+                  value="18"
+                  required
+                  class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-bold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 text-xs transition">
+                <i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia
+              </button>
+            </form>
+          </div>
+
+          <!-- Right Image Visualizer -->
+          <div class="lg:col-span-7 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-image text-emerald-400"></i> Waste Preview
+                </h3>
+                <span id="category-tag" class="text-[10px] font-black uppercase px-2.5 py-1 bg-emerald-950 text-emerald-400 rounded-md border border-emerald-800">
+                  AWAITING AI
+                </span>
+              </div>
+
+              <!-- Dynamic Category Image Display -->
+              <div id="preview-container" class="w-full h-56 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800 relative">
+                <img id="category-preview-img" src="" alt="Uploaded waste preview" class="w-full h-full object-cover rounded-xl transition duration-300" />
+              </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-medium text-slate-400">
+              <span><i class="fa-solid fa-network-wire text-emerald-400 mr-1"></i> Signal: <strong id="bin-route-display" class="text-white">Awaiting AI analysis</strong></span>
+              <span><i class="fa-solid fa-coins text-amber-400 mr-1"></i> Dynamic RAG Scoring Active</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PAGE 3: HISTORY VIEW -->
+      <div id="view-history" class="view-page hidden space-y-6">
+        <div class="bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl">
+          <h3 class="font-extrabold text-white text-base mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Active User Deposit History
+          </h3>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950/80 text-emerald-400 font-extrabold uppercase border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">Date &amp; Time</th>
+                  <th class="py-3 px-4">User</th>
+                  <th class="py-3 px-4">Material</th>
+                  <th class="py-3 px-4">Weight</th>
+                  <th class="py-3 px-4">Reward</th>
+                  <th class="py-3 px-4">Sepolia Transaction / Wallet</th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody" class="divide-y divide-slate-800 font-medium">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: MEMBERS LEADERBOARD VIEW -->
+      <div id="view-members" class="view-page hidden space-y-6">
+        <div class="bg-leaderboard-pattern backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/40 shadow-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-extrabold text-white text-base flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-amber-400"></i> Members Leaderboard
+              </h3>
+              <p class="text-xs text-slate-300">Top recyclers verified on Sepolia</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-200">
+              <thead class="bg-slate-950/90 text-emerald-400 font-extrabold uppercase border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">Member</th>
+                  <th class="py-3 px-4">Sepolia Address</th>
+                  <th class="py-3 px-4">Total Recycled</th>
+                  <th class="py-3 px-4">Total Tokens</th>
+                </tr>
+              </thead>
+              <tbody id="members-tbody" class="divide-y divide-slate-800/80 font-medium bg-slate-950/60">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- App Script -->
+  <script>
+    const API_BASE_URL = 'https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev';
+
+
+    function truncateAddress(addr) {
+      if (!addr || addr.length < 10) return addr;
+      return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
+    }
+    function formatDepositDate(dateValue) {
+      if (!dateValue) return '-';
+
+      // Backend stores timestamps in UTC.
+      // Add Z so the browser knows the timestamp is UTC.
+      const utcDateValue = dateValue.endsWith('Z')
+        ? dateValue
+        : `${dateValue}Z`;
+
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'medium'
+      }).format(new Date(utcDateValue));
+    }
+
+    function calculateCurrentStreak(deposits) {
+  if (!Array.isArray(deposits) || deposits.length === 0) {
+    return 0;
+  }
+
+  // Only successfully verified deposits count.
+  const successfulDates = new Set();
+
+  deposits.forEach((deposit) => {
+    if (
+      deposit.decision === 'VERIFIED_CLEAN' &&
+      deposit.created_at
+    ) {
+      const date = new Date(
+        deposit.created_at.endsWith('Z')
+          ? deposit.created_at
+          : `${deposit.created_at}Z`
+      );
+
+      if (!isNaN(date.getTime())) {
+        // Use the user's browser/system local date.
+        const localDate = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, '0'),
+          String(date.getDate()).padStart(2, '0')
+        ].join('-');
+
+        successfulDates.add(localDate);
+      }
+    }
+  });
+
+  if (successfulDates.size === 0) {
+    return 0;
+  }
+
+  // Get today's date in the user's local timezone.
+  const today = new Date();
+
+  let currentDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  let streak = 0;
+
+  while (true) {
+    const dateKey = [
+      currentDate.getFullYear(),
+      String(currentDate.getMonth() + 1).padStart(2, '0'),
+      String(currentDate.getDate()).padStart(2, '0')
+    ].join('-');
+
+    if (!successfulDates.has(dateKey)) {
+      break;
+    }
+
+    streak++;
+
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return streak;
+}
+
+    async function verifyBin(binCode) {
+      const response = await fetch(
+        `${API_BASE_URL}/api/bins/${encodeURIComponent(binCode)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || `Unable to verify bin: ${response.status}`
+        );
+      }
+
+      if (!data.active) {
+        throw new Error(`Bin ${binCode} is currently inactive.`);
+      }
+
+      return data;
+    }
+
+    async function fetchDepositHistory(walletAddress) {
+      const response = await fetch(
+        `${API_BASE_URL}/api/deposits/${encodeURIComponent(walletAddress)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || `Unable to load deposit history: ${response.status}`
+        );
+      }
+
+      return data;
+    }
+
+    async function fetchLeaderboard() {
+      const response = await fetch(
+        `${API_BASE_URL}/api/leaderboard`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || `Unable to load leaderboard: ${response.status}`
+        );
+      }
+
+      return data;
+    }
+    
+    let activeUser = null;
+    let activeWallet = null;
+
+    function loadActiveUser() {
+      const savedUser = localStorage.getItem('r2e_user');
+
+      if (!savedUser) {
+        return null;
+      }
+
+      try {
+        const user = JSON.parse(savedUser);
+
+        if (!user || !user.wallet_address) {
+          return null;
+        }
+
+        return user;
+      } catch (err) {
+        console.error('Invalid saved user session:', err);
+        return null;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      activeUser = loadActiveUser();
+
+      if (!activeUser || !activeUser.wallet_address) {
+        localStorage.removeItem('r2e_user');
+        window.location.replace('index.html');
+        return;
+      }
+      activeWallet = activeUser.wallet_address;
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const binId = urlParams.get('bin');
+      if (!binId) {
+        alert('No smart bin was specified. Please scan a valid bin QR code.');
+        return;
+      }
+
+      try {
+        const bin = await verifyBin(binId);
+
+        console.log('Verified smart bin:', bin);
+
+        document.getElementById('qr-banner').classList.remove('hidden');
+        document.getElementById('active-bin-id').innerText = bin.bin_code;
+
+        resetWastePreview();
+        renderDashboard();
+
+      } catch (err) {
+        console.error('Bin verification failed:', err);
+
+        alert(`Unable to connect to smart bin: ${err.message}`);
+      }
+    });
+
+    function switchView(viewName) {
+      document.querySelectorAll('.view-page').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-link').forEach(el => {
+        el.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+        el.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`view-${viewName}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${viewName}`);
+      if (activeNav) {
+        activeNav.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+        activeNav.classList.remove('text-slate-400');
+      }
+    }
+
+    /* Auth Modal Switcher */
+    function handleLogout() {
+      activeUser = null;
+      activeWallet = null;
+
+      localStorage.removeItem('r2e_user');
+      localStorage.removeItem('r2e_active_wallet');
+      
+      window.location.replace('index.html');
+    }
+
+    let activePreviewUrl = null;
+
+    function resetWastePreview() {
+      const imgElem = document.getElementById('category-preview-img');
+      const tagElem = document.getElementById('category-tag');
+      const routeElem = document.getElementById('bin-route-display');
+
+      imgElem.src ='https://plus.unsplash.com/premium_photo-1679728130451-ebba4dc5307d?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+      imgElem.alt = 'Smart recycling bins';
+      tagElem.innerText = 'READY FOR DEPOSIT';
+      routeElem.innerText = 'Waiting for waste image';
+    }
+
+    function previewWasteImage() {
+      const imageInput = document.getElementById('waste-image');
+      const imageFile = imageInput.files[0];
+
+      if (!imageFile) {
+        resetWastePreview();
+        return;
+      }
+
+      if (activePreviewUrl) {
+        URL.revokeObjectURL(activePreviewUrl);
+      }
+
+      activePreviewUrl = URL.createObjectURL(imageFile);
+
+      document.getElementById('category-preview-img').src = activePreviewUrl;
+      document.getElementById('category-tag').innerText = 'AWAITING AI';
+      document.getElementById('bin-route-display').innerText = 'Awaiting AI analysis';
+    }
+
+  function updateDetectionPreview(data) {
+    
+    const detectedCategory = 
+      data.predicted_label || 'Unknown';
+    const route = data.hardware_route_signal || 'R';
+
+    const routeNames = {
+      P: 'P (Plastic)',
+      M: 'M (Metal)',
+      E: 'E (E-Waste)',
+      R: 'R (Reject)'
+    };
+
+    const isAccepted = data.status === 'SUCCESS';
+
+    document.getElementById('category-tag').innerText = 
+      isAccepted ? detectedCategory.toUpperCase() : 'REJECTED';
+
+    document.getElementById('bin-route-display').innerText =
+      routeNames[route] || 'R (Reject)';
+  }
+
+    async function handleDeposit(e) {
+      e.preventDefault();
+      if (!activeUser || !activeWallet) {
+        alert('Your session has expired. Please log in again.');
+        window.location.replace('index.html');
+        return;
+      }
+
+
+      const imageInput = document.getElementById('waste-image');
+      const imageFile = imageInput.files[0];
+      const weightG = parseFloat(document.getElementById('waste-weight').value);
+
+      if (!imageFile) {
+        alert('Please upload a waste image.');
+        return;
+      }
+
+      if (!Number.isFinite(weightG) || weightG <= 0) {
+        alert('Please enter a valid measured weight in grams.');
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const binId = urlParams.get('bin') || 'UNKNOWN';
+
+      const formData = new FormData();
+      
+      formData.append('label', 'uploaded_image');
+      formData.append('image', imageFile);
+      formData.append('real_weight_g', weightG);
+      formData.append('wallet_address', activeWallet);
+      formData.append('bin_id', binId);
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Processing RAG & Sepolia Transaction...";
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/rag/evaluate`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+            `API Error: ${response.status}`
+          );
+        }
+
+        updateDetectionPreview(data);
+        const isAccepted = data.status === 'SUCCESS';
+        const detectedCategory =
+          data.predicted_label ||
+          'UNKNOWN';
+        
+        const weightGReturned =
+          Number(
+            data.stable_weight_g || weightG
+          );
+
+        // Keep local dashboard totals in kilograms, although the API uses grams.
+        const txHash =
+          data.web3_reward?.tx_hash || null;
+
+        const tokensEarned =
+          isAccepted && txHash
+            ? Number(
+                data.web3_reward?.tokens_minted || 0
+              )
+            : 0;
+        
+
+        
+        // The backend has already persisted this deposit.
+        // Do not modify or duplicate user data in localStorage.
+
+        await renderDashboard();
+        switchView('history');
+        
+        if (!isAccepted) {
+          alert(
+            data.fusion_result?.action ||
+            'Item rejected. No tokens were minted.'
+          );
+        } else if (!txHash) {
+
+          alert(
+            'Waste was verified, but no blockchain transaction was created.'
+          );
+        }
+      } catch (err) {
+        console.error('Deposit processing error:', err);
+        alert(`Failed to complete transaction: ${err.message}`);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia`;
+      }
+    }
+
+    async function renderDashboard() {
+      if (!activeUser || !activeWallet) {
+        return;
+      }
+      const widgetAvatar = document.getElementById('widget-avatar');
+      const widgetUsername = document.getElementById('widget-username');
+      const widgetWallet = document.getElementById('widget-wallet');
+      const logoutBtn = document.getElementById('logout-btn');
+    
+
+      if (activeUser) {
+        widgetAvatar.innerText = activeUser.username.charAt(0).toUpperCase();
+        widgetUsername.innerText = activeUser.username;
+        widgetWallet.innerText = truncateAddress(activeUser.wallet_address);
+        logoutBtn.classList.remove('hidden');
+
+      } else {
+        widgetAvatar.innerText = '?';
+        widgetUsername.innerText = 'Not Logged In';
+        widgetWallet.innerText = 'No Wallet Linked';
+        logoutBtn.classList.add('hidden');
+
+      }
+
+      const streakCount = document.getElementById('streak-count');
+      const badgeCount = document.getElementById('badge-count');
+
+      
+      // Load deposit data from backend database
+      let databaseDeposits = [];
+
+      if (activeUser) {
+        try {
+          databaseDeposits = await fetchDepositHistory(activeUser.wallet_address);
+        } catch (err) {
+          console.error('Failed to load deposit history:', err);
+        }
+      }
+
+      // Calculate current streak from successful deposit days
+      const streak = calculateCurrentStreak(databaseDeposits);
+
+      // Only successful deposits count toward achievements
+const successfulDeposits = databaseDeposits.filter(
+  deposit => deposit.decision === 'VERIFIED_CLEAN'
+);
+
+      // Calculate dashboard statistics from database
+      const depositCount = successfulDeposits.length;
+
+      const totalWeightGrams = successfulDeposits.reduce(
+        (sum, deposit) => sum + Number(deposit.weight_g || 0),
+        0
+      );
+
+      const totalWeightKg = totalWeightGrams / 1000;
+
+      const totalTokens = successfulDeposits.reduce(
+        (sum, deposit) => sum + Number(deposit.reward_amount || 0),
+        0
+      );
+
+      // Update dashboard statistics
+      streakCount.innerText = streak;
+
+      document.getElementById('dash-total-weight').innerText =
+        `${totalWeightKg.toFixed(3)} kg`;
+
+      document.getElementById('dash-total-tokens').innerText =
+        `${totalTokens.toFixed(1)} $RECYCLE`;
+
+      document.getElementById('dash-total-deposits').innerText =
+        depositCount;
+
+      let unlockedBadges = 0;
+      
+      const badgeFirst = document.getElementById('badge-first');
+      const badgeStreak = document.getElementById('badge-streak');
+      const badgeHeavy = document.getElementById('badge-heavy');
+      const badgeMaster = document.getElementById('badge-master');
+
+      const applyBadgeState = (elem, isUnlocked) => {
+        if (isUnlocked) {
+          elem.className = 'gold-badge-active p-3 rounded-xl flex flex-col items-center text-center transition duration-500';
+          unlockedBadges++;
+        } else {
+          elem.className = 'p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500';
+        }
+      };
+
+      applyBadgeState(badgeFirst, depositCount >= 1);
+      applyBadgeState(badgeStreak, streak >= 3);
+      applyBadgeState(badgeHeavy, totalWeightKg >= 10);
+      applyBadgeState(badgeMaster, totalWeightKg >= 50);
+
+      badgeCount.innerText = `${unlockedBadges} / 4 Unlocked`;
+
+      // Render Deposit History from backend database
+      const historyTbody = document.getElementById('history-tbody');
+      historyTbody.innerHTML = '';
+
+
+      if (databaseDeposits.length > 0) {
+        databaseDeposits.forEach(d => {
+          const row = document.createElement('tr');
+
+          row.className = 'hover:bg-slate-800/40 transition';
+
+          const txLink = d.tx_hash
+            ? `<a
+                href="https://sepolia.etherscan.io/tx/${d.tx_hash}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-emerald-400 hover:underline font-mono"
+              >
+                ${truncateAddress(d.tx_hash)} ↗
+              </a>`
+            : `<span class="text-slate-500">
+                No blockchain transaction
+              </span>`;
+
+        row.innerHTML = `
+          <td class="py-3 px-4 text-slate-400">
+            ${formatDepositDate(d.created_at)}
+          </td>
+
+          <td class="py-3 px-4 font-bold text-white">
+            ${activeUser.username}
+          </td>
+
+          <td class="py-3 px-4 font-semibold">
+            ${d.predicted_label}
+          </td>
+
+          <td class="py-3 px-4 font-bold text-slate-300">
+            ${Number(d.weight_g || 0).toFixed(1)} g
+          </td>
+
+          <td class="py-3 px-4 font-bold ${
+            Number(d.reward_amount || 0) > 0
+              ? 'text-emerald-400'
+              : 'text-slate-500'
+          }">
+            ${
+              Number(d.reward_amount || 0) > 0
+                ? `+${Number(d.reward_amount).toFixed(1)} $RECYCLE`
+                : '0 $RECYCLE'
+            }
+          </td>
+
+          <td class="py-3 px-4 font-mono text-slate-400">
+            ${txLink}
+          </td>
+        `;
+
+        historyTbody.appendChild(row);
+      });
+    } else if (activeUser) {
+      historyTbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-4 text-center text-slate-400">
+            No deposit history found for this user.
+          </td>
+        </tr>
+      `;
+    }
+
+      // Render Leaderboard from backend database
+      const membersTbody = document.getElementById('members-tbody');
+      membersTbody.innerHTML = '';
+
+      let leaderboardData = [];
+
+      try {
+        leaderboardData = await fetchLeaderboard();
+      } catch (err) {
+        console.error('Failed to load leaderboard:', err);
+
+        membersTbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="py-4 text-center text-red-400">
+              Unable to load leaderboard.
+            </td>
+          </tr>
+        `;
+      }
+
+      if (leaderboardData.length > 0) {
+        leaderboardData.forEach((u, index) => {
+          const isCurrent =
+            activeUser &&
+            activeUser.wallet_address.toLowerCase() === u.wallet_address.toLowerCase();
+
+          const row = document.createElement('tr');
+
+          row.className = isCurrent
+            ? 'bg-emerald-950/50 hover:bg-emerald-950/70 transition'
+            : 'hover:bg-slate-800/50 transition';
+
+          const username = u.username || 'Unknown User';
+
+          const totalWeightKg =
+            Number(u.total_weight_g || 0) / 1000;
+
+          const totalTokens =
+            Number(u.total_tokens || 0);
+
+          row.innerHTML = `
+            <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-emerald-800 flex items-center justify-center text-[10px] font-black">
+                ${index + 1}
+              </span>
+
+              ${username}
+
+              ${
+                isCurrent
+                  ? '<span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold">Active</span>'
+                  : ''
+              }
+            </td>
+
+            <td class="py-3 px-4 font-mono text-slate-300">
+              ${truncateAddress(u.wallet_address)}
+            </td>
+
+            <td class="py-3 px-4 font-bold text-slate-200">
+              ${totalWeightKg.toFixed(3)} kg
+            </td>
+
+            <td class="py-3 px-4 font-bold text-emerald-400">
+              ${totalTokens.toFixed(1)} $RECYCLE
+            </td>
+          `;
+
+          membersTbody.appendChild(row);
+        });
+      } else {
+        membersTbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="py-4 text-center text-slate-400">
+              No registered members yet.
+            </td>
+          </tr>
+        `;
+      }
+      
+    }
+  </script>
+  <script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("Recycle2Earn service worker registered"))
+      .catch((error) =>
+        console.error("Service worker registration failed:", error)
+      );
+  });
+}
+</script>
+</body>
+</html>
