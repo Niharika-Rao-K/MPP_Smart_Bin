@@ -1,4 +1,4 @@
-const CACHE_NAME = 'r2e-pwa-v4';
+const CACHE_NAME = 'r2e-pwa-v5';
 
 const urlsToCache = [
   './',
@@ -33,6 +33,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  if (event.request.mode === 'navigate') {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -46,4 +47,22 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => caches.match(event.request))
   );
+
+  return;
+}
+// Network-first for other GET requests.
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        const responseClone = response.clone();
+
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
+
 });
