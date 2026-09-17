@@ -502,19 +502,50 @@
         return null;
       }
     }
+      window.addEventListener('DOMContentLoaded', async () => {
 
-    window.addEventListener('DOMContentLoaded', async () => {
-      activeUser = loadActiveUser();
+  // Preserve the smart bin from the QR code before redirecting to login.
+  const urlParams = new URLSearchParams(window.location.search);
+  let binId = urlParams.get('bin');
 
-      if (!activeUser || !activeUser.wallet_address) {
-        localStorage.removeItem('r2e_user');
-        window.location.replace('index.html');
-        return;
-      }
-      activeWallet = activeUser.wallet_address;
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const binId = urlParams.get('bin');
+  if (binId) {
+    sessionStorage.setItem('r2e_active_bin', binId);
+  }
+
+  activeUser = loadActiveUser();
+
+  if (!activeUser || !activeUser.wallet_address) {
+    localStorage.removeItem('r2e_user');
+    window.location.replace('index.html');
+    return;
+  }
+
+  activeWallet = activeUser.wallet_address;
+
+  // Restore the bin if the URL lost ?bin= during login.
+  if (!binId) {
+    binId = sessionStorage.getItem('r2e_active_bin');
+  }
+
+  if (!binId) {
+    alert('No smart bin was specified. Please scan a valid bin QR code.');
+    return;
+  }
+
+  try {
+    const bin = await verifyBin(binId);
+
+    console.log('Verified smart bin:', bin);
+
+    document.getElementById('qr-banner').classList.remove('hidden');
+    document.getElementById('active-bin-id').innerText = bin.bin_code;
+
+    resetWastePreview();
+    renderDashboard();
+
+  } catch (err) {
+    console.error('Bin verification failed:', err);
+   
       if (!binId) {
         alert('No smart bin was specified. Please scan a valid bin QR code.');
         return;
@@ -972,6 +1003,53 @@ const successfulDeposits = databaseDeposits.filter(
       
     }
   </script>
+  <!-- Mobile Bottom Navigation -->
+  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-emerald-900/40 md:hidden">
+    <div class="grid grid-cols-5 h-16">
+
+      <button
+        onclick="switchView('dashboard')"
+        class="flex flex-col items-center justify-center gap-1 text-emerald-400 text-[10px] font-bold"
+      >
+        <i class="fa-solid fa-chart-pie text-base"></i>
+        <span>Dashboard</span>
+      </button>
+
+      <button
+        onclick="switchView('deposit')"
+        class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 text-[10px] font-bold"
+      >
+        <i class="fa-solid fa-dumpster-fire text-base"></i>
+        <span>Deposit</span>
+      </button>
+
+      <button
+        onclick="switchView('history')"
+        class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 text-[10px] font-bold"
+      >
+        <i class="fa-solid fa-clock-rotate-left text-base"></i>
+        <span>History</span>
+      </button>
+
+      <button
+        onclick="switchView('members')"
+        class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 text-[10px] font-bold"
+      >
+        <i class="fa-solid fa-users text-base"></i>
+        <span>Leaderboard</span>
+      </button>
+
+      <button
+        onclick="handleLogout()"
+        class="flex flex-col items-center justify-center gap-1 text-red-400 hover:text-red-300 text-[10px] font-bold"
+      >
+        <i class="fa-solid fa-right-from-bracket text-base"></i>
+        <span>Logout</span>
+      </button>
+
+    </div>
+  </nav>
+
   <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
