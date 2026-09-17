@@ -545,29 +545,9 @@
 
   } catch (err) {
     console.error('Bin verification failed:', err);
-   
-      if (!binId) {
-        alert('No smart bin was specified. Please scan a valid bin QR code.');
-        return;
-      }
-
-      try {
-        const bin = await verifyBin(binId);
-
-        console.log('Verified smart bin:', bin);
-
-        document.getElementById('qr-banner').classList.remove('hidden');
-        document.getElementById('active-bin-id').innerText = bin.bin_code;
-
-        resetWastePreview();
-        renderDashboard();
-
-      } catch (err) {
-        console.error('Bin verification failed:', err);
-
-        alert(`Unable to connect to smart bin: ${err.message}`);
-      }
-    });
+    alert(`Unable to connect to smart bin: ${err.message}`);
+  }
+  });
 
     function switchView(viewName) {
       document.querySelectorAll('.view-page').forEach(el => el.classList.add('hidden'));
@@ -674,7 +654,10 @@
       }
 
       const urlParams = new URLSearchParams(window.location.search);
-      const binId = urlParams.get('bin') || 'UNKNOWN';
+      const binId = 
+            urlParams.get('bin') ||
+            sessionStorage.getItem('r2e_active_bin') ||
+            'UNKNOWN';
 
       const formData = new FormData();
       
