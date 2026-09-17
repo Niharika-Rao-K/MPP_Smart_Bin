@@ -1004,10 +1004,11 @@ const successfulDeposits = databaseDeposits.filter(
     }
   </script>
   <!-- Mobile Bottom Navigation -->
-  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-emerald-900/40 md:hidden">
-    <div class="grid grid-cols-5 h-16">
+  <nav class="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-auto bg-slate-950/95 backdrop-blur-xl border-t border-emerald-900/40 md:hidden">
+    <div class="grid grid-cols-5 h-16 pointer-events-auto">
 
       <button
+        type="button"
         onclick="switchView('dashboard')"
         class="flex flex-col items-center justify-center gap-1 text-emerald-400 text-[10px] font-bold"
       >
@@ -1016,6 +1017,7 @@ const successfulDeposits = databaseDeposits.filter(
       </button>
 
       <button
+        type="button"
         onclick="switchView('deposit')"
         class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 text-[10px] font-bold"
       >
@@ -1024,6 +1026,7 @@ const successfulDeposits = databaseDeposits.filter(
       </button>
 
       <button
+        type="button"
         onclick="switchView('history')"
         class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 text-[10px] font-bold"
       >
@@ -1032,6 +1035,7 @@ const successfulDeposits = databaseDeposits.filter(
       </button>
 
       <button
+        type="button"
         onclick="switchView('members')"
         class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 text-[10px] font-bold"
       >
@@ -1040,6 +1044,7 @@ const successfulDeposits = databaseDeposits.filter(
       </button>
 
       <button
+        type="button"
         onclick="handleLogout()"
         class="flex flex-col items-center justify-center gap-1 text-red-400 hover:text-red-300 text-[10px] font-bold"
       >
