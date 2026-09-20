@@ -103,7 +103,16 @@ async def deposit_item(
         )
 
         route_signal = fusion_result["hardware_route_signal"]
-        is_accepted = route_signal in {"P", "M", "E"}
+
+        reward_eligible = fusion_result.get(
+            "reward_eligible",
+            False
+        )
+
+        is_accepted = (
+            route_signal in {"P", "M", "E"}
+            and reward_eligible
+        )
 
         # 5. Dynamic reward calculation only for verified material.
         calculated_credits = 0.0
