@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+chromadb
+web3
+python-dotenv
+python-multipart
+sentence-transformers
+eth-account
+sqlalchemy
+ultralytics
+pwdlib[argon2]

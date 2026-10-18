@@ -1,0 +1,380 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+/* Base Wrapper Scope */
+.auth-wrapper-body {
+  background-color: #e5eee3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 12px;
+  width: 100%;
+}
+
+/* Mobile Container Frame */
+.mobile-frame {
+  position: relative;
+  width: 100%;
+  max-width: 410px;
+  height: 100%;
+  max-height: 890px;
+  background: linear-gradient(
+    180deg,
+    #f2f7ef 0%,
+    #e3eee0 40%,
+    #dbe8d8 100%
+  );
+  border-radius: 36px;
+  overflow: hidden;
+  box-shadow:
+    0 20px 40px rgba(25, 50, 30, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 24px;
+}
+
+/* Background Leaf Accents */
+.leaf-bg-tl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 110px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.leaf-bg-tr {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 110px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.leaf-bg-bottom {
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Back Navigation Button */
+.back-btn {
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  z-index: 20;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #173b24;
+  cursor: pointer;
+}
+
+/* Header & Branding */
+.brand-header {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  padding-top: 10px;
+}
+
+.brand-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #135d36;
+  letter-spacing: -0.8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.brand-title .sprout-icon {
+  font-size: 22px;
+  color: #43a047;
+  margin-top: -12px;
+}
+
+.brand-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #485c4e;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+/* Hero Artwork Wrapper */
+.hero-art {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 6px auto;
+  width: 150px;
+  height: 150px;
+  background: transparent;
+}
+
+.hero-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  mix-blend-mode: multiply;
+  filter: contrast(105%) brightness(102%);
+}
+
+/* Auth Card Window */
+.auth-card {
+  position: relative;
+  z-index: 10;
+  background: #ffffff;
+  margin: 0 18px;
+  padding: 20px 20px 18px;
+  border-radius: 24px;
+  box-shadow: 0 10px 25px rgba(20, 45, 25, 0.06);
+}
+
+.card-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: #163e26;
+  margin-bottom: 2px;
+}
+
+.card-subtitle {
+  text-align: center;
+  font-size: 12px;
+  color: #6a7c6f;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+/* Input Fields & Controls */
+.input-group {
+  position: relative;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6e7e72;
+  font-size: 16px;
+  z-index: 2;
+}
+
+.auth-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 42px 0 42px;
+  border: 1px solid #d2dcd4;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: #213326;
+  background: #fafcf9;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.auth-input:focus {
+  border-color: #1f7a46;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(31, 122, 70, 0.1);
+}
+
+.auth-input::placeholder {
+  color: #6e7e72;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #6e7e72;
+  font-size: 15px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.wallet-info-btn {
+  cursor: pointer;
+}
+
+/* Action Links & Buttons */
+.forgot-link {
+  display: block;
+  width: 100%;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: #23864d;
+  text-decoration: none;
+  margin: -2px 0 12px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.btn-primary {
+  width: 100%;
+  height: 44px;
+  background: #145e38;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(20, 94, 56, 0.2);
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #0f4d2d;
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+  color: #839487;
+  font-size: 12px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e2e9e3;
+}
+
+.btn-metamask {
+  width: 100%;
+  height: 44px;
+  background: #ffffff;
+  border: 1px solid #145e38;
+  border-radius: 12px;
+  color: #145e38;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.btn-metamask .wallet-icon-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.switch-text {
+  text-align: center;
+  font-size: 12.5px;
+  color: #556658;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+.switch-text button {
+  background: none;
+  border: none;
+  color: #23864d;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+
+/* Error message */
+.auth-error {
+  background: #fff1f0;
+  border: 1px solid #f1c7c3;
+  color: #b42318;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: -2px 0 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* Footer */
+.footer-section {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 10px 20px 18px;
+}
+
+.footer-text {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #183e28;
+  margin-bottom: 4px;
+}
+
+.footer-art {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.footer-icon-svg {
+  width: 40px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.footer-arrow-svg {
+  width: 32px;
+  height: 16px;
+  margin-bottom: 12px;
+}
+
+.footer-wallet-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  margin-bottom: 2px;
+}
