@@ -22,7 +22,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://solid-succotash-97w5vgqj54vr277wv-3000.app.github.dev",
+        "https://mpp-smart-bin-mpp-admin-dashboard-v-pearl.vercel.app",
 	"https://niharika-rao-k.github.io",
     ],
     allow_credentials=True,
