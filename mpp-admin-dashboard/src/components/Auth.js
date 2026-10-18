@@ -94,8 +94,11 @@ function Auth({ onLoginSuccess }) {
 
       // Preserve the bin code if the user came through a QR code.
       const params = new URLSearchParams(window.location.search);
-const bin = params.get("bin") || sessionStorage.getItem("r2e_active_bin");
+      const bin = 
+        params.get("bin") || 
+        sessionStorage.getItem("r2e_active_bin");
       if (bin) {
+        sessionStorage.setItem("r2e_active_bin", bin);
         window.location.replace(
           `./dashboard.html?bin=${encodeURIComponent(bin)}`
         );
