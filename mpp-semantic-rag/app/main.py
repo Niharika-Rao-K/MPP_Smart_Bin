@@ -15,17 +15,17 @@ app = FastAPI(
     title="Smart Recycling Bin RAG & Fusion Backend",
     version="1.0.0"
 )
+origins = [
+    "https://mpp-smart-bin-mpp-admin-dashboard-v-pearl.vercel.app",
+]
+
+print("CORS DEBUG - loaded file:", __file__)
+print("CORS DEBUG - allowed origins:", repr(origins))
 
 # Development origins only. Add your deployed PWA domain later.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://mpp-smart-bin-mpp-admin-dashboard-v-pearl.vercel.app",
-		"https://niharika-rao-k.github.io",
-    ],
-	allow_origin_regex=r"https://mpp-smart-bin-mpp-admin-dashboard-v-[a-zA-Z0-9-]+\.vercel\.app",
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
