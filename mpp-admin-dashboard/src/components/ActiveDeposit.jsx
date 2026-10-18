@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const ActiveDeposit = ({ backendUrl = "https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev" }) => {
+const ActiveDeposit = ({ backendUrl = "https://mpp-smart-bin.onrender.com" }) => {
   const [file, setFile] = useState(null);
   const [weightInput, setWeightInput] = useState("13.5");
   const [status, setStatus] = useState("IDLE"); // IDLE | SCANNING | SUCCESS | REJECTED
