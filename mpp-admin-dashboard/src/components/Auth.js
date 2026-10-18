@@ -9,8 +9,7 @@ const customWalletSrc =
   "https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg";
 
 const heroImageSrc =
-  "https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1...";
-
+"https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1...";
 function Auth({ onLoginSuccess }) {
   const [isRegister, setIsRegister] = useState(false);
   const [authMode, setAuthMode] = useState("login");
@@ -100,10 +99,10 @@ function Auth({ onLoginSuccess }) {
       if (bin) {
         sessionStorage.setItem("r2e_active_bin", bin);
         window.location.replace(
-          `./dashboard.html?bin=${encodeURIComponent(bin)}`
+          `/dashboard.html?bin=${encodeURIComponent(bin)}`
         );
       } else {
-        window.location.replace("./dashboard.html");
+        window.location.replace("/dashboard.html");
       }
     } catch (err) {
       setError(err.message || "Unable to login.");
@@ -360,11 +359,12 @@ function Auth({ onLoginSuccess }) {
       const params = new URLSearchParams(window.location.search);
 const bin = params.get("bin") || sessionStorage.getItem("r2e_active_bin");
       if (bin) {
+        sessionStorage.setItem("r2e_active_bin", bin);
         window.location.replace(
-          `./dashboard.html?bin=${encodeURIComponent(bin)}`
+          `/dashboard.html?bin=${encodeURIComponent(bin)}`
         );
       } else {
-        window.location.replace("./dashboard.html");
+        window.location.replace("/dashboard.html");
       }
 
     } catch (err) {
@@ -486,11 +486,12 @@ const bin = params.get("bin") || sessionStorage.getItem("r2e_active_bin");
 const bin = params.get("bin") || sessionStorage.getItem("r2e_active_bin");
 
       if (bin) {
+        sessionStorage.setItem("r2e_active_bin", bin);
         window.location.replace(
-          `./dashboard.html?bin=${encodeURIComponent(bin)}`
+          `/dashboard.html?bin=${encodeURIComponent(bin)}`
         );
       } else {
-        window.location.replace("./dashboard.html");
+        window.location.replace("/dashboard.html");
       }
 
     } catch (err) {
