@@ -3,7 +3,7 @@ import "./Auth.css";
 
 const API_BASE =
   process.env.REACT_APP_API_URL ||
-  "https://solid-succotash-97w5vgqj54vr277wv-8000.app.github.dev";
+  "https://mpp-smart-bin.onrender.com";
 
 const customWalletSrc =
   "https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg";
