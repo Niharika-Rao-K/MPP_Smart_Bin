@@ -17,7 +17,12 @@ def detect_object(image_path):
         and confidence score.
     """
 
-    results = model(image_path)
+    results = model.predict(
+    source=image_path,
+    imgsz=320,
+    device="cpu",
+    verbose=False
+)
 
     result = results[0]
 
