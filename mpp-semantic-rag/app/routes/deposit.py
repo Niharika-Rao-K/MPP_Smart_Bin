@@ -88,14 +88,24 @@ async def deposit_item(
         # 1. Store image with a generated safe filename.
         image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
 
-if len(image_bytes) > MAX_IMAGE_BYTES:
-    raise HTTPException(
-        status_code=413,
-        detail="Image must be 5 MB or smaller."
-    )
+        if len(image_bytes) > MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="Image must be 5 MB or smaller."
+            )
 
-with image_path.open("wb") as buffer:
-    buffer.write(image_bytes)
+        with image_path.open("wb") as buffer:
+            buffer.write(image_bytes)
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        if image_path.exists():
+            image_path.unlink()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to process deposit image."
+        ) from exc
 
         # 2. YOLO is the authoritative visual label.
         yolo_result = detect_object(str(image_path))
