@@ -1,101 +1,104 @@
-﻿import os
 
-import chromadb
-from chromadb.utils import embedding_functions
-
-
-# ---------------------------------------------------------
-# ChromaDB configuration
-# ---------------------------------------------------------
-
-CHROMA_DATA_PATH = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "..",
-    "chroma_db"
-)
-
-chroma_client = chromadb.PersistentClient(
-    path=CHROMA_DATA_PATH
-)
-
-embedding_function = embedding_functions.DefaultEmbeddingFunction()
-
-collection = chroma_client.get_collection(
-    name="waste_knowledge",
-    embedding_function=embedding_function
-)
+import json
+import re
+from pathlib import Path
 
 
 # ---------------------------------------------------------
-# RAG confidence threshold
+# Load the six waste profiles directly from JSON
 # ---------------------------------------------------------
 
-# Lower ChromaDB distance means a closer semantic match.
-#
-# This threshold was selected from the current six-record
-# waste knowledge base:
-#
-# Known examples:
-#   Pepsi can        ~0.541
-#   Snack wrapper    ~0.673
-#   PET bottle       ~0.702
-#   Coca-Cola can    ~0.794
-#   USB cable        ~1.044
-#
-# Unknown examples:
-#   Glass bottle     ~1.102
-#   Wooden object    ~1.404
-#   Paper cup        ~1.460
-#
-# This is a prototype threshold and should be re-evaluated
-# when the knowledge base grows.
-
-RAG_DISTANCE_THRESHOLD = 1.08
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+KNOWLEDGE_PATH = PROJECT_ROOT / "data" / "waste_knowledge.json"
 
 
-# ---------------------------------------------------------
-# Label normalization
-# ---------------------------------------------------------
+def _normalize_label(value):
+    """Normalize a detected label for exact matching."""
+    return re.sub(r"[^a-z0-9]+", "_", str(value).lower()).strip("_")
 
+
+with KNOWLEDGE_PATH.open("r", encoding="utf-8") as file:
+    WASTE_PROFILES = json.load(file)
+
+if not isinstance(WASTE_PROFILES, list) or not WASTE_PROFILES:
+    raise ValueError("Waste knowledge JSON must contain a non-empty list.")
+
+
+def _profile_id(profile):
+    """Generate a stable ID from the item's name."""
+    return _normalize_label(profile["item"])
+
+
+PROFILE_BY_ID = {
+    _profile_id(profile): profile
+    for profile in WASTE_PROFILES
+}
+
+# Match known labels to the corresponding profile IDs.
+# Generic "can" maps to the first can profile because visual
+# detection alone cannot reliably distinguish its brand.
 LABEL_ALIASES = {
-    "bottle": "water bottle",
-    "plastic_bottle": "PET water bottle",
-    "water_bottle": "PET water bottle",
+    # Aluminum cans
+    "can": "coca_cola_330ml_aluminum_can",
+    "tin_can": "coca_cola_330ml_aluminum_can",
+    "soda_can": "coca_cola_330ml_aluminum_can",
+    "aluminum_can": "coca_cola_330ml_aluminum_can",
+    "aluminium_can": "coca_cola_330ml_aluminum_can",
+    "aluminum_beverage_can": "coca_cola_330ml_aluminum_can",
+    "coca_cola_can": "coca_cola_330ml_aluminum_can",
+    "coca_cola_330ml_aluminum_can": "coca_cola_330ml_aluminum_can",
+    "pepsi_can": "pepsi_330ml_aluminum_can",
+    "pepsi_330ml_aluminum_can": "pepsi_330ml_aluminum_can",
 
-    "can": "aluminum beverage can",
-    "tin_can": "aluminum beverage can",
-    "soda_can": "aluminum beverage can",
-    "coca_cola_can": "Coca-Cola aluminum can",
-    "pepsi_can": "Pepsi aluminum can",
+    # PET bottles
+    "bottle": "500ml_pet_water_bottle",
+    "plastic_bottle": "500ml_pet_water_bottle",
+    "water_bottle": "500ml_pet_water_bottle",
+    "pet_bottle": "500ml_pet_water_bottle",
+    "pet_water_bottle": "500ml_pet_water_bottle",
+    "500ml_pet_water_bottle": "500ml_pet_water_bottle",
 
-    "wrapper": "snack wrapper",
-    "snack_wrapper": "snack wrapper",
-    "chocolate_wrapper": "chocolate wrapper",
+    # Wrappers
+    "wrapper": "snack_wrapper",
+    "snack_wrapper": "snack_wrapper",
+    "chocolate_wrapper": "snack_wrapper",
 
-    "usb_cable": "USB cable",
-    "cable": "USB cable",
-
-    "circuit_board": "circuit board",
-    "pcb": "circuit board",
-    "motherboard": "circuit board"
+    # E-waste
+    "cable": "usb_cable",
+    "usb_cable": "usb_cable",
+    "circuit_board": "circuit_board",
+    "pcb": "circuit_board",
+    "motherboard": "circuit_board",
 }
 
 
+# Add direct matches for known profile names and attributes.
+# Explicit aliases above take precedence.
+for profile in WASTE_PROFILES:
+    profile_id = _profile_id(profile)
+
+    for field in ("item", "product", "object", "material_category"):
+        value = profile.get(field)
+
+        if value:
+            normalized = _normalize_label(value)
+            LABEL_ALIASES.setdefault(normalized, profile_id)
+
+
 # ---------------------------------------------------------
-# Helper: rejected RAG result
+# Rejected result
 # ---------------------------------------------------------
 
 def _rejected_result(
-    status: str,
-    action: str,
-    match_type: str = "none",
+    status,
+    action,
+    match_type="none",
     matched_profile_id=None,
     match_distance=None,
     similarity_score=0.0,
     metadata=None,
     target_weight_g=None,
-    margin_g=None
+    margin_g=None,
 ):
     return {
         "matched_profile_id": matched_profile_id,
@@ -109,292 +112,128 @@ def _rejected_result(
             "status": status,
             "action": action,
             "hardware_route_signal": "R",
-            "reward_eligible": False
-        }
+            "reward_eligible": False,
+        },
     }
 
 
 # ---------------------------------------------------------
-# RAG evaluation
+# Waste profile evaluation
 # ---------------------------------------------------------
 
-def evaluate_with_rag(
-    label: str,
-    real_weight_g: float
-):
+def evaluate_with_rag(label: str, real_weight_g: float):
     """
-    Retrieve the most relevant waste profile from ChromaDB
-    and validate it against the measured weight.
+    Retrieve a known waste profile from the local JSON file
+    using exact label/alias matching, then validate its weight,
+    recyclability and reference rate.
 
-    Returns:
-        - retrieved material information
-        - semantic match distance
-        - similarity score
-        - applicable reference rate
-        - weight validation
-        - final acceptance/rejection decision
+    This lightweight implementation does not perform semantic
+    embedding search. Unknown labels are rejected.
     """
 
-    # -----------------------------------------------------
-    # Validate visual label
-    # -----------------------------------------------------
-
+    # Validate label
     if not label or not label.strip():
         return _rejected_result(
             status="UNRECOGNIZED",
-            action="Reject item. No visual label was detected."
+            action="Reject item. No visual label was detected.",
         )
 
-    # -----------------------------------------------------
-    # Validate measured weight
-    # -----------------------------------------------------
+    # Validate weight
+    try:
+        real_weight_g = float(real_weight_g)
+    except (TypeError, ValueError):
+        real_weight_g = 0.0
 
-    if real_weight_g <= 0:
+    if not real_weight_g > 0:
         return _rejected_result(
             status="REJECTED",
-            action="Reject item. Invalid weight reading."
+            action="Reject item. Invalid weight reading.",
         )
 
-    # -----------------------------------------------------
-    # Normalize label
-    # -----------------------------------------------------
+    # Exact label/alias lookup
+    normalized_label = _normalize_label(label)
+    profile_id = LABEL_ALIASES.get(normalized_label)
 
-    normalized_label = (
-        label.lower()
-        .strip()
-        .replace(" ", "_")
-    )
+    if not profile_id or profile_id not in PROFILE_BY_ID:
+        return _rejected_result(
+            status="UNRECOGNIZED",
+            action=(
+                f"Reject item. No known waste profile matches "
+                f"the detected label '{label}'."
+            ),
+            match_type="no_exact_match",
+        )
 
-    query_label = LABEL_ALIASES.get(
-        normalized_label,
-        label
-    )
+    item_info = PROFILE_BY_ID[profile_id]
 
-    # -----------------------------------------------------
-    # Retrieve from ChromaDB
-    # -----------------------------------------------------
-
+    # Weight validation
     try:
-        results = collection.query(
-            query_texts=[query_label],
-            n_results=1,
-            include=[
-                "metadatas",
-                "documents",
-                "distances"
-            ]
+        target_weight = float(
+            item_info.get("typical_empty_weight_g", 0)
         )
-
-    except Exception as exc:
+        tolerance_percent = float(
+            item_info.get("weight_tolerance_percent", 0)
+        )
+    except (TypeError, ValueError):
         return _rejected_result(
             status="RAG_ERROR",
-            action=(
-                "Reject item. RAG retrieval failed: "
-                f"{str(exc)}"
-            ),
-            match_type="error"
+            action="Reject item. Waste profile has invalid weight data.",
+            match_type="invalid_profile",
+            matched_profile_id=profile_id,
+            metadata=item_info,
         )
 
-    # -----------------------------------------------------
-    # Extract retrieval result
-    # -----------------------------------------------------
-
-    metadatas = results.get(
-        "metadatas",
-        [[]]
-    )
-
-    distances = results.get(
-        "distances",
-        [[]]
-    )
-
-    ids = results.get(
-        "ids",
-        [[]]
-    )
-
-    if not metadatas or not metadatas[0]:
-        return _rejected_result(
-            status="UNRECOGNIZED",
-            action=(
-                "Reject item. No reliable waste profile "
-                "was found."
-            )
-        )
-
-    item_info = metadatas[0][0]
-
-    matched_profile_id = (
-        ids[0][0]
-        if ids and ids[0]
-        else None
-    )
-
-    match_distance = (
-        distances[0][0]
-        if distances and distances[0]
-        else None
-    )
-
-    # -----------------------------------------------------
-    # Calculate similarity score
-    # -----------------------------------------------------
-
-    if match_distance is None:
-        similarity_score = 0.0
-    else:
-        similarity_score = round(
-            1 / (1 + float(match_distance)),
-            3
-        )
-
-    # -----------------------------------------------------
-    # Semantic confidence check
-    # -----------------------------------------------------
-
-    if (
-        match_distance is None
-        or float(match_distance) > RAG_DISTANCE_THRESHOLD
-    ):
-        return _rejected_result(
-            status="UNRECOGNIZED",
-            action=(
-                "Reject item. The detected item does not "
-                "match a known waste profile with "
-                "sufficient semantic confidence."
-            ),
-            match_type="low_confidence",
-            matched_profile_id=matched_profile_id,
-            match_distance=match_distance,
-            similarity_score=similarity_score,
-            metadata=item_info
-        )
-
-    # -----------------------------------------------------
-    # Retrieve expected weight
-    # -----------------------------------------------------
-
-    target_weight = float(
-        item_info.get(
-            "typical_empty_weight_g",
-            0
-        )
-    )
-
-    # -----------------------------------------------------
-    # Calculate allowed weight margin
-    # -----------------------------------------------------
-
-    tolerance_percent = float(
-        item_info.get(
-            "weight_tolerance_percent",
-            0
-        )
-    )
-
-    margin = (
-        target_weight
-        * tolerance_percent
-        / 100
-    )
-
-    # -----------------------------------------------------
-    # Compare actual and expected weight
-    # -----------------------------------------------------
-
-    weight_difference_g = abs(
-        real_weight_g - target_weight
-    )
+    margin = target_weight * tolerance_percent / 100
+    weight_difference_g = abs(real_weight_g - target_weight)
 
     weight_is_valid = (
         target_weight > 0
         and weight_difference_g <= margin
     )
 
-    # -----------------------------------------------------
-    # Determine material routing
-    # -----------------------------------------------------
-
-    category = str(
-        item_info.get(
-            "category",
-            ""
-        )
-    ).lower()
+    # Material routing
+    category = str(item_info.get("category", "")).lower()
 
     if "metal" in category:
         expected_signal = "M"
-
     elif "plastic" in category:
         expected_signal = "P"
-
-    elif (
-        "e-waste" in category
-        or "ewaste" in category
-    ):
+    elif "e-waste" in category or "ewaste" in category:
         expected_signal = "E"
-
     else:
         expected_signal = "R"
 
-    # -----------------------------------------------------
-    # Validate reference rate
-    # -----------------------------------------------------
-
-    rate = item_info.get(
-        "rate_inr_per_kg",
-        0
-    )
-
+    # Reference rate validation
     try:
-        rate = float(rate)
+        rate = float(item_info.get("rate_inr_per_kg", 0))
     except (TypeError, ValueError):
         rate = 0.0
 
-    rate_status = str(
-        item_info.get(
-            "rate_status",
-            ""
-        )
-    ).lower()
+    rate_status = str(item_info.get("rate_status", "")).lower()
 
     rate_available = (
         rate > 0
         and rate_status in {
             "reference",
             "verified",
-            "fallback_reference"
+            "fallback_reference",
         }
     )
 
-    # -----------------------------------------------------
-    # Final decision
-    # -----------------------------------------------------
+    recyclable = bool(item_info.get("recyclable", False))
 
+    # Final decision
     if (
         weight_is_valid
-        and expected_signal in {
-            "P",
-            "M",
-            "E"
-        }
+        and expected_signal in {"P", "M", "E"}
         and rate_available
-        and bool(
-            item_info.get(
-                "recyclable",
-                False
-            )
-        )
+        and recyclable
     ):
         status = "VERIFIED_CLEAN"
-
         action = (
             f"Accept item. Route to "
-            f"{item_info.get('category', 'material').upper()} "
-            f"bin."
+            f"{item_info.get('category', 'material').upper()} bin."
         )
-
         hardware_signal = expected_signal
         reward_eligible = True
 
@@ -403,62 +242,42 @@ def evaluate_with_rag(
 
         if not weight_is_valid:
             action = (
-                "Reject item. Measured weight does not "
-                "match the retrieved waste profile."
+                "Reject item. Measured weight does not match "
+                "the retrieved waste profile."
             )
-
         elif not rate_available:
             action = (
-                "Reject item. No valid reference rate "
-                "is available for this material."
+                "Reject item. No valid reference rate is available "
+                "for this material."
             )
-
-        elif not item_info.get(
-            "recyclable",
-            False
-        ):
+        elif not recyclable:
             action = (
-                "Reject item. Retrieved material is "
-                "not marked as recyclable."
+                "Reject item. Retrieved material is not marked "
+                "as recyclable."
             )
-
         else:
             action = (
-                "Reject item. Material classification "
-                "could not be safely validated."
+                "Reject item. Material classification could not "
+                "be safely validated."
             )
 
         hardware_signal = "R"
         reward_eligible = False
 
-    # -----------------------------------------------------
-    # Return result
-    # -----------------------------------------------------
-
     return {
-        "matched_profile_id": matched_profile_id,
-        "match_type": "semantic",
-        "match_distance": match_distance,
-        "similarity_score": similarity_score,
-
+        "matched_profile_id": profile_id,
+        "match_type": "exact_label",
+        "match_distance": None,
+        "similarity_score": 1.0,
         "target_weight_g": target_weight,
-        "margin_g": round(
-            margin,
-            2
-        ),
-        "weight_difference_g": round(
-            weight_difference_g,
-            2
-        ),
-
+        "margin_g": round(margin, 2),
+        "weight_difference_g": round(weight_difference_g, 2),
         "rate_inr_per_kg": rate,
-
         "metadata": item_info,
-
         "final_decision": {
             "status": status,
             "action": action,
             "hardware_route_signal": hardware_signal,
-            "reward_eligible": reward_eligible
-        }
+            "reward_eligible": reward_eligible,
+        },
     }
