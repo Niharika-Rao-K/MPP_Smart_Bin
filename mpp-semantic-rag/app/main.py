@@ -8,6 +8,7 @@ from app.routes.deposits import router as deposits_router
 from app.routes.bin import router as bin_router
 from app.routes.leaderboard import router as leaderboard_router
 from app.routes.auth import router as auth_router
+from app.routes.sensor import router as sensor_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -61,6 +62,11 @@ app.include_router(
     tags=["Authentication"],
 )
 
+app.include_router(
+    sensor_router,
+    prefix="/api/sensor",
+    tags=["Sensor Readings"],
+)
 @app.get("/")
 def read_root():
     return {
