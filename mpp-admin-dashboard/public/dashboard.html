@@ -712,6 +712,9 @@ window.location.replace(
         });
 
         const responseText = await response.text();
+        console.log('Deposit HTTP status:', response.status);
+        console.log('Deposit response body:', JSON.stringify(responseText));
+        console.log('Deposit content type:', response.headers.get('content-type'));
         let data = null;
 
         try {
