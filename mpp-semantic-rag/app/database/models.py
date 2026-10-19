@@ -178,3 +178,17 @@ class PasswordResetToken(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+class SensorReading(Base):
+    __tablename__ = "sensor_readings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bin_code = Column(String, index=True, nullable=False)
+    sensor_id = Column(String, nullable=False)
+    reading_id = Column(String, unique=True, index=True, nullable=False)
+    weight_g = Column(Float, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
