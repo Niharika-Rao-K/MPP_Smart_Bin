@@ -619,27 +619,38 @@
       document.getElementById('bin-route-display').innerText = 'Awaiting AI analysis';
     }
 
-  function updateDetectionPreview(data) {
     
-    const detectedCategory = 
-      data.predicted_label || 'Unknown';
-    const route = data.hardware_route_signal || 'R';
+function updateDetectionPreview(data) {
+  const tagElem = document.getElementById('category-tag');
+  const routeElem = document.getElementById('bin-route-display');
 
-    const routeNames = {
-      P: 'P (Plastic)',
-      M: 'M (Metal)',
-      E: 'E (E-Waste)',
-      R: 'R (Reject)'
-    };
-
-    const isAccepted = data.status === 'SUCCESS';
-
-    document.getElementById('category-tag').innerText = 
-      isAccepted ? detectedCategory.toUpperCase() : 'REJECTED';
-
-    document.getElementById('bin-route-display').innerText =
-      routeNames[route] || 'R (Reject)';
+  // Do not access properties if detection data is missing.
+  if (!data || typeof data !== 'object') {
+    tagElem.innerText = 'ANALYSIS FAILED';
+    routeElem.innerText = 'Unable to analyze image';
+    console.warn('No valid detection data was returned.');
+    return;
   }
+
+  const detectedCategory = data.predicted_label || 'Unknown';
+  const route = data.hardware_route_signal || 'R';
+
+  const routeNames = {
+    P: 'P (Plastic)',
+    M: 'M (Metal)',
+    E: 'E (E-Waste)',
+    R: 'R (Reject)'
+  };
+
+  const isAccepted = data.status === 'VERIFIED_CLEAN';
+
+  tagElem.innerText = isAccepted
+    ? detectedCategory.toUpperCase()
+    : 'REJECTED';
+
+  routeElem.innerText = routeNames[route] || 'R (Reject)';
+}
+
 
     async function handleDeposit(e) {
       e.preventDefault();
@@ -700,17 +711,29 @@ window.location.replace(
           body: formData
         });
 
-        const data = await response.json();
+        const responseText = await response.text();
+        let data = null;
 
+        try {
+  data = responseText ? JSON.parse(responseText) : null;
+} catch {
+  throw new Error(
+    `Backend returned an invalid response (HTTP ${response.status}). Check Render logs.`
+  );
+}
+        
         if (!response.ok) {
           throw new Error(
             data.detail ||
+            data?.message ||
             `API Error: ${response.status}`
           );
         }
-
+        if (!data || typeof data !== 'object') {
+          throw new Error('Backend returned no deposit evaluation result.');
+        }
         updateDetectionPreview(data);
-        const isAccepted = data.status === 'SUCCESS';
+        const isAccepted = data.status === 'VERIFIED_CLEAN';
         const detectedCategory =
           data.predicted_label ||
           'UNKNOWN';
