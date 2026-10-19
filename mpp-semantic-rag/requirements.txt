@@ -9,3 +9,4 @@ eth-account
 sqlalchemy
 ultralytics
 pwdlib[argon2]
+psycopg[binary]
