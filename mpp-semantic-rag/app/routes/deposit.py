@@ -26,6 +26,7 @@ router = APIRouter()
 
 UPLOAD_FOLDER = Path("uploads")
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
@@ -85,8 +86,16 @@ async def deposit_item(
 
     try:
         # 1. Store image with a generated safe filename.
-        with image_path.open("wb") as buffer:
-            buffer.write(await image.read())
+        image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
+
+if len(image_bytes) > MAX_IMAGE_BYTES:
+    raise HTTPException(
+        status_code=413,
+        detail="Image must be 5 MB or smaller."
+    )
+
+with image_path.open("wb") as buffer:
+    buffer.write(image_bytes)
 
         # 2. YOLO is the authoritative visual label.
         yolo_result = detect_object(str(image_path))
