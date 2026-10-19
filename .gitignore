@@ -33,4 +33,7 @@ Thumbs.db
 
 # Node
 node_modules/
-npm-debug.log*
+npm-debug.log*# Local database files and migration backups
+*.db
+*.sqlite
+*.sqlite3
