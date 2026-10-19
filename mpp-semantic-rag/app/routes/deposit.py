@@ -1,3 +1,4 @@
+
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -10,12 +11,10 @@ from fastapi import (
     HTTPException,
     UploadFile,
 )
-
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.database.models import Bin, Deposit
-
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
@@ -26,13 +25,14 @@ router = APIRouter()
 
 UPLOAD_FOLDER = Path("uploads")
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
     "image/png",
-    "image/webp"
+    "image/webp",
 }
+
 
 @router.post("/evaluate")
 async def deposit_item(
@@ -43,7 +43,6 @@ async def deposit_item(
     bin_id: str = Form("UNKNOWN"),
     db: Session = Depends(get_db),
 ):
-
     bin_record = (
         db.query(Bin)
         .filter(Bin.bin_code == bin_id)
@@ -61,23 +60,23 @@ async def deposit_item(
             status_code=400,
             detail=f"Bin {bin_id} is not active.",
         )
-    
+
     if image.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=415,
-            detail="Only JPG, PNG, and WEBP images are accepted."
+            detail="Only JPG, PNG, and WEBP images are accepted.",
         )
 
     if real_weight_g <= 0:
         raise HTTPException(
             status_code=400,
-            detail="Weight must be greater than zero."
+            detail="Weight must be greater than zero.",
         )
 
     if not wallet_address.startswith("0x") or len(wallet_address) != 42:
         raise HTTPException(
             status_code=400,
-            detail="Invalid wallet address."
+            detail="Invalid wallet address.",
         )
 
     transaction_id = str(uuid4())
@@ -85,65 +84,58 @@ async def deposit_item(
     image_path = UPLOAD_FOLDER / f"{transaction_id}{suffix}"
 
     try:
-        # 1. Store image with a generated safe filename.
+        # 1. Save and validate the uploaded image.
         image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
+
+        if not image_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded image is empty.",
+            )
 
         if len(image_bytes) > MAX_IMAGE_BYTES:
             raise HTTPException(
                 status_code=413,
-                detail="Image must be 5 MB or smaller."
+                detail="Image must be 5 MB or smaller.",
             )
 
         with image_path.open("wb") as buffer:
             buffer.write(image_bytes)
 
-    except HTTPException:
-        raise
-    except Exception as exc:
-        if image_path.exists():
-            image_path.unlink()
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to process deposit image."
-        ) from exc
-
-        # 2. YOLO is the authoritative visual label.
+        # 2. YOLO object detection.
         yolo_result = detect_object(str(image_path))
         detected_label = yolo_result["label"]
         confidence = round(float(yolo_result["confidence"]), 3)
 
-        # 3. Replace this with actual load-cell readings when hardware is connected.
+        # 3. Stabilize the submitted weight.
+        # Replace simulated readings with load-cell readings when connected.
         stable_weight_g = stabilize_weight([real_weight_g] * 5)
 
-        # 4. RAG semantic lookup + weight verification.
+        # 4. Sensor fusion and RAG verification.
         fusion_result = sensor_fusion(
             label=detected_label,
-            real_weight_g=stable_weight_g
+            real_weight_g=stable_weight_g,
         )
 
         route_signal = fusion_result["hardware_route_signal"]
-
-        reward_eligible = fusion_result.get(
-            "reward_eligible",
-            False
-        )
+        reward_eligible = fusion_result.get("reward_eligible", False)
 
         is_accepted = (
             route_signal in {"P", "M", "E"}
             and reward_eligible
         )
 
-        # 5. Dynamic reward calculation only for verified material.
+        # 5. Calculate and attempt to mint rewards for accepted items.
         calculated_credits = 0.0
         reward_result = {
             "status": "SKIPPED",
-            "reason": "Rejected or unverified item."
+            "reason": "Rejected or unverified item.",
         }
 
         if is_accepted:
             calculated_credits = calculate_reward(
                 weight_g=stable_weight_g,
-                rag_result=fusion_result["rag_result"]
+                rag_result=fusion_result["rag_result"],
             )
 
             try:
@@ -151,12 +143,13 @@ async def deposit_item(
                     user_wallet_address=wallet_address,
                     amount_tokens=calculated_credits,
                     material=detected_label,
-                    weight_grams=stable_weight_g
+                    weight_grams=stable_weight_g,
                 )
             except Exception as exc:
+                # Preserve the evaluation even if minting fails.
                 reward_result = {
                     "status": "FAILED",
-                    "reason": str(exc)
+                    "reason": str(exc),
                 }
 
         tx_hash = (
@@ -169,6 +162,7 @@ async def deposit_item(
             or reward_result.get("etherscan_url")
         )
 
+        # 6. Save the deposit record.
         deposit = Deposit(
             transaction_id=transaction_id,
             bin_id=bin_record.id,
@@ -186,6 +180,7 @@ async def deposit_item(
         db.add(deposit)
         db.commit()
 
+        # 7. Return the evaluation to the frontend.
         return {
             "transaction_id": transaction_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -204,14 +199,20 @@ async def deposit_item(
                 "status": reward_result.get("status", "UNKNOWN"),
                 "tx_hash": tx_hash,
                 "explorer_url": explorer_url,
-                "blockchain_details": reward_result
-            }
+                "blockchain_details": reward_result,
+            },
         }
 
     except HTTPException:
+        db.rollback()
         raise
     except Exception as exc:
+        db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Deposit processing failed: {str(exc)}"
-        )
+            detail=f"Deposit processing failed: {str(exc)}",
+        ) from exc
+    finally:
+        # Remove the temporary uploaded image.
+        if image_path.exists():
+            image_path.unlink()
