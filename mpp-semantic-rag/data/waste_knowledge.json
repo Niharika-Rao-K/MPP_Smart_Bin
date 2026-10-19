@@ -125,4 +125,48 @@
     "region": "India",
     "rate_status": "reference"
   }
+  
+{
+  "item": "Samsung RAM stick",
+  "brand": "Samsung",
+  "product": "Computer RAM memory module",
+  "object": "RAM stick",
+  "category": "E-Waste",
+  "material": "PCB, electronic components, and metal contacts",
+  "material_category": "mixed_e_waste",
+  "packaging_type": "electronic_component",
+  "container_type": "RAM Module",
+  "volume_ml": null,
+  "typical_empty_weight_g": 12.5,
+  "weight_tolerance_percent": 15,
+  "recyclable": true,
+  "rate_inr_per_kg": 43.43,
+  "rate_source": "Provisional e-waste reference rate; verify suitability for RAM modules",
+  "rate_source_url": "https://scraprates.in/bengaluru/e-waste-scrap-price",
+  "rate_effective_date": "2026-09-19",
+  "region": "Bengaluru, Karnataka, India",
+  "rate_status": "provisional_reference"
+}
+
+{
+  "item": "Thumbwheel dial potentiometer",
+  "brand": "Unknown",
+  "product": "Thumbwheel rotary potentiometer",
+  "object": "potentiometer",
+  "category": "E-Waste",
+  "material": "Electronic components, metal terminals, and plastic housing",
+  "material_category": "mixed_e_waste",
+  "packaging_type": "electronic_component",
+  "container_type": "Potentiometer",
+  "volume_ml": null,
+  "typical_empty_weight_g": 0.67,
+  "weight_tolerance_percent": 45,
+  "recyclable": true,
+  "rate_inr_per_kg": 43.43,
+  "rate_source": "Provisional general e-waste reference rate; not verified for potentiometers",
+  "rate_source_url": "https://scraprates.in/bengaluru/e-waste-scrap-price",
+  "rate_effective_date": "2026-09-19",
+  "region": "Bengaluru, Karnataka, India",
+  "rate_status": "provisional_reference"
+}
 ]
