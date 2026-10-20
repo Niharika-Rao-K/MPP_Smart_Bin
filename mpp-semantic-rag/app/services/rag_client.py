@@ -62,8 +62,16 @@ LABEL_ALIASES = {
     "wrapper": "snack_wrapper",
     "snack_wrapper": "snack_wrapper",
     "chocolate_wrapper": "snack_wrapper",
+    "dairy_milk_wrapper": "cadbury_dairy_milk_chocolate_wrapper",
+    "cadbury_dairy_milk_chocolate_wrapper": "cadbury_dairy_milk_chocolate_wrapper",
 
     # E-waste
+    "ram": "samsung_ram_stick",
+    "ram_module": "samsung_ram_stick",
+    "memory_ram": "samsung_ram_stick",
+    "samsung_ram": "samsung_ram_stick",
+    "samsung_ram_stick": "samsung_ram_stick",
+    
     "cable": "usb_cable",
     "usb_cable": "usb_cable",
     "circuit_board": "circuit_board",
