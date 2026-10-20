@@ -1,5 +1,5 @@
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,11 +14,10 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.database.models import Bin, Deposit
+from app.database.models import Bin, Deposit, SensorReading
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
-from app.services.weight_services import stabilize_weight
 from app.services.yolo_service import detect_object
 
 router = APIRouter()
@@ -26,6 +25,7 @@ router = APIRouter()
 UPLOAD_FOLDER = Path("uploads")
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_READING_AGE = timedelta(minutes=5)
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
@@ -38,11 +38,12 @@ ALLOWED_IMAGE_TYPES = {
 async def deposit_item(
     image: UploadFile = File(...),
     label: str = Form(""),
-    real_weight_g: float = Form(...),
+    reading_id: str = Form(...),
     wallet_address: str = Form(...),
     bin_id: str = Form("UNKNOWN"),
     db: Session = Depends(get_db),
 ):
+    # 1. Validate the bin.
     bin_record = (
         db.query(Bin)
         .filter(Bin.bin_code == bin_id)
@@ -61,22 +62,68 @@ async def deposit_item(
             detail=f"Bin {bin_id} is not active.",
         )
 
+    # 2. Validate the image and wallet.
     if image.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=415,
             detail="Only JPG, PNG, and WEBP images are accepted.",
         )
 
-    if real_weight_g <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Weight must be greater than zero.",
-        )
-
-    if not wallet_address.startswith("0x") or len(wallet_address) != 42:
+    if (
+        not wallet_address.startswith("0x")
+        or len(wallet_address) != 42
+    ):
         raise HTTPException(
             status_code=400,
             detail="Invalid wallet address.",
+        )
+
+    # 3. Retrieve the exact sensor reading.
+    reading = (
+        db.query(SensorReading)
+        .filter(
+            SensorReading.reading_id == reading_id,
+            SensorReading.bin_code == bin_id,
+        )
+        .first()
+    )
+
+    if not reading:
+        raise HTTPException(
+            status_code=404,
+            detail="Sensor reading not found for this bin. "
+                   "Please take a new measurement.",
+        )
+
+    if reading.consumed:
+        raise HTTPException(
+            status_code=409,
+            detail="This sensor reading has already been used. "
+                   "Please take a new measurement.",
+        )
+
+    # SQLite may return a naive datetime even though the column
+    # is declared timezone-aware.
+    reading_time = reading.created_at
+
+    if reading_time.tzinfo is None:
+        reading_time = reading_time.replace(tzinfo=timezone.utc)
+
+    reading_age = datetime.now(timezone.utc) - reading_time
+
+    if reading_age < timedelta(seconds=0) or reading_age > MAX_READING_AGE:
+        raise HTTPException(
+            status_code=400,
+            detail="Sensor reading is expired or has an invalid timestamp. "
+                   "Please take a new measurement.",
+        )
+
+    measured_weight_g = float(reading.weight_g)
+
+    if measured_weight_g <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="The sensor reading must be greater than zero.",
         )
 
     transaction_id = str(uuid4())
@@ -84,7 +131,7 @@ async def deposit_item(
     image_path = UPLOAD_FOLDER / f"{transaction_id}{suffix}"
 
     try:
-        # 1. Save and validate the uploaded image.
+        # 4. Save and validate the uploaded image.
         image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
 
         if not image_bytes:
@@ -102,16 +149,41 @@ async def deposit_item(
         with image_path.open("wb") as buffer:
             buffer.write(image_bytes)
 
-        # 2. YOLO object detection.
+        # 5. Detect the item.
         yolo_result = detect_object(str(image_path))
         detected_label = yolo_result["label"]
         confidence = round(float(yolo_result["confidence"]), 3)
 
-        # 3. Stabilize the submitted weight.
-        # Replace simulated readings with load-cell readings when connected.
-        stable_weight_g = stabilize_weight([real_weight_g] * 5)
+        # 6. Atomically claim this reading before reward processing.
+        # Only one request can change consumed from False to True.
+        claimed_count = (
+            db.query(SensorReading)
+            .filter(
+                SensorReading.id == reading.id,
+                SensorReading.consumed.is_(False),
+            )
+            .update(
+                {SensorReading.consumed: True},
+                synchronize_session=False,
+            )
+        )
 
-        # 4. Sensor fusion and RAG verification.
+        if claimed_count != 1:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="This sensor reading has already been claimed. "
+                       "Please take a new measurement.",
+            )
+
+        # Commit the claim before attempting any on-chain reward.
+        # This prevents the same reading from being reused if
+        # reward processing or a later database operation fails.
+        db.commit()
+
+        stable_weight_g = measured_weight_g
+
+        # 7. Sensor fusion and RAG verification.
         fusion_result = sensor_fusion(
             label=detected_label,
             real_weight_g=stable_weight_g,
@@ -125,7 +197,7 @@ async def deposit_item(
             and reward_eligible
         )
 
-        # 5. Calculate and attempt to mint rewards for accepted items.
+        # 8. Calculate and attempt to mint rewards for accepted items.
         calculated_credits = 0.0
         reward_result = {
             "status": "SKIPPED",
@@ -162,7 +234,7 @@ async def deposit_item(
             or reward_result.get("etherscan_url")
         )
 
-        # 6. Save the deposit record.
+        # 9. Save the deposit record.
         deposit = Deposit(
             transaction_id=transaction_id,
             bin_id=bin_record.id,
@@ -180,12 +252,13 @@ async def deposit_item(
         db.add(deposit)
         db.commit()
 
-        # 7. Return the evaluation to the frontend.
+        # 10. Return the evaluation to the frontend.
         return {
             "transaction_id": transaction_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "status": "SUCCESS" if is_accepted else "REJECTED",
             "bin_id": bin_id,
+            "reading_id": reading_id,
             "predicted_label": detected_label,
             "submitted_label": label,
             "confidence": confidence,
@@ -206,13 +279,14 @@ async def deposit_item(
     except HTTPException:
         db.rollback()
         raise
+
     except Exception as exc:
         db.rollback()
         raise HTTPException(
             status_code=500,
             detail=f"Deposit processing failed: {str(exc)}",
         ) from exc
+
     finally:
-        # Remove the temporary uploaded image.
         if image_path.exists():
             image_path.unlink()

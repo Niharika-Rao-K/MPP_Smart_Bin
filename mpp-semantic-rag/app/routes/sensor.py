@@ -53,6 +53,7 @@ def receive_weight(
             "status": "duplicate",
             "reading_id": existing.reading_id,
             "weight_g": existing.weight_g,
+            "consumed": existing.consumed,
         }
 
     reading = SensorReading(
@@ -60,6 +61,7 @@ def receive_weight(
         sensor_id=payload.sensor_id,
         reading_id=payload.reading_id,
         weight_g=payload.weight_g,
+        consumed=False,
         created_at=datetime.now(timezone.utc),
     )
 
@@ -72,6 +74,7 @@ def receive_weight(
         "reading_id": reading.reading_id,
         "bin_id": reading.bin_code,
         "weight_g": reading.weight_g,
+        "consumed": reading.consumed,
         "created_at": (
             reading.created_at.isoformat()
             if reading.created_at else None
@@ -84,9 +87,24 @@ def get_latest_weight(
     bin_id: str,
     db: Session = Depends(get_db),
 ):
+    bin_record = (
+        db.query(Bin)
+        .filter(Bin.bin_code == bin_id)
+        .first()
+    )
+
+    if not bin_record:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown bin: {bin_id}",
+        )
+
     reading = (
         db.query(SensorReading)
-        .filter(SensorReading.bin_code == bin_id)
+        .filter(
+            SensorReading.bin_code == bin_id,
+            SensorReading.consumed.is_(False),
+        )
         .order_by(SensorReading.id.desc())
         .first()
     )
@@ -97,6 +115,7 @@ def get_latest_weight(
             "bin_id": bin_id,
             "weight_g": None,
             "reading_id": None,
+            "message": "No unused sensor reading is available.",
         }
 
     return {
@@ -105,6 +124,7 @@ def get_latest_weight(
         "sensor_id": reading.sensor_id,
         "reading_id": reading.reading_id,
         "weight_g": reading.weight_g,
+        "consumed": reading.consumed,
         "created_at": (
             reading.created_at.isoformat()
             if reading.created_at else None

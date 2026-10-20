@@ -9,8 +9,30 @@ from app.routes.bin import router as bin_router
 from app.routes.leaderboard import router as leaderboard_router
 from app.routes.auth import router as auth_router
 from app.routes.sensor import router as sensor_router
+from sqlalchemy import inspect, text
 
 Base.metadata.create_all(bind=engine)
+
+def ensure_sensor_reading_consumed_column():
+    with engine.begin() as connection:
+        columns = {
+            column["name"]
+            for column in inspect(connection).get_columns(
+                "sensor_readings"
+            )
+        }
+
+        if "consumed" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE sensor_readings "
+                    "ADD COLUMN consumed BOOLEAN "
+                    "NOT NULL DEFAULT FALSE"
+                )
+            )
+
+
+ensure_sensor_reading_consumed_column()
 
 app = FastAPI(
     title="Smart Recycling Bin RAG & Fusion Backend",

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     Float,
@@ -187,6 +188,13 @@ class SensorReading(Base):
     sensor_id = Column(String, nullable=False)
     reading_id = Column(String, unique=True, index=True, nullable=False)
     weight_g = Column(Float, nullable=False)
+
+    consumed = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
