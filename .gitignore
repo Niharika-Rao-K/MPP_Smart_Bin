@@ -39,3 +39,6 @@ npm-debug.log*
 *.db
 *.sqlite
 *.sqlite3
+
+# Private ESP32 Wi-Fi credentials
+firmware/esp32_loadcell/secrets.h
