@@ -136,7 +136,7 @@
   "packaging_type": "electronic_component",
   "container_type": "RAM Module",
   "volume_ml": null,
-  "typical_empty_weight_g": 12.5,
+  "typical_empty_weight_g": 18,
   "weight_tolerance_percent": 15,
   "recyclable": true,
   "rate_inr_per_kg": 43.43,
