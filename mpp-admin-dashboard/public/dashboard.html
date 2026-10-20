@@ -231,20 +231,30 @@
                 />
               </div>
 
-              <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">
-                  Measured Weight (g)
-                </label>
-                <input
-                  type="number"
-                  id="waste-weight"
-                  step="0.1"
-                  min="0.1"
-                  value="18"
-                  required
-                  class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-bold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+              
+<div class="p-4 rounded-xl bg-slate-950 border border-emerald-800/40 space-y-2">
+  <div class="flex items-center justify-between">
+    <label class="text-xs font-bold text-slate-300">
+      Live Sensor Measurement
+    </label>
+    <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
+  </div>
+
+  <p id="sensor-status" role="status" aria-live="polite"
+     class="text-sm font-semibold text-amber-300">
+    Waiting for deposit submission
+  </p>
+
+  <p class="text-xs text-slate-400">
+    Place your item on the smart bin platform when the ESP32 claims the request.
+  </p>
+
+  <p class="text-2xl font-black text-emerald-400">
+    <span id="sensor-weight">--</span>
+    <span class="text-sm">g</span>
+  </p>
+</div>
+
 
               <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 text-xs transition">
                 <i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia
@@ -628,7 +638,6 @@ function updateDetectionPreview(data) {
   if (!data || typeof data !== 'object') {
     tagElem.innerText = 'ANALYSIS FAILED';
     routeElem.innerText = 'Unable to analyze image';
-    console.warn('No valid detection data was returned.');
     return;
   }
 
@@ -642,7 +651,7 @@ function updateDetectionPreview(data) {
     R: 'R (Reject)'
   };
 
-  const isAccepted = data.status === 'VERIFIED_CLEAN';
+  const isAccepted = data.status === 'SUCCESS';
 
   tagElem.innerText = isAccepted
     ? detectedCategory.toUpperCase()
@@ -652,138 +661,266 @@ function updateDetectionPreview(data) {
 }
 
 
-    async function handleDeposit(e) {
-      e.preventDefault();
-      if (!activeUser || !activeWallet) {
-        alert('Your session has expired. Please log in again.');
-const binId =
-  new URLSearchParams(window.location.search).get('bin') ||
-  sessionStorage.getItem('r2e_active_bin');
+function setSensorStatus(message, weight = null) {
+  const statusElem = document.getElementById('sensor-status');
+  const weightElem = document.getElementById('sensor-weight');
 
-window.location.replace(
-  binId
-    ? `/index.html?bin=${encodeURIComponent(binId)}`
-    : '/index.html'
-);        return;
-      }
+  statusElem.innerText = message;
 
+  if (weight !== null && Number.isFinite(Number(weight))) {
+    weightElem.innerText = Number(weight).toFixed(2);
+  } else {
+    weightElem.innerText = '--';
+  }
+}
 
-      const imageInput = document.getElementById('waste-image');
-      const imageFile = imageInput.files[0];
-      const weightG = parseFloat(document.getElementById('waste-weight').value);
+async function readApiResponse(response) {
+  const text = await response.text();
+  let data;
 
-      if (!imageFile) {
-        alert('Please upload a waste image.');
-        return;
-      }
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`Invalid backend response (HTTP ${response.status}).`);
+  }
 
-      if (!Number.isFinite(weightG) || weightG <= 0) {
-        alert('Please enter a valid measured weight in grams.');
-        return;
-      }
+  if (!response.ok) {
+    throw new Error(
+      data.detail || data.message || `Backend error: ${response.status}`
+    );
+  }
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const binId = 
-        urlParams.get('bin') || 
-        sessionStorage.getItem('r2e_active_bin');
+  return data;
+}
 
-      if(!binId) {
-        alert('No smart bin was specified. Please scan a valid bin QR code.');
-        return;
-      }
+function wait(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
 
-      const formData = new FormData();
-      
-      formData.append('label', 'uploaded_image');
-      formData.append('image', imageFile);
-      formData.append('real_weight_g', weightG);
-      formData.append('wallet_address', activeWallet);
-      formData.append('bin_id', binId);
+async function requestSensorMeasurement(binId) {
+  setSensorStatus('Creating measurement request...');
 
-      const submitBtn = e.target.querySelector('button[type="submit"]');
-      
-      submitBtn.disabled = true;
-      submitBtn.innerText = "Processing RAG & Sepolia Transaction...";
+  const createResponse = await fetch(
+    `${API_BASE_URL}/api/sensor/requests`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bin_id: binId })
+    }
+  );
 
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/rag/evaluate`, {
-          method: 'POST',
-          body: formData
-        });
+  const request = await readApiResponse(createResponse);
+  const requestId = request.request_id;
 
-        const responseText = await response.text();
-        console.log('Deposit HTTP status:', response.status);
-        console.log('Deposit response body:', JSON.stringify(responseText));
-        console.log('Deposit content type:', response.headers.get('content-type'));
-        let data = null;
+  if (!requestId) {
+    throw new Error('Backend did not return a measurement request ID.');
+  }
 
-        try {
-  data = responseText ? JSON.parse(responseText) : null;
-} catch {
+  console.log('Created sensor request:', requestId);
+
+  const deadline = Date.now() + 110000;
+
+  while (Date.now() < deadline) {
+    await wait(2500);
+
+    const statusResponse = await fetch(
+      `${API_BASE_URL}/api/sensor/requests/${encodeURIComponent(requestId)}`
+    );
+
+    const statusData = await readApiResponse(statusResponse);
+    const status = String(statusData.status || '').toLowerCase();
+
+    if (status === 'pending') {
+      setSensorStatus('Waiting for ESP32 to claim the request...');
+      continue;
+    }
+
+    if (status === 'claimed') {
+      setSensorStatus('ESP32 is measuring. Keep the item still...');
+      continue;
+    }
+
+    if (status === 'completed') {
+      const readingId = statusData.reading_id || requestId;
+
+      // The deposit endpoint will retrieve the authoritative weight
+      // using this reading ID. Do not trust a browser-entered weight.
+      setSensorStatus('Weight received. Preparing verification...');
+
+      return {
+        requestId,
+        readingId,
+        weightG: statusData.weight_g
+      };
+    }
+
+    if (status === 'expired') {
+      throw new Error(
+        'The measurement request expired. Please try the deposit again.'
+      );
+    }
+
+    throw new Error(
+      `Unexpected sensor request status: ${status || 'missing status'}`
+    );
+  }
+
   throw new Error(
-    `Backend returned an invalid response (HTTP ${response.status}). Check Render logs.`
+    'Timed out waiting for the ESP32. Check that the ESP32 is powered on, ' +
+    'connected to Wi-Fi, and polling for requests. Please try again.'
   );
 }
-        
-        if (!response.ok) {
-          throw new Error(
-            data.detail ||
-            data?.message ||
-            `API Error: ${response.status}`
-          );
-        }
-        if (!data || typeof data !== 'object') {
-          throw new Error('Backend returned no deposit evaluation result.');
-        }
-        updateDetectionPreview(data);
-        const isAccepted = data.status === 'VERIFIED_CLEAN';
-        const detectedCategory =
-          data.predicted_label ||
-          'UNKNOWN';
-        
-        const weightGReturned =
-          Number(
-            data.stable_weight_g || weightG
-          );
 
-        // Keep local dashboard totals in kilograms, although the API uses grams.
-        const txHash =
-          data.web3_reward?.tx_hash || null;
+    
+async function handleDeposit(e) {
+  e.preventDefault();
 
-        const tokensEarned =
-          isAccepted && txHash
-            ? Number(
-                data.web3_reward?.tokens_minted || 0
-              )
-            : 0;
-        
+  if (!activeUser || !activeWallet) {
+    alert('Your session has expired. Please log in again.');
 
-        
-        // The backend has already persisted this deposit.
-        // Do not modify or duplicate user data in localStorage.
+    const binId =
+      new URLSearchParams(window.location.search).get('bin') ||
+      sessionStorage.getItem('r2e_active_bin');
 
-        await renderDashboard();
-        switchView('history');
-        
-        if (!isAccepted) {
-          alert(
-            data.fusion_result?.action ||
-            'Item rejected. No tokens were minted.'
-          );
-        } else if (!txHash) {
+    window.location.replace(
+      binId
+        ? `/index.html?bin=${encodeURIComponent(binId)}`
+        : '/index.html'
+    );
+    return;
+  }
 
-          alert(
-            'Waste was verified, but no blockchain transaction was created.'
-          );
-        }
-      } catch (err) {
-        console.error('Deposit processing error:', err);
-        alert(`Failed to complete transaction: ${err.message}`);
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia`;
-      }
+  const form = document.getElementById('deposit-form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const imageInput = document.getElementById('waste-image');
+  const imageFile = imageInput.files[0];
+
+  if (!imageFile) {
+    alert('Please upload a waste image.');
+    return;
+  }
+
+  const binId =
+    new URLSearchParams(window.location.search).get('bin') ||
+    sessionStorage.getItem('r2e_active_bin');
+
+  if (!binId) {
+    alert('No smart bin was specified. Please scan a valid bin QR code.');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML =
+    '<i class="fa-solid fa-spinner fa-spin"></i> Waiting for sensor...';
+
+  setSensorStatus('Starting measurement...');
+  document.getElementById('category-tag').innerText = 'MEASURING';
+  document.getElementById('bin-route-display').innerText =
+    'Waiting for sensor measurement';
+
+  try {
+    // 1. Request a fresh physical measurement from the ESP32.
+    const measurement = await requestSensorMeasurement(binId);
+
+    console.log('Completed measurement request:', measurement.requestId);
+    console.log('Sensor reading ID:', measurement.readingId);
+
+    setSensorStatus(
+      'Weight received. Verifying image and sensor reading...',
+      measurement.weightG
+    );
+
+    submitBtn.innerHTML =
+      '<i class="fa-solid fa-spinner fa-spin"></i> Verifying deposit...';
+
+    // 2. Send the image and exact reading ID to the backend.
+    // The backend retrieves the actual weight from SensorReading.
+    const formData = new FormData();
+    formData.append('label', 'uploaded_image');
+    formData.append('image', imageFile);
+    formData.append('reading_id', measurement.readingId);
+    formData.append('wallet_address', activeWallet);
+    formData.append('bin_id', binId);
+
+    const response = await fetch(`${API_BASE_URL}/api/rag/evaluate`, {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await readApiResponse(response);
+
+    console.log('Deposit evaluation:', data);
+
+    const isAccepted = data.status === 'SUCCESS';
+    const detectedCategory = data.predicted_label || 'UNKNOWN';
+    const weightGReturned = Number(data.stable_weight_g);
+
+    updateDetectionPreview(data);
+
+    if (Number.isFinite(weightGReturned) && weightGReturned > 0) {
+      setSensorStatus(
+        isAccepted
+          ? 'Deposit verified successfully.'
+          : 'Reading processed; item rejected.',
+        weightGReturned
+      );
+    } else {
+      setSensorStatus(
+        isAccepted ? 'Deposit verified successfully.' : 'Item rejected.'
+      );
     }
+
+    const txHash = data.web3_reward?.tx_hash || null;
+    const tokensEarned = isAccepted
+      ? Number(data.web3_reward?.tokens_minted || 0)
+      : 0;
+
+    console.log('Detected category:', detectedCategory);
+    console.log('Accepted:', isAccepted);
+    console.log('Tokens reported:', tokensEarned);
+    console.log('Transaction hash:', txHash);
+
+    // The backend has already saved the deposit.
+    await renderDashboard();
+    switchView('history');
+
+    if (!isAccepted) {
+      alert(
+        data.fusion_result?.action ||
+        'Item rejected. No tokens were minted.'
+      );
+    } else if (data.web3_reward?.status !== 'SUCCESS' && !txHash) {
+      alert(
+        'Waste was accepted, but blockchain reward minting may have failed. ' +
+        'Check the reward status before retrying.'
+      );
+    } else if (!txHash) {
+      alert(
+        'Waste was accepted, but no blockchain transaction hash was returned. ' +
+        'Check the reward status.'
+      );
+    } else {
+  const displayedWeight =
+    Number.isFinite(weightGReturned) && weightGReturned > 0
+      ? `${weightGReturned.toFixed(2)} g`
+      : 'Weight recorded';
+
+  alert(
+    `Deposit accepted! Weight: ${displayedWeight}. ` +
+    `Reward: ${tokensEarned.toFixed(2)} $RECYCLE.`
+  );
+}
+  } catch (err) {
+    console.error('Deposit processing error:', err);
+    setSensorStatus(`Error: ${err.message}`);
+    alert(`Failed to complete deposit: ${err.message}`);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML =
+      '<i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia';
+  }
+}
+
 
     async function renderDashboard() {
       if (!activeUser || !activeWallet) {
