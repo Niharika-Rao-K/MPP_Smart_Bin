@@ -200,3 +200,39 @@ class SensorReading(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+class MeasurementRequest(Base):
+    __tablename__ = "measurement_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    request_id = Column(
+        String(36),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    bin_code = Column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    status = Column(
+        String(20),
+        default="pending",
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    claimed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
