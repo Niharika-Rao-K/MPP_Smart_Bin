@@ -1,0 +1,110 @@
+[
+  {
+    "material_key": "coca-cola 330ml aluminum can",
+    "item": "Coca-Cola 330ml aluminum can",
+    "source_url": "https://scraprates.in/bengaluru/aluminum-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 156.79,
+    "last_known_rate_inr_per_kg": 156.79,
+    "configured_baseline_inr_per_kg": 136.0,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "pepsi 330ml aluminum can",
+    "item": "Pepsi 330ml aluminum can",
+    "source_url": "https://scraprates.in/bengaluru/aluminum-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 156.79,
+    "last_known_rate_inr_per_kg": 156.79,
+    "configured_baseline_inr_per_kg": 136.0,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "500ml pet water bottle",
+    "item": "500ml PET water bottle",
+    "source_url": "https://scraprates.in/bengaluru/plastic-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 14.13,
+    "last_known_rate_inr_per_kg": 14.13,
+    "configured_baseline_inr_per_kg": 20.0,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "snack wrapper",
+    "item": "Snack wrapper",
+    "source_url": "https://scraprates.in/bengaluru/plastic-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 14.13,
+    "last_known_rate_inr_per_kg": 14.13,
+    "configured_baseline_inr_per_kg": 14.56,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "usb cable",
+    "item": "USB cable",
+    "source_url": "https://scraprates.in/bengaluru/e-waste-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 44.24,
+    "last_known_rate_inr_per_kg": 44.24,
+    "configured_baseline_inr_per_kg": 43.43,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "circuit board",
+    "item": "Circuit board",
+    "source_url": "https://scrapprice.in/scrap-materials/pcb",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "unavailable",
+    "status": "BASELINE_UNVERIFIED",
+    "observed_rate_inr_per_kg": null,
+    "last_known_rate_inr_per_kg": 394.08,
+    "configured_baseline_inr_per_kg": 394.08,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "samsung ram stick",
+    "item": "Samsung RAM stick",
+    "source_url": "https://scraprates.in/bengaluru/e-waste-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 44.24,
+    "last_known_rate_inr_per_kg": 44.24,
+    "configured_baseline_inr_per_kg": 43.43,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "cadbury dairy milk chocolate wrapper",
+    "item": "Cadbury Dairy Milk chocolate wrapper",
+    "source_url": "https://scraprates.in/bengaluru/plastic-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 14.13,
+    "last_known_rate_inr_per_kg": 14.13,
+    "configured_baseline_inr_per_kg": 14.56,
+    "rate_unit": "INR/kg"
+  },
+  {
+    "material_key": "thumbwheel dial potentiometer",
+    "item": "Thumbwheel dial potentiometer",
+    "source_url": "https://scraprates.in/bengaluru/e-waste-scrap-price",
+    "fetched_at": "2026-10-24T14:53:29.192685+00:00",
+    "fetch_status": "fetched",
+    "status": "CURRENT",
+    "observed_rate_inr_per_kg": 44.24,
+    "last_known_rate_inr_per_kg": 44.24,
+    "configured_baseline_inr_per_kg": 43.43,
+    "rate_unit": "INR/kg"
+  }
+]
