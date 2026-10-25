@@ -14,11 +14,17 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.database.models import Bin, Deposit, SensorReading
+from app.database.models import (
+    Bin,
+    Deposit,
+    SensorReading,
+    SegregationCommand,
+)
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
 from app.services.yolo_service import detect_object
+from app.services.four_item_classifier import classify_image
 
 router = APIRouter()
 
@@ -32,6 +38,81 @@ ALLOWED_IMAGE_TYPES = {
     "image/png",
     "image/webp",
 }
+
+
+
+
+@router.post("/classify")
+async def classify_waste_image(
+    image: UploadFile = File(...),
+):
+    """Classify an uploaded waste image without weighing or rewarding it."""
+
+    if image.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail="Only JPG, PNG, and WEBP images are accepted.",
+        )
+
+    image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
+
+    if not image_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded image is empty.",
+        )
+
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail="Image must be 5 MB or smaller.",
+        )
+
+    suffix = Path(image.filename or "upload.jpg").suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+        suffix = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp",
+        }[image.content_type]
+
+    image_path = UPLOAD_FOLDER / f"classify_{uuid4()}{suffix}"
+
+    try:
+        image_path.write_bytes(image_bytes)
+        result = classify_image(str(image_path))
+
+        predicted_label = str(result["label"])
+        confidence = float(result["confidence"])
+        can_proceed = confidence >= 0.75
+
+        return {
+            "status": "CLASSIFIED" if can_proceed else "LOW_CONFIDENCE",
+            "predicted_label": predicted_label,
+            "confidence": round(confidence, 4),
+            "confidence_percent": round(confidence * 100, 1),
+            "can_proceed_to_weighing": can_proceed,
+            "message": (
+                "Waste identified. You may weigh the item."
+                if can_proceed
+                else "Image confidence is too low. Retake the photo "
+                     "with the item clearly visible."
+            ),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Could not classify this image. Check that it is a valid "
+                "photo and try again. Details: " + str(exc)
+            ),
+        ) from exc
+    finally:
+        if image_path.exists():
+            image_path.unlink()
 
 
 @router.post("/evaluate")
@@ -149,10 +230,20 @@ async def deposit_item(
         with image_path.open("wb") as buffer:
             buffer.write(image_bytes)
 
-        # 5. Detect the item.
-        yolo_result = detect_object(str(image_path))
-        detected_label = yolo_result["label"]
-        confidence = round(float(yolo_result["confidence"]), 3)
+        # 5. Classify the item using the custom four-item model.
+        classifier_result = classify_image(str(image_path))
+        detected_label = str(classifier_result["label"])
+        confidence = round(float(classifier_result["confidence"]), 3)
+
+        # Reject uncertain predictions before consuming the sensor reading.
+        if confidence < 0.75:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Image confidence is too low ({confidence:.1%}). "
+                    "Retake the photo with the item clearly visible."
+                ),
+            )
 
         # 6. Atomically claim this reading before reward processing.
         # Only one request can change consumed from False to True.
@@ -250,7 +341,32 @@ async def deposit_item(
         )
 
         db.add(deposit)
+        db.flush()
+
+        # Do not expose a segregation command to the ESP32 until
+        # the user confirms that the item is on the universal tray.
+        segregation_command_id = None
+
+        if (
+            is_accepted
+            and reward_result
+            and reward_result.get("status") == "SUCCESS"
+            and tx_hash
+            and route_signal in {"P", "M", "E"}
+        ):
+            segregation_command = SegregationCommand(
+                command_id=str(uuid4()),
+                deposit_id=deposit.id,
+                bin_code=bin_record.bin_code,
+                route_signal=route_signal,
+                status="awaiting_placement",
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(segregation_command)
+            segregation_command_id = segregation_command.command_id
+
         db.commit()
+        db.refresh(deposit)
 
         # 10. Return the evaluation to the frontend.
         return {
@@ -259,12 +375,16 @@ async def deposit_item(
             "status": "SUCCESS" if is_accepted else "REJECTED",
             "bin_id": bin_id,
             "reading_id": reading_id,
+            "segregation_command_id": segregation_command_id,
             "predicted_label": detected_label,
             "submitted_label": label,
             "confidence": confidence,
             "stable_weight_g": stable_weight_g,
             "hardware_route_signal": route_signal,
             "fusion_result": fusion_result,
+            "matched_item": fusion_result.get("matched_item"),
+            "category": fusion_result.get("category"),
+            "material": fusion_result.get("material"),
             "calculated_credits": calculated_credits,
             "web3_reward": {
                 "recipient_wallet": wallet_address,

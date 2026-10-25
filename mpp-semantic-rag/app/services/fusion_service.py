@@ -1,4 +1,4 @@
-from app.services.rag_client import evaluate_with_rag
+﻿from app.services.rag_hybrid_evaluator import evaluate_with_hybrid_rag
 
 
 def sensor_fusion(label: str, real_weight_g: float):
@@ -22,7 +22,7 @@ def sensor_fusion(label: str, real_weight_g: float):
             "hardware_route_signal": "R"
         }
 
-    rag_result = evaluate_with_rag(
+    rag_result = evaluate_with_hybrid_rag(
         label=label,
         real_weight_g=real_weight_g
     )
@@ -33,6 +33,9 @@ def sensor_fusion(label: str, real_weight_g: float):
         "visual_label": label,
         "actual_weight_g": real_weight_g,
         "rag_result": rag_result,
+        "matched_item": rag_result.get("matched_item"),
+        "category": rag_result.get("category"),
+        "material": rag_result.get("material"),
         "decision": final_decision["status"],
         "action": final_decision["action"],
         "hardware_route_signal": final_decision["hardware_route_signal"],

@@ -9,6 +9,7 @@ from app.routes.bin import router as bin_router
 from app.routes.leaderboard import router as leaderboard_router
 from app.routes.auth import router as auth_router
 from app.routes.sensor import router as sensor_router
+from app.routes.rates import router as rates_router
 from sqlalchemy import inspect, text
 
 Base.metadata.create_all(bind=engine)
@@ -40,6 +41,12 @@ app = FastAPI(
 )
 origins = [
     "https://mpp-smart-bin-mpp-admin-dashboard-v-pearl.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 print("CORS DEBUG - loaded file:", __file__)
@@ -88,6 +95,12 @@ app.include_router(
     sensor_router,
     prefix="/api/sensor",
     tags=["Sensor Readings"],
+)
+
+app.include_router(
+    rates_router,
+    prefix="/api/rates",
+    tags=["Rate Tracking"],
 )
 @app.get("/")
 def read_root():

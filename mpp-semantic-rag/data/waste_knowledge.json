@@ -144,7 +144,7 @@
   "rate_source_url": "https://scraprates.in/bengaluru/e-waste-scrap-price",
   "rate_effective_date": "2026-09-19",
   "region": "Bengaluru, Karnataka, India",
-  "rate_status": "provisional_reference"
+  "rate_status": "reference"
 },
   {
     "item": "Cadbury Dairy Milk chocolate wrapper",
@@ -157,7 +157,7 @@
     "packaging_type": "flexible_wrapper",
     "container_type": "Wrapper",
     "volume_ml": null,
-    "typical_empty_weight_g": 2.5,
+    "typical_empty_weight_g": 1,
     "weight_tolerance_percent": 30,
     "recyclable": true,
     "rate_inr_per_kg": 14.56,
@@ -165,7 +165,7 @@
     "rate_source_url": "https://scraprates.in/bengaluru/plastic-scrap-price",
     "rate_effective_date": "2026-09-19",
     "region": "Bengaluru, Karnataka, India",
-    "rate_status": "fallback_reference"
+    "rate_status": "reference"
   },
 {
   "item": "Thumbwheel dial potentiometer",

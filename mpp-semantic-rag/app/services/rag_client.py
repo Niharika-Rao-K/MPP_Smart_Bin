@@ -1,8 +1,8 @@
-
+﻿
 import json
 import re
 from pathlib import Path
-
+from app.services.source_retrieval import fetch_reference_page
 
 # ---------------------------------------------------------
 # Load the six waste profiles directly from JSON
@@ -39,14 +39,9 @@ PROFILE_BY_ID = {
 # detection alone cannot reliably distinguish its brand.
 LABEL_ALIASES = {
     # Aluminum cans
-    "can": "coca_cola_330ml_aluminum_can",
-    "tin_can": "coca_cola_330ml_aluminum_can",
-    "soda_can": "coca_cola_330ml_aluminum_can",
-    "aluminum_can": "coca_cola_330ml_aluminum_can",
-    "aluminium_can": "coca_cola_330ml_aluminum_can",
-    "aluminum_beverage_can": "coca_cola_330ml_aluminum_can",
     "coca_cola_can": "coca_cola_330ml_aluminum_can",
     "coca_cola_330ml_aluminum_can": "coca_cola_330ml_aluminum_can",
+    "diet_coke": "coca_cola_330ml_aluminum_can",
     "pepsi_can": "pepsi_330ml_aluminum_can",
     "pepsi_330ml_aluminum_can": "pepsi_330ml_aluminum_can",
 
@@ -59,18 +54,14 @@ LABEL_ALIASES = {
     "500ml_pet_water_bottle": "500ml_pet_water_bottle",
 
     # Wrappers
-    "wrapper": "snack_wrapper",
     "snack_wrapper": "snack_wrapper",
-    "chocolate_wrapper": "snack_wrapper",
+    "snickers_wrapper": "snack_wrapper",
     "dairy_milk_wrapper": "cadbury_dairy_milk_chocolate_wrapper",
     "cadbury_dairy_milk_chocolate_wrapper": "cadbury_dairy_milk_chocolate_wrapper",
 
     # E-waste
-    "ram": "samsung_ram_stick",
-    "ram_module": "samsung_ram_stick",
-    "memory_ram": "samsung_ram_stick",
-    "samsung_ram": "samsung_ram_stick",
     "samsung_ram_stick": "samsung_ram_stick",
+    "ram_stick": "samsung_ram_stick",
     
     "cable": "usb_cable",
     "usb_cable": "usb_cable",
@@ -80,17 +71,6 @@ LABEL_ALIASES = {
 }
 
 
-# Add direct matches for known profile names and attributes.
-# Explicit aliases above take precedence.
-for profile in WASTE_PROFILES:
-    profile_id = _profile_id(profile)
-
-    for field in ("item", "product", "object", "material_category"):
-        value = profile.get(field)
-
-        if value:
-            normalized = _normalize_label(value)
-            LABEL_ALIASES.setdefault(normalized, profile_id)
 
 
 # ---------------------------------------------------------
@@ -174,6 +154,14 @@ def evaluate_with_rag(label: str, real_weight_g: float):
 
     item_info = PROFILE_BY_ID[profile_id]
 
+        # Optional source retrieval; this does not determine reward eligibility.
+    source_retrieval = fetch_reference_page(
+        item_info.get("rate_source_url")
+    )
+
+    result_metadata = dict(item_info)
+    result_metadata["source_retrieval"] = source_retrieval
+
     # Weight validation
     try:
         target_weight = float(
@@ -225,6 +213,7 @@ def evaluate_with_rag(label: str, real_weight_g: float):
             "reference",
             "verified",
             "fallback_reference",
+        "provisional_reference",
         }
     )
 
@@ -274,6 +263,9 @@ def evaluate_with_rag(label: str, real_weight_g: float):
 
     return {
         "matched_profile_id": profile_id,
+        "matched_item": item_info.get("item"),
+        "category": item_info.get("category"),
+        "material": item_info.get("material"),
         "match_type": "exact_label",
         "match_distance": None,
         "similarity_score": 1.0,
@@ -281,7 +273,7 @@ def evaluate_with_rag(label: str, real_weight_g: float):
         "margin_g": round(margin, 2),
         "weight_difference_g": round(weight_difference_g, 2),
         "rate_inr_per_kg": rate,
-        "metadata": item_info,
+        "metadata": result_metadata,
         "final_decision": {
             "status": status,
             "action": action,

@@ -7,11 +7,16 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.database.models import Bin, MeasurementRequest, SensorReading
+from app.database.models import (
+    Bin,
+    MeasurementRequest,
+    SensorReading,
+    SegregationCommand,
+)
 
 router = APIRouter()
 
-REQUEST_TIMEOUT = timedelta(minutes=2)
+REQUEST_TIMEOUT = timedelta(seconds=90)
 
 
 class WeightReadingRequest(BaseModel):
@@ -70,7 +75,7 @@ def expire_old_requests(db: Session, bin_id: str):
         db.query(MeasurementRequest)
         .filter(
             MeasurementRequest.bin_code == bin_id,
-            MeasurementRequest.status.in_(["pending", "claimed"]),
+            MeasurementRequest.status.in_(["pending", "claimed", "ready", "measuring"]),
         )
         .all()
     )
@@ -83,7 +88,12 @@ def expire_old_requests(db: Session, bin_id: str):
 
     db.commit()
 
+class SegregationCompletionBody(BaseModel):
+    status: str = Field(pattern="^completed$")
 
+
+class SegregationPlacementBody(BaseModel):
+    bin_id: str
 # ------------------------------------------------------------
 # 1. DASHBOARD: CREATE A MEASUREMENT REQUEST
 # POST /api/sensor/requests
@@ -101,7 +111,7 @@ def create_measurement_request(
         db.query(MeasurementRequest)
         .filter(
             MeasurementRequest.bin_code == payload.bin_id,
-            MeasurementRequest.status.in_(["pending", "claimed"]),
+            MeasurementRequest.status.in_(["pending", "claimed", "ready", "measuring"]),
         )
         .first()
     )
@@ -205,6 +215,81 @@ def get_next_measurement_request(
 # POST /api/sensor/requests/{request_id}/reading
 # ------------------------------------------------------------
 
+# ESP32 signals that the empty platform has been tared.
+@router.post("/requests/{request_id}/ready")
+def mark_measurement_ready(
+    request_id: str,
+    db: Session = Depends(get_db),
+):
+    request = (
+        db.query(MeasurementRequest)
+        .filter(MeasurementRequest.request_id == request_id)
+        .first()
+    )
+
+    if not request:
+        raise HTTPException(status_code=404, detail="Measurement request not found.")
+
+    validate_active_bin(db, request.bin_code)
+
+    if request.status != "claimed":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Request cannot become ready from status: {request.status}",
+        )
+
+    if utc_now() - normalize_datetime(request.created_at) > REQUEST_TIMEOUT:
+        request.status = "expired"
+        db.commit()
+        raise HTTPException(status_code=410, detail="Measurement request expired.")
+
+    request.status = "ready"
+    db.commit()
+
+    return {
+        "status": "ready",
+        "request_id": request.request_id,
+        "bin_id": request.bin_code,
+    }
+
+
+# Dashboard authorizes weighing after the user confirms item placement.
+@router.post("/requests/{request_id}/confirm")
+def confirm_measurement(
+    request_id: str,
+    db: Session = Depends(get_db),
+):
+    request = (
+        db.query(MeasurementRequest)
+        .filter(MeasurementRequest.request_id == request_id)
+        .first()
+    )
+
+    if not request:
+        raise HTTPException(status_code=404, detail="Measurement request not found.")
+
+    validate_active_bin(db, request.bin_code)
+
+    if request.status != "ready":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Request is not ready for confirmation: {request.status}",
+        )
+
+    if utc_now() - normalize_datetime(request.created_at) > REQUEST_TIMEOUT:
+        request.status = "expired"
+        db.commit()
+        raise HTTPException(status_code=410, detail="Measurement request expired.")
+
+    request.status = "measuring"
+    db.commit()
+
+    return {
+        "status": "measuring",
+        "request_id": request.request_id,
+        "bin_id": request.bin_code,
+    }
+
 @router.post("/requests/{request_id}/reading")
 def submit_requested_measurement(
     request_id: str,
@@ -228,10 +313,10 @@ def submit_requested_measurement(
             detail="Measurement request not found for this bin.",
         )
 
-    if request.status != "claimed":
+    if request.status != "measuring":
         raise HTTPException(
             status_code=409,
-            detail=f"Request is not awaiting a measurement: {request.status}",
+            detail=f"Request is not authorized for weighing: {request.status}",
         )
 
     created = normalize_datetime(request.created_at)
@@ -308,7 +393,7 @@ def get_measurement_request_status(
             detail="Measurement request not found.",
         )
 
-    if request.status in ["pending", "claimed"]:
+    if request.status in ["pending", "claimed", "ready", "measuring"]:
         created = normalize_datetime(request.created_at)
 
         if utc_now() - created > REQUEST_TIMEOUT:
@@ -419,4 +504,206 @@ def get_latest_weight(
         "weight_g": reading.weight_g,
         "consumed": reading.consumed,
         "created_at": reading.created_at.isoformat(),
+    }
+
+
+# ------------------------------------------------------------
+# 5. ESP32: CLAIM THE NEXT SEGREGATION COMMAND
+# GET /api/sensor/segregation/next?bin_id=BIN001
+# ------------------------------------------------------------
+
+@router.get("/segregation/next")
+def get_next_segregation_command(
+    bin_id: str,
+    db: Session = Depends(get_db),
+):
+    validate_active_bin(db, bin_id)
+
+    command = (
+        db.query(SegregationCommand)
+        .filter(
+            SegregationCommand.bin_code == bin_id,
+            SegregationCommand.status == "pending",
+        )
+        .order_by(SegregationCommand.id.asc())
+        .first()
+    )
+
+    if not command:
+        return {
+            "status": "waiting",
+            "command_id": None,
+            "bin_id": bin_id,
+        }
+
+    # Atomically claim the command so repeated polls do not
+    # hand the same pending command to multiple requests.
+    claimed_count = (
+        db.query(SegregationCommand)
+        .filter(
+            SegregationCommand.id == command.id,
+            SegregationCommand.status == "pending",
+        )
+        .update(
+            {
+                SegregationCommand.status: "processing",
+                SegregationCommand.claimed_at: utc_now(),
+            },
+            synchronize_session=False,
+        )
+    )
+
+    db.commit()
+
+    if claimed_count != 1:
+        return {
+            "status": "waiting",
+            "command_id": None,
+            "bin_id": bin_id,
+        }
+
+    return {
+        "status": "claimed",
+        "command_id": command.command_id,
+        "bin_id": command.bin_code,
+        "route_signal": command.route_signal,
+    }
+
+
+# ------------------------------------------------------------
+# 6. ESP32: ACKNOWLEDGE COMPLETED SERVO MOVEMENT
+# POST /api/sensor/segregation/{command_id}/complete
+# ------------------------------------------------------------
+
+@router.post("/segregation/{command_id}/complete")
+def complete_segregation_command(
+    command_id: str,
+    payload: SegregationCompletionBody,
+    db: Session = Depends(get_db),
+):
+    command = (
+        db.query(SegregationCommand)
+        .filter(
+            SegregationCommand.command_id == command_id,
+        )
+        .first()
+    )
+
+    if not command:
+        raise HTTPException(
+            status_code=404,
+            detail="Segregation command not found.",
+        )
+
+    # Allow a repeated acknowledgement without repeating movement.
+    if command.status == "completed":
+        return {
+            "status": "completed",
+            "command_id": command.command_id,
+        }
+
+    if command.status != "processing":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Command cannot be completed from status: "
+                f"{command.status}"
+            ),
+        )
+
+    command.status = "completed"
+    command.completed_at = utc_now()
+    db.commit()
+
+    return {
+        "status": "completed",
+        "command_id": command.command_id,
+    }
+# ------------------------------------------------------------
+# 7. DASHBOARD: RELEASE COMMAND AFTER TRAY PLACEMENT
+# POST /api/sensor/segregation/{command_id}/release
+# ------------------------------------------------------------
+
+@router.post("/segregation/{command_id}/release")
+def release_segregation_command(
+    command_id: str,
+    payload: SegregationPlacementBody,
+    db: Session = Depends(get_db),
+):
+    validate_active_bin(db, payload.bin_id)
+
+    command = (
+        db.query(SegregationCommand)
+        .filter(SegregationCommand.command_id == command_id)
+        .first()
+    )
+
+    if not command:
+        raise HTTPException(status_code=404, detail="Segregation command not found.")
+
+    if command.bin_code != payload.bin_id:
+        raise HTTPException(
+            status_code=403,
+            detail="This command does not belong to the specified bin.",
+        )
+
+    # Safe retry: a repeated click must not create or release a second command.
+    if command.status == "pending":
+        return {
+            "status": "released",
+            "command_id": command.command_id,
+            "bin_id": command.bin_code,
+            "route_signal": command.route_signal,
+        }
+
+    if command.status != "awaiting_placement":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Command cannot be released from status: {command.status}",
+        )
+
+    command.status = "pending"
+    db.commit()
+
+    return {
+        "status": "released",
+        "command_id": command.command_id,
+        "bin_id": command.bin_code,
+        "route_signal": command.route_signal,
+    }
+
+
+# ------------------------------------------------------------
+# 8. DASHBOARD: CHECK PHYSICAL SEGREGATION STATUS
+# GET /api/sensor/segregation/{command_id}/status?bin_id=BIN001
+# ------------------------------------------------------------
+
+@router.get("/segregation/{command_id}/status")
+def get_segregation_status(
+    command_id: str,
+    bin_id: str,
+    db: Session = Depends(get_db),
+):
+    validate_active_bin(db, bin_id)
+
+    command = (
+        db.query(SegregationCommand)
+        .filter(SegregationCommand.command_id == command_id)
+        .first()
+    )
+
+    if not command:
+        raise HTTPException(status_code=404, detail="Segregation command not found.")
+
+    if command.bin_code != bin_id:
+        raise HTTPException(
+            status_code=403,
+            detail="This command does not belong to the specified bin.",
+        )
+
+    return {
+        "status": command.status,
+        "command_id": command.command_id,
+        "bin_id": command.bin_code,
+        "route_signal": command.route_signal,
     }

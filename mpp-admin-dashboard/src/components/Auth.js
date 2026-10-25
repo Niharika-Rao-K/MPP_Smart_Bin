@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import "./Auth.css";
 
 const API_BASE =
-  process.env.REACT_APP_API_URL ||
-  "https://mpp-smart-bin.onrender.com";
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:8000"
+    : "https://mpp-smart-bin.onrender.com";
 
 const customWalletSrc =
   "https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg";

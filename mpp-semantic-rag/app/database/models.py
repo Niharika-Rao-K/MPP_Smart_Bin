@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
 )
 
 from sqlalchemy.orm import relationship
@@ -233,6 +234,66 @@ class MeasurementRequest(Base):
     )
 
     claimed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+
+class SegregationCommand(Base):
+    __tablename__ = "segregation_commands"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "deposit_id",
+            name="uq_segregation_command_deposit",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    command_id = Column(
+        String(36),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    deposit_id = Column(
+        Integer,
+        ForeignKey("deposits.id"),
+        nullable=False,
+    )
+
+    bin_code = Column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    route_signal = Column(
+        String(5),
+        nullable=False,
+    )
+
+    status = Column(
+        String(20),
+        default="pending",
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    claimed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    completed_at = Column(
         DateTime(timezone=True),
         nullable=True,
     )

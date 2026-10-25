@@ -23,7 +23,7 @@
 
     /* Main App Background Image */
     .bg-recycle-pattern {
-      background-image: linear-gradient(rgba(10, 16, 12, 0.75), rgba(10, 16, 12, 0.85)), 
+      background-image: linear-gradient(rgba(10, 16, 12, 0.75), rgba(10, 16, 12, 0.85)),
                         url('https://plus.unsplash.com/premium_photo-1742937587723-35e893fc4f9f?q=80&w=1067&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
       background-size: cover;
       background-position: center;
@@ -33,7 +33,7 @@
 
     /* Leaderboard Custom Background */
     .bg-leaderboard-pattern {
-      background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.90)), 
+      background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.90)),
                         url('https://plus.unsplash.com/premium_photo-1713628398199-17b97c1ec8a6?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
       background-size: cover;
       background-position: center;
@@ -127,7 +127,7 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-2xl">
         <div>
           <h2 class="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-            Welcome to Recycle2Earn 👋
+            Welcome to Recycle2Earn &#x1F451;
           </h2>
           <p class="text-xs font-medium text-slate-400 mt-1">Scan bin QR code, deposit waste, and earn $RECYCLE on Sepolia.</p>
         </div>
@@ -150,7 +150,7 @@
               <p class="text-[11px] text-emerald-200 mt-1"><i class="fa-solid fa-fire mr-1 text-amber-400"></i> Deposit daily to maintain streak!</p>
             </div>
             <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl shadow-inner">
-              🔥
+              &#x1F525;
             </div>
           </div>
 
@@ -165,22 +165,22 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div id="badge-first" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
-                <span class="text-3xl mb-1 badge-icon">🌱</span>
+                <span class="text-3xl mb-1 badge-icon">&#x1F331;</span>
                 <span class="text-xs font-black tracking-wide">First Deposit</span>
                 <span class="text-[9px] text-slate-400">1 Deposit</span>
               </div>
               <div id="badge-streak" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
-                <span class="text-3xl mb-1 badge-icon">⚡</span>
+                <span class="text-3xl mb-1 badge-icon">&#x1F3CB;&#xFE0F;</span>
                 <span class="text-xs font-black tracking-wide">Clean Streak</span>
                 <span class="text-[9px] text-slate-400">3-Day Streak</span>
               </div>
               <div id="badge-heavy" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
-                <span class="text-3xl mb-1 badge-icon">🏋️</span>
+                <span class="text-3xl mb-1 badge-icon">&#x1F3CB;&#xFE0F;</span>
                 <span class="text-xs font-black tracking-wide">Heavy Recycler</span>
                 <span class="text-[9px] text-slate-400">10+ kg Total</span>
               </div>
               <div id="badge-master" class="p-3 rounded-xl border border-slate-800 bg-slate-950/60 opacity-30 flex flex-col items-center text-center transition duration-500">
-                <span class="text-3xl mb-1 badge-icon">👑</span>
+                <span class="text-3xl mb-1 badge-icon">&#x1F451;</span>
                 <span class="text-xs font-black tracking-wide">Eco Champion</span>
                 <span class="text-[9px] text-slate-400">50+ kg Total</span>
               </div>
@@ -217,18 +217,27 @@
             </h3>
 
             <form id="deposit-form" onsubmit="handleDeposit(event)" class="space-y-4">
-              <div>
-                <label for="waste-image" class="block text-xs font-bold text-slate-300 mb-1">
-                  Waste Image
-                </label>
-                <input
-                  type="file"
-                  id="waste-image"
-                  accept="image/jpeg,image/png,image/webp"
-                  required
-                  onchange="previewWasteImage()"
-                  class="w-full bg-slate-950 border border-slate-700 px-3 py-2.5 rounded-xl font-semibold text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+              <div class="p-4 rounded-xl bg-slate-950 border border-emerald-800/40 space-y-3">
+  <p class="block text-xs font-bold text-slate-300">ESP32-CAM Live Feed</p>
+  <div class="w-full h-48 rounded-lg overflow-hidden bg-black border border-slate-800 flex items-center justify-center">
+    <img id="camera-live-feed" alt="ESP32-CAM live feed"
+      class="w-full h-full object-contain" style="display:none" />
+    <span id="camera-placeholder" class="text-xs text-slate-400 text-center px-3">
+      Connecting to the fixed ESP32-CAM address...
+    </span>
+  </div>
+  <button type="button" onclick="captureCameraFrame()"
+    class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl text-xs">
+    Capture Image &amp; Classify
+  </button>
+  <p id="camera-status" role="status" aria-live="polite" class="text-xs text-amber-300">
+    Connect to the camera to begin.
+  </p>
+</div>
+
+<div id="classification-status" role="status" aria-live="polite"
+                   class="text-sm font-semibold text-amber-300 mt-2">
+                Capture waste using the camera to begin AI classification.
               </div>
 
               
@@ -246,8 +255,13 @@
   </p>
 
   <p class="text-xs text-slate-400">
-    Place your item on the smart bin platform when the ESP32 claims the request.
+    Keep the platform EMPTY while the ESP32 tares the scale. Place your item only when prompted, then click Start Weighing.
   </p>
+
+  <button id="confirm-weighing-btn" type="button" hidden disabled
+          class="w-full mt-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition">
+    I've placed the item â€” Start Weighing
+  </button>
 
   <p class="text-2xl font-black text-emerald-400">
     <span id="sensor-weight">--</span>
@@ -256,14 +270,14 @@
 </div>
 
 
-              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 text-xs transition">
+              <button disabled type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 text-xs transition">
                 <i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia
               </button>
             </form>
           </div>
 
           <!-- Right Image Visualizer -->
-          <div class="lg:col-span-7 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl flex flex-col justify-between">
+          <div class="lg:col-span-7 bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl flex flex-col justify-start">
             <div>
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
@@ -275,12 +289,13 @@
               </div>
 
               <!-- Dynamic Category Image Display -->
-              <div id="preview-container" class="w-full h-56 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800 relative">
-                <img id="category-preview-img" src="" alt="Uploaded waste preview" class="w-full h-full object-cover rounded-xl transition duration-300" />
+              <div id="preview-container"
+class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
+                <img id="category-preview-img" src="" alt="Uploaded waste preview" class="block w-full h-full object-contain rounded-xl transition duration-300" />
               </div>
             </div>
 
-            <div class="mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-medium text-slate-400">
+            <div class="relative z-10 shrink-0 mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-medium text-slate-400">
               <span><i class="fa-solid fa-network-wire text-emerald-400 mr-1"></i> Signal: <strong id="bin-route-display" class="text-white">Awaiting AI analysis</strong></span>
               <span><i class="fa-solid fa-coins text-amber-400 mr-1"></i> Dynamic RAG Scoring Active</span>
             </div>
@@ -291,6 +306,28 @@
 
       <!-- PAGE 3: HISTORY VIEW -->
       <div id="view-history" class="view-page hidden space-y-6">
+
+      <div id="segregation-placement-panel" hidden
+           class="bg-slate-900/90 p-6 rounded-2xl border border-amber-500/40 shadow-xl">
+        <h3 class="font-extrabold text-white text-base mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-recycle text-amber-400"></i>
+          Prepare physical segregation
+        </h3>
+        <p id="segregation-placement-status" role="status" aria-live="polite"
+           class="text-sm font-semibold text-amber-300 mb-3">
+          Your reward was confirmed. Follow the instructions to continue.
+        </p>
+        <p class="text-sm text-slate-300 mb-4">
+          Remove the waste from the load-cell weighing platform and place it on the
+          universal tray attached to the pan-tilt mechanism. Keep the item on the
+          tray while the ESP32 moves it.
+        </p>
+        <button id="confirm-segregation-placement-btn" type="button"
+                class="w-full sm:w-auto px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400
+                       text-slate-950 font-extrabold transition disabled:opacity-50">
+          I've placed the waste on the universal tray
+        </button>
+      </div>
         <div class="bg-slate-900/80 backdrop-blur-xl p-6 rounded-2xl border border-emerald-800/30 shadow-xl">
           <h3 class="font-extrabold text-white text-base mb-4 flex items-center gap-2">
             <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Active User Deposit History
@@ -349,7 +386,11 @@
 
   <!-- App Script -->
   <script>
-    const API_BASE_URL = 'https://mpp-smart-bin.onrender.com';
+    const API_BASE_URL =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1"
+          ? "http://127.0.0.1:8000"
+          : "https://mpp-smart-bin.onrender.com";
 
 
     function truncateAddress(addr) {
@@ -516,7 +557,7 @@
 
   // Preserve the smart bin from the QR code before redirecting to login.
   const urlParams = new URLSearchParams(window.location.search);
-  let binId = 
+  let binId =
     urlParams.get('bin')||
     sessionStorage.getItem('r2e_active_bin');
 
@@ -554,6 +595,7 @@
     document.getElementById('active-bin-id').innerText = bin.bin_code;
 
     resetWastePreview();
+    startCameraPreview();
     await renderDashboard();
 
   } catch (err) {
@@ -597,6 +639,10 @@
     }
 
     let activePreviewUrl = null;
+    let classifiedWasteFile = null;
+    let currentCapturedImage = null;
+    let lastClassificationResult = null;
+    let classificationInProgress = false;
 
     function resetWastePreview() {
       const imgElem = document.getElementById('category-preview-img');
@@ -609,11 +655,103 @@
       routeElem.innerText = 'Waiting for waste image';
     }
 
-    function previewWasteImage() {
-      const imageInput = document.getElementById('waste-image');
-      const imageFile = imageInput.files[0];
+        function getCameraBaseUrl() {
+      return "http://10.165.119.127";
+    }
 
-      if (!imageFile) {
+    function startCameraPreview() {
+      const status = document.getElementById("camera-status");
+      const feed = document.getElementById("camera-live-feed");
+      const placeholder = document.getElementById("camera-placeholder");
+
+      feed.onload = () => {
+        feed.style.display = "block";
+        placeholder.style.display = "none";
+        status.innerText = "Camera connected. Capture waste when ready.";
+      };
+
+      feed.onerror = () => {
+        feed.style.display = "none";
+        placeholder.style.display = "block";
+        status.innerText = "Live feed failed. Check camera power and Wi-Fi.";
+      };
+
+      status.innerText = "Connecting to ESP32-CAM...";
+      feed.src = getCameraBaseUrl() + ":81/stream";
+    }
+
+    async function captureCameraFrame() {
+      const status = document.getElementById("camera-status");
+      const button = document.querySelector(
+        '#deposit-form button[onclick="captureCameraFrame()"]'
+      );
+      const submitBtn = document.querySelector(
+        '#deposit-form button[type="submit"]'
+      );
+
+      currentCapturedImage = null;
+      classifiedWasteFile = null;
+      lastClassificationResult = null;
+      submitBtn.disabled = true;
+
+      try {
+        button.disabled = true;
+        status.innerText = "Capturing image from ESP32-CAM...";
+
+        const response = await fetch(
+          getCameraBaseUrl() + "/capture?t=" + Date.now(),
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+          throw new Error("Capture failed: HTTP " + response.status);
+        }
+
+        const blob = await response.blob();
+
+        if (!blob.size || !blob.type.startsWith("image/")) {
+          throw new Error("Camera did not return a valid image.");
+        }
+
+        const file = new File(
+          [blob],
+          "esp32-capture-" + Date.now() + ".jpg",
+          { type: blob.type }
+        );
+
+        currentCapturedImage = file;
+        status.innerText = "Image captured. Classifying waste...";
+        await previewWasteImage(file);
+
+        if (classifiedWasteFile === file) {
+          status.innerText = "Classification successful. You may proceed.";
+        }
+      } catch (err) {
+        console.error("Camera capture failed:", err);
+        status.innerText = "Camera error: " + err.message;
+        document.getElementById("classification-status").innerText =
+          "Camera capture failed. Please retry.";
+      } finally {
+        button.disabled = false;
+        if (classifiedWasteFile !== currentCapturedImage) {
+          submitBtn.disabled = true;
+        }
+      }
+    }
+
+    async function previewWasteImage(imageFile) {
+      const statusElem = document.getElementById("classification-status");
+      const submitBtn = document.querySelector(
+        '#deposit-form button[type="submit"]'
+      );
+
+      classifiedWasteFile = null;
+      lastClassificationResult = null;
+      submitBtn.disabled = true;
+
+      if (!imageFile || imageFile !== currentCapturedImage) {
+        statusElem.innerText =
+          "Capture waste using the camera to begin AI classification.";
         resetWastePreview();
         return;
       }
@@ -623,13 +761,92 @@
       }
 
       activePreviewUrl = URL.createObjectURL(imageFile);
+      document.getElementById("category-preview-img").src = activePreviewUrl;
+      document.getElementById("category-preview-img").alt =
+        "Camera-captured waste";
+      document.getElementById("category-tag").innerText = "CLASSIFYING";
+      document.getElementById("bin-route-display").innerText =
+        "AI classification in progress";
+      statusElem.innerText = "Classifying camera image. Please wait...";
+      classificationInProgress = true;
 
-      document.getElementById('category-preview-img').src = activePreviewUrl;
-      document.getElementById('category-tag').innerText = 'AWAITING AI';
-      document.getElementById('bin-route-display').innerText = 'Awaiting AI analysis';
+      try {
+        const formData = new FormData();
+        formData.append("image", imageFile, imageFile.name);
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/rag/classify`,
+          { method: "POST", body: formData }
+        );
+
+        const data = await readApiResponse(response);
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail || data.message ||
+            `Classification failed (${response.status})`
+          );
+        }
+
+        if (currentCapturedImage !== imageFile) {
+          return;
+        }
+
+        lastClassificationResult = data;
+
+        if (
+          data.can_proceed_to_weighing === true &&
+          Number(data.confidence) >= 0.75
+        ) {
+          classifiedWasteFile = imageFile;
+
+          document.getElementById("category-tag").innerText =
+            String(data.predicted_label || "CLASSIFIED").toUpperCase();
+
+          document.getElementById("bin-route-display").innerText =
+            `AI confidence: ${Number(data.confidence_percent).toFixed(1)}%`;
+
+          statusElem.innerText =
+            `Classification successful: ${data.predicted_label} ` +
+            `(${Number(data.confidence_percent).toFixed(1)}%). ` +
+            "You may now submit for weighing.";
+
+          statusElem.className =
+            "text-sm font-semibold text-emerald-300 mt-2";
+        } else {
+          document.getElementById("category-tag").innerText =
+            "LOW CONFIDENCE";
+          document.getElementById("bin-route-display").innerText =
+            "Retake image";
+
+          statusElem.innerText =
+            data.message ||
+            "The model is uncertain. Please capture a clearer image.";
+
+          statusElem.className =
+            "text-sm font-semibold text-rose-300 mt-2";
+        }
+      } catch (err) {
+        console.error("Image classification failed:", err);
+
+        statusElem.innerText = "Classification failed: " + err.message;
+        statusElem.className =
+          "text-sm font-semibold text-rose-300 mt-2";
+
+        document.getElementById("category-tag").innerText =
+          "CLASSIFICATION FAILED";
+        document.getElementById("bin-route-display").innerText =
+          "Capture another image";
+      } finally {
+        classificationInProgress = false;
+
+        submitBtn.disabled =
+          currentCapturedImage !== classifiedWasteFile ||
+          !lastClassificationResult ||
+          lastClassificationResult.can_proceed_to_weighing !== true ||
+          Number(lastClassificationResult.confidence) < 0.75;
+      }
     }
-
-    
 function updateDetectionPreview(data) {
   const tagElem = document.getElementById('category-tag');
   const routeElem = document.getElementById('bin-route-display');
@@ -698,80 +915,148 @@ function wait(milliseconds) {
 }
 
 async function requestSensorMeasurement(binId) {
-  setSensorStatus('Creating measurement request...');
+  const confirmButton = document.getElementById('confirm-weighing-btn');
 
-  const createResponse = await fetch(
-    `${API_BASE_URL}/api/sensor/requests`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bin_id: binId })
-    }
-  );
-
-  const request = await readApiResponse(createResponse);
-  const requestId = request.request_id;
-
-  if (!requestId) {
-    throw new Error('Backend did not return a measurement request ID.');
+  if (!confirmButton) {
+    throw new Error('The weighing confirmation button is missing.');
   }
 
-  console.log('Created sensor request:', requestId);
+  confirmButton.hidden = true;
+  confirmButton.disabled = true;
 
-  const deadline = Date.now() + 110000;
+  let requestId = null;
+  let confirmationStarted = false;
+  let confirmationPending = false;
+  let confirmationError = null;
 
-  while (Date.now() < deadline) {
-    await wait(2500);
+  const onConfirmClick = async () => {
+    if (confirmationStarted || confirmationPending || !requestId) return;
 
-    const statusResponse = await fetch(
-      `${API_BASE_URL}/api/sensor/requests/${encodeURIComponent(requestId)}`
+    confirmationPending = true;
+    confirmButton.disabled = true;
+    setSensorStatus('Sending weighing confirmation...');
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/sensor/requests/${encodeURIComponent(requestId)}/confirm`,
+        { method: 'POST' }
+      );
+
+      await readApiResponse(response);
+      confirmationStarted = true;
+      confirmButton.hidden = true;
+      setSensorStatus('Confirmation received. Waiting for the ESP32...');
+    } catch (error) {
+      confirmationError = error;
+      confirmationPending = false;
+      confirmButton.disabled = false;
+      setSensorStatus(`Confirmation failed: ${error.message}`);
+    }
+  };
+
+  try {
+    setSensorStatus('Creating measurement request...');
+
+    const createResponse = await fetch(
+      `${API_BASE_URL}/api/sensor/requests`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bin_id: binId })
+      }
     );
 
-    const statusData = await readApiResponse(statusResponse);
-    const status = String(statusData.status || '').toLowerCase();
+    const request = await readApiResponse(createResponse);
+    requestId = request.request_id;
 
-    if (status === 'pending') {
-      setSensorStatus('Waiting for ESP32 to claim the request...');
-      continue;
+    if (!requestId) {
+      throw new Error('Backend did not return a measurement request ID.');
     }
 
-    if (status === 'claimed') {
-      setSensorStatus('ESP32 is measuring. Keep the item still...');
-      continue;
-    }
+    console.log('Created sensor request:', requestId);
+    confirmButton.addEventListener('click', onConfirmClick);
 
-    if (status === 'completed') {
-      const readingId = statusData.reading_id || requestId;
+    // Backend requests expire after five minutes.
+    const deadline = Date.now() + 90000;
 
-      // The deposit endpoint will retrieve the authoritative weight
-      // using this reading ID. Do not trust a browser-entered weight.
-      setSensorStatus('Weight received. Preparing verification...');
+    while (Date.now() < deadline) {
+      if (confirmationError) {
+        throw confirmationError;
+      }
 
-      return {
-        requestId,
-        readingId,
-        weightG: statusData.weight_g
-      };
-    }
+      await wait(2000);
 
-    if (status === 'expired') {
+      const statusResponse = await fetch(
+        `${API_BASE_URL}/api/sensor/requests/${encodeURIComponent(requestId)}`
+      );
+
+      const statusData = await readApiResponse(statusResponse);
+      const status = String(statusData.status || '').toLowerCase();
+
+      if (status === 'pending') {
+        confirmButton.hidden = true;
+        setSensorStatus('Waiting for the ESP32 to claim the request...');
+        continue;
+      }
+
+      if (status === 'claimed') {
+        confirmButton.hidden = true;
+        setSensorStatus('ESP32 is taring the scale. Keep the platform EMPTY.');
+        continue;
+      }
+
+      if (status === 'ready') {
+        if (!confirmationStarted) {
+          confirmButton.hidden = false;
+
+          if (!confirmationPending) {
+            confirmButton.disabled = false;
+            setSensorStatus(
+              'Scale tared! Place your item on the platform, then click Start Weighing.'
+            );
+          }
+        }
+        continue;
+      }
+
+      if (status === 'measuring') {
+        confirmButton.hidden = true;
+        setSensorStatus('Weighing in progress. Keep the item still for 30 seconds...');
+        continue;
+      }
+
+      if (status === 'completed') {
+        confirmButton.hidden = true;
+        setSensorStatus('Weight received. Preparing verification...');
+
+        return {
+          requestId,
+          readingId: statusData.reading_id || requestId,
+          weightG: statusData.weight_g
+        };
+      }
+
+      if (status === 'expired') {
+        throw new Error(
+          'The measurement request expired. Please try the deposit again.'
+        );
+      }
+
       throw new Error(
-        'The measurement request expired. Please try the deposit again.'
+        `Unexpected sensor request status: ${status || 'missing status'}`
       );
     }
 
     throw new Error(
-      `Unexpected sensor request status: ${status || 'missing status'}`
+      'Timed out waiting for the ESP32. Check its power, Wi-Fi, and backend connection.'
     );
+  } finally {
+    confirmButton.removeEventListener('click', onConfirmClick);
+    confirmButton.hidden = true;
+    confirmButton.disabled = true;
   }
-
-  throw new Error(
-    'Timed out waiting for the ESP32. Check that the ESP32 is powered on, ' +
-    'connected to Wi-Fi, and polling for requests. Please try again.'
-  );
 }
 
-    
 async function handleDeposit(e) {
   e.preventDefault();
 
@@ -792,11 +1077,18 @@ async function handleDeposit(e) {
 
   const form = document.getElementById('deposit-form');
   const submitBtn = form.querySelector('button[type="submit"]');
-  const imageInput = document.getElementById('waste-image');
-  const imageFile = imageInput.files[0];
+  const imageFile = currentCapturedImage;
 
   if (!imageFile) {
-    alert('Please upload a waste image.');
+    alert('Please capture and classify a waste image using the ESP32-CAM.');
+    return;
+  }
+
+  if (classificationInProgress ||
+      classifiedWasteFile !== imageFile ||
+      !lastClassificationResult ||
+      lastClassificationResult.can_proceed_to_weighing !== true) {
+    alert('Please wait for successful AI classification of this image before weighing.');
     return;
   }
 
@@ -884,6 +1176,16 @@ async function handleDeposit(e) {
     await renderDashboard();
     switchView('history');
 
+    const segregationCommandId = data.segregation_command_id || null;
+    const rewardConfirmed =
+      isAccepted &&
+      data.web3_reward?.status === 'SUCCESS' &&
+      Boolean(txHash);
+
+    if (rewardConfirmed && segregationCommandId) {
+      showSegregationPlacement(segregationCommandId, binId);
+    }
+
     if (!isAccepted) {
       alert(
         data.fusion_result?.action ||
@@ -915,13 +1217,122 @@ async function handleDeposit(e) {
     setSensorStatus(`Error: ${err.message}`);
     alert(`Failed to complete deposit: ${err.message}`);
   } finally {
-    submitBtn.disabled = false;
+    const currentImage = currentCapturedImage;
+    submitBtn.disabled =
+      !currentImage ||
+      classifiedWasteFile !== currentImage ||
+      !lastClassificationResult ||
+      lastClassificationResult.can_proceed_to_weighing !== true ||
+      Number(lastClassificationResult.confidence) < 0.75;
     submitBtn.innerHTML =
       '<i class="fa-solid fa-paper-plane"></i> Submit Deposit to Sepolia';
   }
 }
 
 
+    async function showSegregationPlacement(commandId, binId) {
+      const panel = document.getElementById('segregation-placement-panel');
+      const status = document.getElementById('segregation-placement-status');
+      const button = document.getElementById('confirm-segregation-placement-btn');
+
+      if (!panel || !status || !button) {
+        console.error('Segregation placement UI is missing.');
+        return;
+      }
+
+      panel.hidden = false;
+      button.disabled = false;
+      button.textContent = "I've placed the waste on the universal tray";
+      status.textContent =
+        'Reward confirmed. Remove the item from the weighing platform, place it on the universal tray, then confirm below.';
+
+      let requestInProgress = false;
+
+      button.onclick = async () => {
+        if (requestInProgress) return;
+
+        requestInProgress = true;
+        button.disabled = true;
+        status.textContent = 'Checking segregation command status...';
+
+        const statusUrl =
+          `${API_BASE_URL}/api/sensor/segregation/${encodeURIComponent(commandId)}/status` +
+          `?bin_id=${encodeURIComponent(binId)}`;
+
+        try {
+          // Check first so retrying after a lost response does not release twice.
+          let command = await readApiResponse(await fetch(statusUrl));
+
+          if (command.status === 'awaiting_placement') {
+            status.textContent = 'Sending the segregation command to the ESP32...';
+
+            command = await readApiResponse(await fetch(
+              `${API_BASE_URL}/api/sensor/segregation/${encodeURIComponent(commandId)}/release`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bin_id: binId })
+              }
+            ));
+          }
+
+          if (command.status === 'completed') {
+            status.textContent =
+              'Segregation completed. The ESP32 acknowledged the servo movement.';
+            button.textContent = 'Segregation completed';
+            button.disabled = true;
+            return;
+          }
+
+          if (!['pending', 'processing', 'released'].includes(command.status)) {
+            throw new Error(
+              `Unexpected segregation status: ${command.status || 'unknown'}`
+            );
+          }
+
+          button.textContent = 'Waiting for ESP32...';
+          status.textContent =
+            'Command released. Keep the waste on the tray while the ESP32 moves the servos.';
+
+          const deadline = Date.now() + 90000;
+
+          while (Date.now() < deadline) {
+            await wait(2000);
+
+            const current = await readApiResponse(await fetch(statusUrl));
+
+            if (current.status === 'completed') {
+              status.textContent =
+                'Segregation completed. The ESP32 acknowledged the servo movement.';
+              button.textContent = 'Segregation completed';
+              button.disabled = true;
+              return;
+            }
+
+            if (!['pending', 'processing', 'released'].includes(current.status)) {
+              throw new Error(
+                `Unexpected segregation status: ${current.status || 'unknown'}`
+              );
+            }
+          }
+
+          status.textContent =
+            'The command was sent, but the ESP32 has not acknowledged completion yet. ' +
+            'Keep the item on the tray and click the button to check again.';
+          button.textContent = 'Check segregation status';
+          button.disabled = false;
+        } catch (err) {
+          console.error('Segregation flow error:', err);
+          status.textContent =
+            `Could not confirm segregation: ${err.message}. ` +
+            'Check the connection and click the button to retry/check status.';
+          button.textContent = 'Retry / check segregation status';
+          button.disabled = false;
+        } finally {
+          requestInProgress = false;
+        }
+      };
+    }
     async function renderDashboard() {
       if (!activeUser || !activeWallet) {
         return;
@@ -1037,7 +1448,7 @@ const successfulDeposits = databaseDeposits.filter(
                 rel="noopener noreferrer"
                 class="text-emerald-400 hover:underline font-mono"
               >
-                ${truncateAddress(d.tx_hash)} ↗
+                ${truncateAddress(d.tx_hash)} ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€
               </a>`
             : `<span class="text-slate-500">
                 No blockchain transaction

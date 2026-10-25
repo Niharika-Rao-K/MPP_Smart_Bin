@@ -42,3 +42,6 @@ npm-debug.log*
 
 # Private ESP32 Wi-Fi credentials
 firmware/esp32_loadcell/secrets.h
+
+# Local ESP32-CAM Wi-Fi credentials
+/firmware/esp32_camera_loadcell/secrets.h
