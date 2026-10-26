@@ -137,7 +137,7 @@
   "container_type": "RAM Module",
   "volume_ml": null,
   "typical_empty_weight_g": 18,
-  "weight_tolerance_percent": 15,
+  "weight_tolerance_percent": 20,
   "recyclable": true,
   "rate_inr_per_kg": 43.43,
   "rate_source": "Provisional e-waste reference rate; verify suitability for RAM modules",
