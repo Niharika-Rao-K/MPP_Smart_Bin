@@ -56,6 +56,7 @@ print("CORS DEBUG - allowed origins:", repr(origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^https://[a-z0-9-]+\.trycloudflare\.com$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
