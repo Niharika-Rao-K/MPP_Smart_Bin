@@ -218,27 +218,25 @@
 
             <form id="deposit-form" onsubmit="handleDeposit(event)" class="space-y-4">
               <div class="p-4 rounded-xl bg-slate-950 border border-emerald-800/40 space-y-3">
-  <p class="block text-xs font-bold text-slate-300">ESP32-CAM Live Feed</p>
-  <div class="w-full h-48 rounded-lg overflow-hidden bg-black border border-slate-800 flex items-center justify-center">
-    <img id="camera-live-feed" alt="ESP32-CAM live feed"
-      class="w-full h-full object-contain" style="display:none" />
-    <span id="camera-placeholder" class="text-xs text-slate-400 text-center px-3">
-      Connecting to the fixed ESP32-CAM address...
-    </span>
-  </div>
-  <button type="button" onclick="captureCameraFrame()"
-    class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl text-xs">
-    Capture Image &amp; Classify
-  </button>
-  <p id="camera-status" role="status" aria-live="polite" class="text-xs text-amber-300">
-    Connect to the camera to begin.
-  </p>
-</div>
-
-<div id="classification-status" role="status" aria-live="polite"
-                   class="text-sm font-semibold text-amber-300 mt-2">
-                Capture waste using the camera to begin AI classification.
+                <label for="waste-image" class="block text-xs font-bold text-slate-300">
+                  Upload Waste Image
+                </label>
+                <input
+                  id="waste-image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  required
+                  onchange="previewWasteImage(this.files && this.files[0])"
+                  class="block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:px-4 file:py-2 file:font-bold file:text-white hover:file:bg-emerald-500"
+                />
+                <p class="text-xs text-slate-400">
+                  Choose a clear JPG, PNG, or WebP image of one waste item. Classification must pass before weighing.
+                </p>
               </div>
+              <p id="classification-status" role="status" aria-live="polite"
+                 class="text-sm font-semibold text-slate-300 mt-2">
+                Upload an image to begin AI classification.
+              </p>
 
               
 <div class="p-4 rounded-xl bg-slate-950 border border-emerald-800/40 space-y-2">
@@ -595,8 +593,7 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
     document.getElementById('active-bin-id').innerText = bin.bin_code;
 
     resetWastePreview();
-    startCameraPreview();
-    await renderDashboard();
+await renderDashboard();
 
   } catch (err) {
     console.error('Bin verification failed:', err);
@@ -654,92 +651,10 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
       tagElem.innerText = 'READY FOR DEPOSIT';
       routeElem.innerText = 'Waiting for waste image';
     }
-
-        function getCameraBaseUrl() {
-      return "http://10.165.119.127";
-    }
-
-    function startCameraPreview() {
-      const status = document.getElementById("camera-status");
-      const feed = document.getElementById("camera-live-feed");
-      const placeholder = document.getElementById("camera-placeholder");
-
-      feed.onload = () => {
-        feed.style.display = "block";
-        placeholder.style.display = "none";
-        status.innerText = "Camera connected. Capture waste when ready.";
-      };
-
-      feed.onerror = () => {
-        feed.style.display = "none";
-        placeholder.style.display = "block";
-        status.innerText = "Live feed failed. Check camera power and Wi-Fi.";
-      };
-
-      status.innerText = "Connecting to ESP32-CAM...";
-      feed.src = getCameraBaseUrl() + ":81/stream";
-    }
-
-    async function captureCameraFrame() {
-      const status = document.getElementById("camera-status");
-      const button = document.querySelector(
-        '#deposit-form button[onclick="captureCameraFrame()"]'
-      );
-      const submitBtn = document.querySelector(
-        '#deposit-form button[type="submit"]'
-      );
-
-      currentCapturedImage = null;
-      classifiedWasteFile = null;
-      lastClassificationResult = null;
-      submitBtn.disabled = true;
-
-      try {
-        button.disabled = true;
-        status.innerText = "Capturing image from ESP32-CAM...";
-
-        const response = await fetch(
-          getCameraBaseUrl() + "/capture?t=" + Date.now(),
-          { cache: "no-store" }
-        );
-
-        if (!response.ok) {
-          throw new Error("Capture failed: HTTP " + response.status);
-        }
-
-        const blob = await response.blob();
-
-        if (!blob.size || !blob.type.startsWith("image/")) {
-          throw new Error("Camera did not return a valid image.");
-        }
-
-        const file = new File(
-          [blob],
-          "esp32-capture-" + Date.now() + ".jpg",
-          { type: blob.type }
-        );
-
-        currentCapturedImage = file;
-        status.innerText = "Image captured. Classifying waste...";
-        await previewWasteImage(file);
-
-        if (classifiedWasteFile === file) {
-          status.innerText = "Classification successful. You may proceed.";
-        }
-      } catch (err) {
-        console.error("Camera capture failed:", err);
-        status.innerText = "Camera error: " + err.message;
-        document.getElementById("classification-status").innerText =
-          "Camera capture failed. Please retry.";
-      } finally {
-        button.disabled = false;
-        if (classifiedWasteFile !== currentCapturedImage) {
-          submitBtn.disabled = true;
-        }
-      }
-    }
+    
 
     async function previewWasteImage(imageFile) {
+      if (imageFile) { currentCapturedImage = imageFile; }
       const statusElem = document.getElementById("classification-status");
       const submitBtn = document.querySelector(
         '#deposit-form button[type="submit"]'
@@ -749,9 +664,9 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
       lastClassificationResult = null;
       submitBtn.disabled = true;
 
-      if (!imageFile || imageFile !== currentCapturedImage) {
+      if (!imageFile) {
         statusElem.innerText =
-          "Capture waste using the camera to begin AI classification.";
+          "Upload an image to begin AI classification.";
         resetWastePreview();
         return;
       }
@@ -763,11 +678,11 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
       activePreviewUrl = URL.createObjectURL(imageFile);
       document.getElementById("category-preview-img").src = activePreviewUrl;
       document.getElementById("category-preview-img").alt =
-        "Camera-captured waste";
+        "Uploaded waste image";
       document.getElementById("category-tag").innerText = "CLASSIFYING";
       document.getElementById("bin-route-display").innerText =
         "AI classification in progress";
-      statusElem.innerText = "Classifying camera image. Please wait...";
+      statusElem.innerText = "Classifying uploaded image. Please wait...";
       classificationInProgress = true;
 
       try {
@@ -836,7 +751,7 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
         document.getElementById("category-tag").innerText =
           "CLASSIFICATION FAILED";
         document.getElementById("bin-route-display").innerText =
-          "Capture another image";
+          "Upload another image";
       } finally {
         classificationInProgress = false;
 
@@ -1080,7 +995,7 @@ async function handleDeposit(e) {
   const imageFile = currentCapturedImage;
 
   if (!imageFile) {
-    alert('Please capture and classify a waste image using the ESP32-CAM.');
+    alert('Please upload and classify an image of the waste item.');
     return;
   }
 
