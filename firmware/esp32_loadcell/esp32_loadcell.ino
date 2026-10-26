@@ -49,7 +49,7 @@ const unsigned long RELEASE_HOLD_MS = 4000UL;
 // Change this if your computer's LAN IP changes.
 // The ESP32 and local backend must be on a reachable network.
 
-const char* API_BASE_URL = "http://10.165.119.195:8000";
+const char* API_BASE_URL = "https://mpp-smart-bin.onrender.com";
 
 const char* BIN_ID = "BIN001";
 const char* SENSOR_ID = "loadcell-01";
@@ -154,7 +154,8 @@ String getJsonString(String json, const char* key) {
 // ============================================================
 
 bool httpGetJson(const String& url, String& response) {
-  WiFiClient client;
+  WiFiClientSecure client;
+  client.setInsecure();
   HTTPClient http;
 
   http.setTimeout(HTTP_TIMEOUT_MS);
@@ -277,7 +278,8 @@ bool acknowledgeSegregationCommand(
       commandId +
       "/complete";
 
-  WiFiClient client;
+  WiFiClientSecure client;
+  client.setInsecure();
   HTTPClient http;
 
   http.setTimeout(HTTP_TIMEOUT_MS);
@@ -542,7 +544,8 @@ bool submitMeasurement(
   payload += "\"weight_g\":" + String(averageWeight, 2);
   payload += "}";
 
-  WiFiClient client;
+  WiFiClientSecure client;
+  client.setInsecure();
   HTTPClient http;
 
   http.setTimeout(HTTP_TIMEOUT_MS);
@@ -614,7 +617,8 @@ bool markRequestReady(const String& requestId) {
       requestId +
       "/ready";
 
-  WiFiClient client;
+  WiFiClientSecure client;
+  client.setInsecure();
   HTTPClient http;
 
   http.setTimeout(HTTP_TIMEOUT_MS);
