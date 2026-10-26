@@ -196,7 +196,7 @@
           </div>
           <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
             <p class="text-xs text-slate-400 font-bold uppercase">Total Tokens Earned</p>
-            <p id="dash-total-tokens" class="text-2xl font-black text-amber-400 mt-1">0.0 $RECYCLE</p>
+            <p id="dash-total-tokens" class="text-2xl font-black text-amber-400 mt-1">0.000 $RECYCLE</p>
           </div>
           <div class="bg-slate-900/80 backdrop-blur-xl p-5 rounded-2xl border border-emerald-900/30">
             <p class="text-xs text-slate-400 font-bold uppercase">Total Deposits</p>
@@ -260,7 +260,7 @@
 
   <button id="confirm-weighing-btn" type="button" hidden disabled
           class="w-full mt-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition">
-    I've placed the item â€” Start Weighing
+    I've placed the item - Start Weighing
   </button>
 
   <p class="text-2xl font-black text-emerald-400">
@@ -422,7 +422,7 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
 
   deposits.forEach((deposit) => {
     if (
-      deposit.decision === 'VERIFIED_CLEAN' &&
+      deposit.reward_status === 'SUCCESS' &&
       deposit.created_at
     ) {
       const date = new Date(
@@ -1377,7 +1377,7 @@ async function handleDeposit(e) {
 
       // Only successful deposits count toward achievements
 const successfulDeposits = databaseDeposits.filter(
-  deposit => deposit.decision === 'VERIFIED_CLEAN'
+  deposit => deposit.reward_status === 'SUCCESS'
 );
 
       // Calculate dashboard statistics from database
@@ -1402,7 +1402,7 @@ const successfulDeposits = databaseDeposits.filter(
         `${totalWeightKg.toFixed(3)} kg`;
 
       document.getElementById('dash-total-tokens').innerText =
-        `${totalTokens.toFixed(1)} $RECYCLE`;
+        `${totalTokens.toFixed(3)} $RECYCLE`;
 
       document.getElementById('dash-total-deposits').innerText =
         depositCount;
@@ -1448,7 +1448,7 @@ const successfulDeposits = databaseDeposits.filter(
                 rel="noopener noreferrer"
                 class="text-emerald-400 hover:underline font-mono"
               >
-                ${truncateAddress(d.tx_hash)} ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€
+                ${truncateAddress(d.tx_hash)} (View transaction)
               </a>`
             : `<span class="text-slate-500">
                 No blockchain transaction
@@ -1478,8 +1478,8 @@ const successfulDeposits = databaseDeposits.filter(
           }">
             ${
               Number(d.reward_amount || 0) > 0
-                ? `+${Number(d.reward_amount).toFixed(1)} $RECYCLE`
-                : '0 $RECYCLE'
+                ? `+${Number(d.reward_amount).toFixed(3)} $RECYCLE`
+                : '0.000 $RECYCLE'
             }
           </td>
 
@@ -1564,7 +1564,7 @@ const successfulDeposits = databaseDeposits.filter(
             </td>
 
             <td class="py-3 px-4 font-bold text-emerald-400">
-              ${totalTokens.toFixed(1)} $RECYCLE
+              ${totalTokens.toFixed(3)} $RECYCLE
             </td>
           `;
 
