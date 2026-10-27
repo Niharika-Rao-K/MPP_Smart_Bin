@@ -44,12 +44,14 @@ class MaterialValidationTests(unittest.TestCase):
         self.assertTrue(upper["weight_compatible"])
 
     def test_fallback_rate_requires_review(self):
-        result = self.validate("Snack wrapper", 5.0)
+        profile = dict(self.profiles["Snickers chocolate wrapper"])
+        profile["rate_status"] = "fallback_reference"
+
+        result = validate_material_candidate(profile, 5.0)
 
         self.assertEqual(result["status"], "RATE_REVIEW_REQUIRED")
         self.assertTrue(result["weight_compatible"])
         self.assertFalse(result["automatic_rate_eligible"])
-
 
     def test_reference_rate_allows_automatic_eligibility(self):
         result = self.validate("Samsung RAM stick", 18.0)
