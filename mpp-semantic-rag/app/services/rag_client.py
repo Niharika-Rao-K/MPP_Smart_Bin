@@ -38,12 +38,19 @@ PROFILE_BY_ID = {
 # Generic "can" maps to the first can profile because visual
 # detection alone cannot reliably distinguish its brand.
 LABEL_ALIASES = {
-    # Aluminum cans
+    # Nine-class model: map each label to its matching profile ID.
     "coca_cola_can": "coca_cola_330ml_aluminum_can",
     "coca_cola_330ml_aluminum_can": "coca_cola_330ml_aluminum_can",
-    "diet_coke": "coca_cola_330ml_aluminum_can",
+    "diet_coke": "diet_coke_beverage_can",
+    "diet_coke_beverage_can": "diet_coke_beverage_can",
+    "general_metal": "general_metal_scrap",
+    "general_metal_scrap": "general_metal_scrap",
     "pepsi_can": "pepsi_330ml_aluminum_can",
     "pepsi_330ml_aluminum_can": "pepsi_330ml_aluminum_can",
+    "red_bull_can": "red_bull_beverage_can",
+    "red_bull_beverage_can": "red_bull_beverage_can",
+    "general_plastic": "general_plastic_waste",
+    "general_plastic_waste": "general_plastic_waste",
 
     # PET bottles
     "bottle": "500ml_pet_water_bottle",
@@ -53,9 +60,10 @@ LABEL_ALIASES = {
     "pet_water_bottle": "500ml_pet_water_bottle",
     "500ml_pet_water_bottle": "500ml_pet_water_bottle",
 
-    # Wrappers
+    # Wrappers are categorized as Plastic.
     "snack_wrapper": "snack_wrapper",
-    "snickers_wrapper": "snack_wrapper",
+    "snickers_wrapper": "snickers_chocolate_wrapper",
+    "snickers_chocolate_wrapper": "snickers_chocolate_wrapper",
     "dairy_milk_wrapper": "cadbury_dairy_milk_chocolate_wrapper",
     "cadbury_dairy_milk_chocolate_wrapper": "cadbury_dairy_milk_chocolate_wrapper",
 

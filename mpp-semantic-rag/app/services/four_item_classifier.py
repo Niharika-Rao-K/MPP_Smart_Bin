@@ -11,8 +11,8 @@ from torchvision import models, transforms
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models"
-MODEL_PATH = MODEL_DIR / "best_four_item_model.pth"
-CLASSES_PATH = MODEL_DIR / "four_item_classes.json"
+MODEL_PATH = MODEL_DIR / "best_nine_item_model.pth"
+CLASSES_PATH = MODEL_DIR / "nine_item_classes.json"
 
 DEVICE = torch.device("cpu")
 
@@ -29,23 +29,23 @@ IMAGE_TRANSFORM = transforms.Compose([
 
 @lru_cache(maxsize=1)
 def get_classifier():
-    """Load the trained four-class model once per process."""
+    """Load the trained nine-class model once per process."""
 
     if not MODEL_PATH.is_file():
         raise FileNotFoundError(
-            f"Four-item model not found: {MODEL_PATH}"
+            f"Nine-item model not found: {MODEL_PATH}"
         )
 
     if not CLASSES_PATH.is_file():
         raise FileNotFoundError(
-            f"Four-item class list not found: {CLASSES_PATH}"
+            f"Nine-item class list not found: {CLASSES_PATH}"
         )
 
     with CLASSES_PATH.open("r", encoding="utf-8") as file:
         classes = json.load(file)
 
-    if not isinstance(classes, list) or not classes:
-        raise ValueError("The classifier class list is invalid.")
+    if not isinstance(classes, list) or len(classes) != 9:
+        raise ValueError("The nine-item class list must contain nine classes.")
 
     checkpoint = torch.load(
         MODEL_PATH,
@@ -57,8 +57,11 @@ def get_classifier():
 
     if checkpoint_classes != classes:
         raise ValueError(
-            "The checkpoint classes do not match four_item_classes.json."
+            "The checkpoint classes do not match nine_item_classes.json."
         )
+
+    if checkpoint.get("architecture") != "mobilenet_v3_small":
+        raise ValueError("Unexpected model architecture in checkpoint.")
 
     model = models.mobilenet_v3_small(weights=None)
     model.classifier[3] = nn.Linear(
@@ -85,7 +88,6 @@ def classify_image(image_path: str) -> dict:
     with torch.no_grad():
         logits = model(tensor)[0]
         probabilities = torch.softmax(logits, dim=0)
-
         best_index = int(probabilities.argmax())
 
     return {
