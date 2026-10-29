@@ -34,7 +34,7 @@
     "container_type": "Wrapper",
     "volume_ml": null,
     "typical_empty_weight_g": 1,
-    "weight_tolerance_percent": 35,
+    "weight_tolerance_percent": 45,
     "recyclable": true,
     "rate_inr_per_kg": 14.56,
     "rate_source": "Provisional Bengaluru mixed-plastic reference rate; verify applicability to this wrapper",
