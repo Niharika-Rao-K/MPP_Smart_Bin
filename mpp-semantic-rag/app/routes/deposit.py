@@ -24,7 +24,7 @@ from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
 from app.services.yolo_service import detect_object
-from app.services.four_item_classifier import classify_image
+from app.services.nine_class_classifier import classify_image
 
 router = APIRouter()
 
