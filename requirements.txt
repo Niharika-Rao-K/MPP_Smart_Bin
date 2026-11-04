@@ -8,4 +8,5 @@ sentence-transformers
 eth-account
 sqlalchemy
 ultralytics
-pwdlib
+pwdlib[argon2]
+psycopg[binary]
