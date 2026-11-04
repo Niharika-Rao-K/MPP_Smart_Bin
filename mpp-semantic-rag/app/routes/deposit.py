@@ -23,7 +23,6 @@ from app.database.models import (
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
-from app.services.yolo_service import detect_object
 from app.services.nine_class_classifier import classify_image
 
 router = APIRouter()
@@ -230,7 +229,7 @@ async def deposit_item(
         with image_path.open("wb") as buffer:
             buffer.write(image_bytes)
 
-        # 5. Classify the item using the custom four-item model.
+        # 5. Classify the item using the trained nine-class model.
         classifier_result = classify_image(str(image_path))
         detected_label = str(classifier_result["label"])
         confidence = round(float(classifier_result["confidence"]), 3)

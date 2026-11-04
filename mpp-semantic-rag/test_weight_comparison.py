@@ -24,7 +24,7 @@ collection = chroma_client.get_collection(
 
 
 # --------------------------------------------------
-# 2. Simulate YOLO output
+# 2. Simulate a predicted waste-item label
 # --------------------------------------------------
 
 predicted_item = "Coca-Cola aluminum beverage can"
@@ -43,7 +43,7 @@ results = collection.query(
 metadata = results["metadatas"][0][0]
 
 
-print("\nYOLO PREDICTION:")
+print("\nPREDICTED WASTE ITEM:")
 print(predicted_item)
 
 print("\nACTUAL WEIGHT:")
