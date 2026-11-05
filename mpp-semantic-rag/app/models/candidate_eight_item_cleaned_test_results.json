@@ -1,0 +1,209 @@
+{
+  "model": "E:\\MPP_Smart_Bin-1\\MPP_Smart_Bin\\mpp-semantic-rag\\app\\models\\candidate_eight_item_cleaned_model.pth",
+  "classes": [
+    "coca_cola_can",
+    "dairy_milk_wrapper",
+    "diet_coke",
+    "general_metal",
+    "general_plastic",
+    "pepsi_can",
+    "ram_stick",
+    "snickers_wrapper"
+  ],
+  "test_images_evaluated": 27,
+  "correct": 26,
+  "incorrect": 1,
+  "accuracy_percent": 96.3,
+  "skipped_images": [],
+  "results": [
+    {
+      "file": "coca_cola_can\\images (1).jfif",
+      "expected": "coca_cola_can",
+      "predicted": "pepsi_can",
+      "confidence_percent": 82.51,
+      "correct": false
+    },
+    {
+      "file": "coca_cola_can\\images.jfif",
+      "expected": "coca_cola_can",
+      "predicted": "coca_cola_can",
+      "confidence_percent": 98.23,
+      "correct": true
+    },
+    {
+      "file": "coca_cola_can\\putrajaya-malaysia-july-14th-2015-260nw-296970104.webp",
+      "expected": "coca_cola_can",
+      "predicted": "coca_cola_can",
+      "confidence_percent": 89.43,
+      "correct": true
+    },
+    {
+      "file": "dairy_milk_wrapper\\cadbury-dairy-milk-chocolate-936.jpg",
+      "expected": "dairy_milk_wrapper",
+      "predicted": "dairy_milk_wrapper",
+      "confidence_percent": 92.47,
+      "correct": true
+    },
+    {
+      "file": "dairy_milk_wrapper\\WhatsApp Image 2026-10-21 at 11.02.15 AM (1).jpeg",
+      "expected": "dairy_milk_wrapper",
+      "predicted": "dairy_milk_wrapper",
+      "confidence_percent": 99.78,
+      "correct": true
+    },
+    {
+      "file": "dairy_milk_wrapper\\WhatsApp Image 2026-10-21 at 11.02.15 AM.jpeg",
+      "expected": "dairy_milk_wrapper",
+      "predicted": "dairy_milk_wrapper",
+      "confidence_percent": 56.55,
+      "correct": true
+    },
+    {
+      "file": "dairy_milk_wrapper\\WhatsApp Image 2026-10-21 at 11.02.16 AM.jpeg",
+      "expected": "dairy_milk_wrapper",
+      "predicted": "dairy_milk_wrapper",
+      "confidence_percent": 89.37,
+      "correct": true
+    },
+    {
+      "file": "dairy_milk_wrapper\\wrapper_2.webp",
+      "expected": "dairy_milk_wrapper",
+      "predicted": "dairy_milk_wrapper",
+      "confidence_percent": 99.67,
+      "correct": true
+    },
+    {
+      "file": "diet_coke\\cocacola-diet-coke-beverage-can.webp",
+      "expected": "diet_coke",
+      "predicted": "diet_coke",
+      "confidence_percent": 99.98,
+      "correct": true
+    },
+    {
+      "file": "diet_coke\\diet_coke.jpg",
+      "expected": "diet_coke",
+      "predicted": "diet_coke",
+      "confidence_percent": 99.67,
+      "correct": true
+    },
+    {
+      "file": "diet_coke\\images.jfif",
+      "expected": "diet_coke",
+      "predicted": "diet_coke",
+      "confidence_percent": 51.45,
+      "correct": true
+    },
+    {
+      "file": "general_metal\\images (2).jfif",
+      "expected": "general_metal",
+      "predicted": "general_metal",
+      "confidence_percent": 99.99,
+      "correct": true
+    },
+    {
+      "file": "general_metal\\large-amount-metal-tins-cans-260nw-1879868929.webp",
+      "expected": "general_metal",
+      "predicted": "general_metal",
+      "confidence_percent": 88.18,
+      "correct": true
+    },
+    {
+      "file": "general_metal\\pngtree-crushed-can-of-soda-on-white-background-representing-waste-and-recycling-png-image_20112238.png",
+      "expected": "general_metal",
+      "predicted": "general_metal",
+      "confidence_percent": 86.16,
+      "correct": true
+    },
+    {
+      "file": "general_plastic\\images (2).jfif",
+      "expected": "general_plastic",
+      "predicted": "general_plastic",
+      "confidence_percent": 99.99,
+      "correct": true
+    },
+    {
+      "file": "general_plastic\\images.jfif",
+      "expected": "general_plastic",
+      "predicted": "general_plastic",
+      "confidence_percent": 94.73,
+      "correct": true
+    },
+    {
+      "file": "general_plastic\\plastic-film-1000x600-1.webp",
+      "expected": "general_plastic",
+      "predicted": "general_plastic",
+      "confidence_percent": 92.75,
+      "correct": true
+    },
+    {
+      "file": "pepsi_can\\a-flattened-aluminum-pepsi-can-on-the-road-run-over-by-vehicles-in-speculator-ny-usa-waste-and-litter-concept-PX546T.jpg",
+      "expected": "pepsi_can",
+      "predicted": "pepsi_can",
+      "confidence_percent": 90.35,
+      "correct": true
+    },
+    {
+      "file": "pepsi_can\\images.jfif",
+      "expected": "pepsi_can",
+      "predicted": "pepsi_can",
+      "confidence_percent": 79.36,
+      "correct": true
+    },
+    {
+      "file": "pepsi_can\\shopping.webp",
+      "expected": "pepsi_can",
+      "predicted": "pepsi_can",
+      "confidence_percent": 99.99,
+      "correct": true
+    },
+    {
+      "file": "ram_stick\\WhatsApp Image 2026-10-21 at 11.03.44 AM (1).jpeg",
+      "expected": "ram_stick",
+      "predicted": "ram_stick",
+      "confidence_percent": 99.99,
+      "correct": true
+    },
+    {
+      "file": "ram_stick\\WhatsApp Image 2026-10-21 at 11.03.44 AM.jpeg",
+      "expected": "ram_stick",
+      "predicted": "ram_stick",
+      "confidence_percent": 99.86,
+      "correct": true
+    },
+    {
+      "file": "ram_stick\\WhatsApp Image 2026-10-21 at 11.03.45 AM (1).jpeg",
+      "expected": "ram_stick",
+      "predicted": "ram_stick",
+      "confidence_percent": 99.58,
+      "correct": true
+    },
+    {
+      "file": "ram_stick\\WhatsApp Image 2026-10-21 at 11.03.45 AM.jpeg",
+      "expected": "ram_stick",
+      "predicted": "ram_stick",
+      "confidence_percent": 99.98,
+      "correct": true
+    },
+    {
+      "file": "snickers_wrapper\\depositphotos_85772116-stock-photo-orenburg-russia-september-30-recycled.jpg",
+      "expected": "snickers_wrapper",
+      "predicted": "snickers_wrapper",
+      "confidence_percent": 96.36,
+      "correct": true
+    },
+    {
+      "file": "snickers_wrapper\\snickers-bar-by-mars-crushed-wrapper.jpg",
+      "expected": "snickers_wrapper",
+      "predicted": "snickers_wrapper",
+      "confidence_percent": 99.41,
+      "correct": true
+    },
+    {
+      "file": "snickers_wrapper\\tesanj-bosnia.webp",
+      "expected": "snickers_wrapper",
+      "predicted": "snickers_wrapper",
+      "confidence_percent": 98.41,
+      "correct": true
+    }
+  ]
+}
