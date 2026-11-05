@@ -23,7 +23,7 @@ from app.database.models import (
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
-from app.services.nine_class_classifier import classify_image
+from app.services.classifier_selector import classify_image
 
 router = APIRouter()
 
