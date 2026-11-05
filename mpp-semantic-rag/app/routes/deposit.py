@@ -29,7 +29,7 @@ router = APIRouter()
 
 UPLOAD_FOLDER = Path("uploads")
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-MAX_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_READING_AGE = timedelta(minutes=5)
 
 ALLOWED_IMAGE_TYPES = {
@@ -64,7 +64,7 @@ async def classify_waste_image(
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(
             status_code=413,
-            detail="Image must be 5 MB or smaller.",
+            detail="Image must be 10 MB or smaller.",
         )
 
     suffix = Path(image.filename or "upload.jpg").suffix.lower()
@@ -223,7 +223,7 @@ async def deposit_item(
         if len(image_bytes) > MAX_IMAGE_BYTES:
             raise HTTPException(
                 status_code=413,
-                detail="Image must be 5 MB or smaller.",
+                detail="Image must be 10 MB or smaller.",
             )
 
         with image_path.open("wb") as buffer:
