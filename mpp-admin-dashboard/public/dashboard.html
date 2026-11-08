@@ -253,12 +253,12 @@
   </p>
 
   <p class="text-xs text-slate-400">
-    Keep the platform EMPTY while the ESP32 tares the scale. Place your item only when prompted, then click Start Weighing.
+    Keep the platform EMPTY while the ESP32 tares the scale. Click Start Impact Capture before placing your item. Wait until the dashboard tells you to place or drop it.
   </p>
 
   <button id="confirm-weighing-btn" type="button" hidden disabled
           class="w-full mt-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition">
-    I've placed the item - Start Weighing
+    Start Impact Capture
   </button>
 
   <p class="text-2xl font-black text-emerald-400">
@@ -833,11 +833,12 @@ async function requestSensorMeasurement(binId) {
   const confirmButton = document.getElementById('confirm-weighing-btn');
 
   if (!confirmButton) {
-    throw new Error('The weighing confirmation button is missing.');
+    throw new Error('The impact capture button is missing.');
   }
 
   confirmButton.hidden = true;
   confirmButton.disabled = true;
+  confirmButton.innerText = 'Start Impact Capture';
 
   let requestId = null;
   let confirmationStarted = false;
@@ -849,7 +850,7 @@ async function requestSensorMeasurement(binId) {
 
     confirmationPending = true;
     confirmButton.disabled = true;
-    setSensorStatus('Sending weighing confirmation...');
+    setSensorStatus('Arming the impact detector. Keep the platform EMPTY...');
 
     try {
       const response = await fetch(
@@ -857,15 +858,26 @@ async function requestSensorMeasurement(binId) {
         { method: 'POST' }
       );
 
-      await readApiResponse(response);
+      const confirmationData = await readApiResponse(response);
+
+      if (
+        String(confirmationData.status || '').toLowerCase() !== 'armed'
+      ) {
+        throw new Error(
+          `Unexpected confirmation status: ${confirmationData.status || 'missing status'}`
+        );
+      }
+
       confirmationStarted = true;
       confirmButton.hidden = true;
-      setSensorStatus('Confirmation received. Waiting for the ESP32...');
+      setSensorStatus(
+        'Impact detector ARMED. Place or gently drop your item onto the platform now.'
+      );
     } catch (error) {
       confirmationError = error;
       confirmationPending = false;
       confirmButton.disabled = false;
-      setSensorStatus(`Confirmation failed: ${error.message}`);
+      setSensorStatus(`Impact capture could not be armed: ${error.message}`);
     }
   };
 
@@ -891,7 +903,7 @@ async function requestSensorMeasurement(binId) {
     console.log('Created sensor request:', requestId);
     confirmButton.addEventListener('click', onConfirmClick);
 
-    // Backend requests expire after five minutes.
+    // Backend requests expire 90 seconds after creation.
     const deadline = Date.now() + 90000;
 
     while (Date.now() < deadline) {
@@ -916,27 +928,40 @@ async function requestSensorMeasurement(binId) {
 
       if (status === 'claimed') {
         confirmButton.hidden = true;
-        setSensorStatus('ESP32 is taring the scale. Keep the platform EMPTY.');
+        setSensorStatus(
+          'ESP32 is taring the scale. Keep the platform EMPTY.'
+        );
         continue;
       }
 
       if (status === 'ready') {
         if (!confirmationStarted) {
           confirmButton.hidden = false;
+          confirmButton.innerText = 'Start Impact Capture';
 
           if (!confirmationPending) {
             confirmButton.disabled = false;
             setSensorStatus(
-              'Scale tared! Place your item on the platform, then click Start Weighing.'
+              'Scale tared. Click Start Impact Capture while the platform is still EMPTY.'
             );
           }
         }
         continue;
       }
 
+      if (status === 'armed') {
+        confirmButton.hidden = true;
+        setSensorStatus(
+          'Impact detector ARMED. Place or gently drop your item onto the platform now.'
+        );
+        continue;
+      }
+
       if (status === 'measuring') {
         confirmButton.hidden = true;
-        setSensorStatus('Weighing in progress. Keep the item still for 30 seconds...');
+        setSensorStatus(
+          'Impact detected! Stable weight measurement is now in progress. Keep the item still for 30 seconds...'
+        );
         continue;
       }
 
@@ -969,6 +994,7 @@ async function requestSensorMeasurement(binId) {
     confirmButton.removeEventListener('click', onConfirmClick);
     confirmButton.hidden = true;
     confirmButton.disabled = true;
+    confirmButton.innerText = 'Start Impact Capture';
   }
 }
 
