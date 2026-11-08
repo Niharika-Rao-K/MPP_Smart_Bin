@@ -68,6 +68,29 @@ double totalWeight = 0.0;
 unsigned long validReadingCount = 0;
 
 // ============================================================
+// MECHANICAL IMPACT FINGERPRINTING
+// ============================================================
+
+// At approximately 9 SPS, 2500 ms should collect around
+// 20–25 readings. The larger array provides some headroom.
+const unsigned long IMPACT_CAPTURE_DURATION_MS = 2500UL;
+const int MAX_IMPACT_SAMPLES = 64;
+
+// Three consecutive readings must be close to the final
+// 30-second average to count as settled.
+const int SETTLING_CONSECUTIVE_SAMPLES = 3;
+
+struct ImpactFeatures {
+  float peakWeightG;
+  int settlingTimeMs;
+  int sampleCount;
+  float variationIndex;
+};
+
+float impactWeights[MAX_IMPACT_SAMPLES];
+unsigned long impactTimestamps[MAX_IMPACT_SAMPLES];
+
+// ============================================================
 // 5. WI-FI CONNECTION
 // ============================================================
 
@@ -521,12 +544,200 @@ bool measureAverageWeight(float& averageWeight) {
 }
 
 // ============================================================
-// 14. SUBMIT WEIGHT FOR THE EXACT REQUEST
+// MECHANICAL IMPACT CAPTURE AND FEATURE EXTRACTION
+// ============================================================
+
+bool captureImpactBurst(ImpactFeatures& features) {
+  Serial.println();
+  Serial.println("====================================");
+  Serial.println("MECHANICAL IMPACT CAPTURE STARTED");
+  Serial.println("Keep the item still on the platform.");
+  Serial.println("====================================");
+
+  features.peakWeightG = 0.0;
+  features.settlingTimeMs = -1;
+  features.sampleCount = 0;
+  features.variationIndex = 0.0;
+
+  const unsigned long captureStart = millis();
+
+  double total = 0.0;
+  double totalSquared = 0.0;
+  float peak = -INFINITY;
+
+  while (millis() - captureStart <
+         IMPACT_CAPTURE_DURATION_MS) {
+
+    if (scale.is_ready()) {
+      float weight = scale.get_units(1);
+      unsigned long elapsed = millis() - captureStart;
+
+      if (isfinite(weight) &&
+          features.sampleCount < MAX_IMPACT_SAMPLES) {
+
+        int index = features.sampleCount;
+
+        impactWeights[index] = weight;
+        impactTimestamps[index] = elapsed;
+
+        total += weight;
+        totalSquared += (double)weight * weight;
+
+        if (weight > peak) {
+          peak = weight;
+        }
+
+        features.sampleCount++;
+
+        Serial.print(elapsed);
+        Serial.print(",");
+        Serial.print(weight, 3);
+        Serial.println(",CAPTURE");
+      }
+    }
+
+    // Avoid a tight CPU loop. HX711 readiness controls sampling.
+    delay(1);
+  }
+
+  if (features.sampleCount < 3) {
+    Serial.println("ERROR: Too few impact samples collected.");
+    return false;
+  }
+
+  const double count = features.sampleCount;
+  const double mean = total / count;
+
+  double variance =
+      (totalSquared / count) - (mean * mean);
+
+  if (variance < 0.0) {
+    variance = 0.0;
+  }
+
+  const double standardDeviation = sqrt(variance);
+
+  // Coefficient of variation: standard deviation divided
+  // by the absolute mean. A 0.5 g floor avoids division
+  // by a value close to zero for very light items.
+  double denominator = fabs(mean);
+
+  if (denominator < 0.5) {
+    denominator = 0.5;
+  }
+
+  features.peakWeightG = peak;
+  features.variationIndex =
+      (float)(standardDeviation / denominator);
+
+  Serial.println("------------------------------------");
+  Serial.println("IMPACT CAPTURE SUMMARY");
+  Serial.print("Samples: ");
+  Serial.println(features.sampleCount);
+
+  Serial.print("Peak apparent weight: ");
+  Serial.print(features.peakWeightG, 3);
+  Serial.println(" g");
+
+  Serial.print("Burst mean: ");
+  Serial.print(mean, 3);
+  Serial.println(" g");
+
+  Serial.print("Burst standard deviation: ");
+  Serial.print(standardDeviation, 4);
+  Serial.println(" g");
+
+  Serial.print("Variation index: ");
+  Serial.println(features.variationIndex, 5);
+
+  Serial.println("------------------------------------");
+
+  return true;
+}
+
+
+// ============================================================
+// ESTIMATE SETTLING TIME USING THE FINAL STABLE WEIGHT
+// ============================================================
+
+void calculateImpactSettlingTime(
+    ImpactFeatures& features,
+    float finalAverageWeight
+) {
+  features.settlingTimeMs = -1;
+
+  if (features.sampleCount <
+      SETTLING_CONSECUTIVE_SAMPLES) {
+    return;
+  }
+
+  // The acceptable band is the larger of:
+  // 0.5 g, or 5% of the final average weight.
+  float tolerance = fabs(finalAverageWeight) * 0.05f;
+
+  if (tolerance < 0.5f) {
+    tolerance = 0.5f;
+  }
+
+  int peakIndex = 0;
+  float peak = impactWeights[0];
+
+  for (int i = 1; i < features.sampleCount; i++) {
+    if (impactWeights[i] > peak) {
+      peak = impactWeights[i];
+      peakIndex = i;
+    }
+  }
+
+  int consecutive = 0;
+  int firstStableIndex = -1;
+
+  for (int i = peakIndex + 1;
+       i < features.sampleCount;
+       i++) {
+
+    float difference =
+        fabs(impactWeights[i] - finalAverageWeight);
+
+    if (difference <= tolerance) {
+      if (consecutive == 0) {
+        firstStableIndex = i;
+      }
+
+      consecutive++;
+
+      if (consecutive >= SETTLING_CONSECUTIVE_SAMPLES) {
+        features.settlingTimeMs =
+            (int)impactTimestamps[firstStableIndex];
+
+        break;
+      }
+    } else {
+      consecutive = 0;
+      firstStableIndex = -1;
+    }
+  }
+
+  Serial.print("Estimated settling time: ");
+
+  if (features.settlingTimeMs >= 0) {
+    Serial.print(features.settlingTimeMs);
+    Serial.println(" ms");
+  } else {
+    Serial.println(
+      "Not reached during the impact capture window."
+    );
+  }
+}
+
+// ============================================================
+// SUBMIT WEIGHT AND IMPACT FEATURES FOR THE EXACT REQUEST
 // ============================================================
 
 bool submitMeasurement(
     const String& requestId,
-    float averageWeight
+    float averageWeight,
+    const ImpactFeatures& impact
 ) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Cannot submit: Wi-Fi disconnected.");
@@ -539,20 +750,39 @@ bool submitMeasurement(
       "/reading";
 
   String payload = "{";
+
   payload += "\"bin_id\":\"" + String(BIN_ID) + "\",";
   payload += "\"sensor_id\":\"" + String(SENSOR_ID) + "\",";
-  payload += "\"weight_g\":" + String(averageWeight, 2);
+  payload += "\"weight_g\":" + String(averageWeight, 2) + ",";
+
+  payload += "\"impact_peak_g\":" +
+      String(impact.peakWeightG, 3) + ",";
+
+  payload += "\"impact_settling_ms\":";
+  if (impact.settlingTimeMs >= 0) {
+    payload += String(impact.settlingTimeMs);
+  } else {
+    payload += "null";
+  }
+  payload += ",";
+
+  payload += "\"impact_sample_count\":" +
+      String(impact.sampleCount) + ",";
+
+  payload += "\"impact_variation_index\":" +
+      String(impact.variationIndex, 5);
+
   payload += "}";
 
   WiFiClientSecure client;
   client.setInsecure();
-  HTTPClient http;
 
+  HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   if (!http.begin(client, url)) {
     Serial.println(
-      "Could not initialize weight submission."
+      "Could not initialize measurement submission."
     );
     return false;
   }
@@ -560,11 +790,31 @@ bool submitMeasurement(
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Accept", "application/json");
 
-  Serial.println("Submitting weight for request:");
+  Serial.println();
+  Serial.println("Submitting measurement and impact features.");
+  Serial.print("Request ID: ");
   Serial.println(requestId);
-  Serial.print("Weight: ");
+
+  Serial.print("Stable average: ");
   Serial.print(averageWeight, 2);
   Serial.println(" g");
+
+  Serial.print("Impact peak: ");
+  Serial.print(impact.peakWeightG, 3);
+  Serial.println(" g");
+
+  Serial.print("Settling time: ");
+  Serial.print(impact.settlingTimeMs);
+  Serial.println(" ms");
+
+  Serial.print("Sample count: ");
+  Serial.println(impact.sampleCount);
+
+  Serial.print("Variation index: ");
+  Serial.println(impact.variationIndex, 5);
+
+  Serial.println("JSON payload:");
+  Serial.println(payload);
 
   // Preserve the existing single-POST behavior.
   int code = http.POST(payload);
@@ -575,6 +825,7 @@ bool submitMeasurement(
 
     Serial.print("POST HTTP status: ");
     Serial.println(code);
+
     Serial.print("Backend response: ");
     Serial.println(response);
 
@@ -582,7 +833,9 @@ bool submitMeasurement(
       String status = getJsonString(response, "status");
 
       if (status == "completed") {
-        Serial.println("SUCCESS: Weight recorded.");
+        Serial.println(
+          "SUCCESS: Weight and impact features recorded."
+        );
         success = true;
       } else {
         Serial.println(
@@ -591,11 +844,14 @@ bool submitMeasurement(
         );
       }
     } else {
-      Serial.println("ERROR: Backend rejected the reading.");
+      Serial.println(
+        "ERROR: Backend rejected the measurement."
+      );
     }
   } else {
     Serial.print("POST failed: ");
     Serial.println(http.errorToString(code));
+
     Serial.println(
       "No automatic POST retry will occur."
     );
@@ -652,7 +908,65 @@ bool markRequestReady(const String& requestId) {
 }
 
 // ============================================================
+// NOTIFY BACKEND THAT IMPACT CAPTURE IS STARTING
+// ============================================================
+
+bool markImpactDetected(const String& requestId) {
+  String url = String(API_BASE_URL) +
+      "/api/sensor/requests/" +
+      requestId +
+      "/impact-detected";
+
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  HTTPClient http;
+  http.setTimeout(HTTP_TIMEOUT_MS);
+
+  if (!http.begin(client, url)) {
+    Serial.println(
+      "Could not initialize impact-detected request."
+    );
+    return false;
+  }
+
+  http.addHeader("Accept", "application/json");
+
+  int code = http.POST("");
+  String response = "";
+
+  if (code > 0) {
+    response = http.getString();
+  }
+
+  http.end();
+  client.stop();
+
+  Serial.print("Impact-detected response code: ");
+  Serial.println(code);
+  Serial.println(response);
+
+  if (code >= 200 && code < 300 &&
+      getJsonString(response, "status") == "measuring") {
+    Serial.println(
+      "Backend confirmed measuring state."
+    );
+    return true;
+  }
+
+  Serial.println(
+    "ERROR: Backend did not confirm impact detection."
+  );
+
+  return false;
+}
+
+// ============================================================
 // 16. WAIT FOR DASHBOARD CONFIRMATION
+// ============================================================
+
+// ============================================================
+// WAIT FOR DASHBOARD CONFIRMATION
 // ============================================================
 
 bool waitForMeasurementConfirmation(
@@ -685,9 +999,12 @@ bool waitForMeasurementConfirmation(
     if (httpGetJson(url, response)) {
       String status = getJsonString(response, "status");
 
-      if (status == "measuring") {
+      if (status == "armed") {
         Serial.println(
-          "Dashboard confirmed. Starting measurement."
+          "Dashboard confirmation received."
+        );
+        Serial.println(
+          "Backend request is armed for impact capture."
         );
         return true;
       }
@@ -695,9 +1012,10 @@ bool waitForMeasurementConfirmation(
       if (status == "expired" ||
           status == "completed") {
         Serial.print(
-          "Request ended before weighing. Status: "
+          "Request ended before impact capture. Status: "
         );
         Serial.println(status);
+
         return false;
       }
     }
@@ -708,11 +1026,12 @@ bool waitForMeasurementConfirmation(
   Serial.println(
     "Timed out waiting for dashboard confirmation."
   );
+
   return false;
 }
 
 // ============================================================
-// 17. PROCESS ONE MEASUREMENT REQUEST
+// PROCESS ONE MEASUREMENT REQUEST
 // ============================================================
 
 void processMeasurementRequest(
@@ -720,7 +1039,7 @@ void processMeasurementRequest(
 ) {
   Serial.println();
   Serial.println("========================================");
-  Serial.println("New measurement request received.");
+  Serial.println("NEW MEASUREMENT REQUEST");
   Serial.println("Keep the platform EMPTY while taring.");
   Serial.println("========================================");
 
@@ -736,6 +1055,7 @@ void processMeasurementRequest(
   );
 
   scale.tare(20);
+
   Serial.println("Tare complete.");
 
   // Step 3: Tell the backend the scale is ready.
@@ -743,44 +1063,96 @@ void processMeasurementRequest(
     Serial.println(
       "ERROR: Could not mark request ready."
     );
+
     Serial.println(
       "Check backend logs and request status."
     );
+
     return;
   }
 
   Serial.println("Scale tared successfully.");
+
   Serial.println(
     "Place the waste item when the dashboard prompts you."
   );
 
-  // Step 4: Wait for dashboard confirmation.
+  // Step 4: Wait until the dashboard confirms the user
+  // has started the measurement.
   if (!waitForMeasurementConfirmation(requestId)) {
     Serial.println(
       "Measurement cancelled or confirmation timed out."
     );
+
     Serial.println(
       "Returning to request polling."
     );
+
     return;
   }
 
-  // Step 5: Preserve the existing 30-second average.
+  // Step 5: Tell the backend that impact capture is starting.
+  if (!markImpactDetected(requestId)) {
+    Serial.println(
+      "ERROR: Could not start impact capture state."
+    );
+
+    Serial.println(
+      "Measurement will not be submitted."
+    );
+
+    return;
+  }
+
+  // Step 6: Capture the short mechanical impact burst.
+  ImpactFeatures impact;
+
+  if (!captureImpactBurst(impact)) {
+    Serial.println(
+      "ERROR: Impact capture failed."
+    );
+
+    Serial.println(
+      "Measurement will not be submitted."
+    );
+
+    return;
+  }
+
+  // Step 7: Preserve the existing 30-second stable average.
   float averageWeight = 0.0;
 
   if (!measureAverageWeight(averageWeight)) {
     Serial.println(
-      "Measurement failed. Request may expire; "
-      "start a new deposit attempt."
+      "ERROR: Stable weight measurement failed."
     );
+
+    Serial.println(
+      "Request may expire; start a new deposit attempt."
+    );
+
     return;
   }
 
-  // Step 6: Submit the measured weight.
-  if (submitMeasurement(requestId, averageWeight)) {
+  // Step 8: Calculate settling time against the final
+  // stable average obtained from the 30-second measurement.
+  calculateImpactSettlingTime(
+    impact,
+    averageWeight
+  );
+
+  // Step 9: Submit stable weight and all impact features.
+  if (submitMeasurement(
+        requestId,
+        averageWeight,
+        impact
+      )) {
+
+    Serial.println();
     Serial.println(
-      "Measurement request completed."
+      "MEASUREMENT REQUEST COMPLETED SUCCESSFULLY."
     );
+
   } else {
     Serial.println(
       "Submission was not confirmed. Check backend "
@@ -792,6 +1164,8 @@ void processMeasurementRequest(
     "Returning to request polling."
   );
 }
+
+
 
 // ============================================================
 // 18. SETUP
