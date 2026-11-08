@@ -35,6 +35,12 @@ class MeasurementResultBody(BaseModel):
     sensor_id: str = "loadcell-01"
     weight_g: float = Field(gt=0, le=100000)
 
+    # Optional Mechanical Impact Fingerprinting indicators.
+    impact_peak_g: float | None = Field(default=None, ge=0, le=100000)
+    impact_settling_ms: int | None = Field(default=None, ge=0, le=120000)
+    impact_sample_count: int | None = Field(default=None, ge=0, le=1000)
+    impact_variation_index: float | None = Field(default=None, ge=0, le=100000)
+
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -75,7 +81,7 @@ def expire_old_requests(db: Session, bin_id: str):
         db.query(MeasurementRequest)
         .filter(
             MeasurementRequest.bin_code == bin_id,
-            MeasurementRequest.status.in_(["pending", "claimed", "ready", "measuring"]),
+            MeasurementRequest.status.in_(["pending", "claimed", "ready", "armed", "measuring"]),
         )
         .all()
     )
@@ -111,7 +117,7 @@ def create_measurement_request(
         db.query(MeasurementRequest)
         .filter(
             MeasurementRequest.bin_code == payload.bin_id,
-            MeasurementRequest.status.in_(["pending", "claimed", "ready", "measuring"]),
+            MeasurementRequest.status.in_(["pending", "claimed", "ready", "armed", "measuring"]),
         )
         .first()
     )
@@ -281,6 +287,46 @@ def confirm_measurement(
         db.commit()
         raise HTTPException(status_code=410, detail="Measurement request expired.")
 
+    # Dashboard confirmation arms the ESP32 impact detector.
+    # Stable weighing is authorized only after impact detection.
+    request.status = "armed"
+    db.commit()
+
+    return {
+        "status": "armed",
+        "request_id": request.request_id,
+        "bin_id": request.bin_code,
+    }
+
+
+# ESP32 reports that an item-arrival event was detected.
+@router.post("/requests/{request_id}/impact-detected")
+def mark_impact_detected(
+    request_id: str,
+    db: Session = Depends(get_db),
+):
+    request = (
+        db.query(MeasurementRequest)
+        .filter(MeasurementRequest.request_id == request_id)
+        .first()
+    )
+
+    if not request:
+        raise HTTPException(status_code=404, detail="Measurement request not found.")
+
+    validate_active_bin(db, request.bin_code)
+
+    if request.status != "armed":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Impact detection is not authorized from status: {request.status}",
+        )
+
+    if utc_now() - normalize_datetime(request.created_at) > REQUEST_TIMEOUT:
+        request.status = "expired"
+        db.commit()
+        raise HTTPException(status_code=410, detail="Measurement request expired.")
+
     request.status = "measuring"
     db.commit()
 
@@ -289,6 +335,7 @@ def confirm_measurement(
         "request_id": request.request_id,
         "bin_id": request.bin_code,
     }
+
 
 @router.post("/requests/{request_id}/reading")
 def submit_requested_measurement(
@@ -352,6 +399,10 @@ def submit_requested_measurement(
         sensor_id=payload.sensor_id,
         reading_id=request_id,
         weight_g=payload.weight_g,
+        impact_peak_g=payload.impact_peak_g,
+        impact_settling_ms=payload.impact_settling_ms,
+        impact_sample_count=payload.impact_sample_count,
+        impact_variation_index=payload.impact_variation_index,
         consumed=False,
         created_at=utc_now(),
     )
@@ -368,6 +419,10 @@ def submit_requested_measurement(
         "reading_id": reading.reading_id,
         "bin_id": reading.bin_code,
         "weight_g": reading.weight_g,
+        "impact_peak_g": reading.impact_peak_g,
+        "impact_settling_ms": reading.impact_settling_ms,
+        "impact_sample_count": reading.impact_sample_count,
+        "impact_variation_index": reading.impact_variation_index,
     }
 
 
@@ -393,7 +448,7 @@ def get_measurement_request_status(
             detail="Measurement request not found.",
         )
 
-    if request.status in ["pending", "claimed", "ready", "measuring"]:
+    if request.status in ["pending", "claimed", "ready", "armed", "measuring"]:
         created = normalize_datetime(request.created_at)
 
         if utc_now() - created > REQUEST_TIMEOUT:

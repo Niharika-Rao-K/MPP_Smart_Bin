@@ -190,6 +190,12 @@ class SensorReading(Base):
     reading_id = Column(String, unique=True, index=True, nullable=False)
     weight_g = Column(Float, nullable=False)
 
+    # Optional Mechanical Impact Fingerprinting indicators.
+    impact_peak_g = Column(Float, nullable=True)
+    impact_settling_ms = Column(Integer, nullable=True)
+    impact_sample_count = Column(Integer, nullable=True)
+    impact_variation_index = Column(Float, nullable=True)
+
     consumed = Column(
         Boolean,
         default=False,

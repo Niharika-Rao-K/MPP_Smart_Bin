@@ -14,7 +14,14 @@ from sqlalchemy import inspect, text
 
 Base.metadata.create_all(bind=engine)
 
-def ensure_sensor_reading_consumed_column():
+def ensure_sensor_reading_columns():
+    impact_columns = {
+        "impact_peak_g": "FLOAT",
+        "impact_settling_ms": "INTEGER",
+        "impact_sample_count": "INTEGER",
+        "impact_variation_index": "FLOAT",
+    }
+
     with engine.begin() as connection:
         columns = {
             column["name"]
@@ -32,8 +39,17 @@ def ensure_sensor_reading_consumed_column():
                 )
             )
 
+        for column_name, sql_type in impact_columns.items():
+            if column_name not in columns:
+                connection.execute(
+                    text(
+                        f"ALTER TABLE sensor_readings "
+                        f"ADD COLUMN {column_name} {sql_type} NULL"
+                    )
+                )
 
-ensure_sensor_reading_consumed_column()
+
+ensure_sensor_reading_columns()
 
 app = FastAPI(
     title="Smart Recycling Bin RAG & Fusion Backend",
