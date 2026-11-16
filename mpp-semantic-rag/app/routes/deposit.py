@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -17,6 +16,7 @@ from app.database.database import get_db
 from app.database.models import (
     Bin,
     Deposit,
+    ImageFingerprint,
     SensorReading,
     SegregationCommand,
 )
@@ -24,6 +24,7 @@ from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
 from app.services.classifier_selector import classify_image
+from app.services.image_hash import check_duplicate
 
 router = APIRouter()
 
@@ -37,8 +38,6 @@ ALLOWED_IMAGE_TYPES = {
     "image/png",
     "image/webp",
 }
-
-
 
 
 @router.post("/classify")
@@ -229,6 +228,31 @@ async def deposit_item(
         with image_path.open("wb") as buffer:
             buffer.write(image_bytes)
 
+        # 4b. Anti-fraud: perceptual-hash duplicate / reuse check.
+        # Runs before the sensor reading is consumed, so a blocked
+        # duplicate does not waste the user's measurement.
+        try:
+            fp = check_duplicate(db, ImageFingerprint, image_bytes)
+        except Exception:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not read this image. Please upload a valid photo.",
+            )
+
+        if fp["verdict"] == "duplicate":
+            raise HTTPException(
+                status_code=409,
+                detail="This image has already been used for a deposit. "
+                       "Please take a new photo of the item.",
+            )
+
+        if fp["verdict"] == "suspicious":
+            raise HTTPException(
+                status_code=409,
+                detail="This image is too similar to a previous submission. "
+                       "Please take a new photo of the item.",
+            )
+
         # 5. Classify the item using the trained nine-class model.
         classifier_result = classify_image(str(image_path))
         detected_label = str(classifier_result["label"])
@@ -364,6 +388,20 @@ async def deposit_item(
             db.add(segregation_command)
             segregation_command_id = segregation_command.command_id
 
+        # Remember this image only if the reward was actually issued.
+        if is_accepted and reward_result.get("status") == "SUCCESS":
+            db.add(
+                ImageFingerprint(
+                    sha256=fp["hashes"]["sha256"],
+                    phash=fp["hashes"]["phash"],
+                    dhash=fp["hashes"]["dhash"],
+                    wallet_address=wallet_address,
+                    bin_code=bin_record.bin_code,
+                    deposit_id=deposit.id,
+                    status="accepted",
+                )
+            )
+
         db.commit()
         db.refresh(deposit)
 
@@ -378,6 +416,10 @@ async def deposit_item(
             "predicted_label": detected_label,
             "submitted_label": label,
             "confidence": confidence,
+            "image_check": {
+                "verdict": fp["verdict"],
+                "min_hamming_distance": fp["distance"],
+            },
             "stable_weight_g": stable_weight_g,
             "hardware_route_signal": route_signal,
             "fusion_result": fusion_result,
