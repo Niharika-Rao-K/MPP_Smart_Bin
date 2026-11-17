@@ -56,7 +56,7 @@
     "container_type": "Can",
     "volume_ml": 330,
     "typical_empty_weight_g": 14.0,
-    "weight_tolerance_percent": 20,
+    "weight_tolerance_percent": 25,
     "recyclable": true,
     "rate_inr_per_kg": 136.0,
     "rate_source": "ScrapRates.in Bengaluru aluminum scrap reference; UBC beverage-can rate",
