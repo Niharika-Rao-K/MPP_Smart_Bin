@@ -255,23 +255,28 @@ void diagnoseRenderConnection() {
 
   // 4. Verified HTTPS/TLS connection
 
-  Serial.println();
-  Serial.println("Testing verified HTTPS connection on port 443...");
-
   WiFiClientSecure client;
-  client.setCACert(ROOT_CA_PEM);
+client.setCACert(ROOT_CA_PEM);
+client.setTimeout(20000);
 
-  bool connected = client.connect(host, 443);
+Serial.println("Testing verified HTTPS connection on port 443...");
 
-  if (connected) {
-    Serial.println("TLS SUCCESS: Certificate verification passed.");
-    Serial.println("ESP32 connected to Render over verified HTTPS.");
+bool connected = client.connect(host, 443);
 
+if (connected) {
+    Serial.println("TLS CONNECTION SUCCESSFUL.");
     client.stop();
-  } else {
+} else {
     Serial.println("TLS/CONNECTION FAILED.");
-    Serial.println("Could not establish verified HTTPS connection.");
-  }
+
+    char tlsError[256] = {0};
+    int errorCode = client.lastError(tlsError, sizeof(tlsError));
+
+    Serial.printf("TLS error code: %d\n", errorCode);
+    Serial.printf("TLS error details: %s\n", tlsError);
+}
+
+client.stop();
 
   Serial.println("====================================");
   Serial.println("END OF RENDER DIAGNOSTIC");
