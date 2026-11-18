@@ -189,6 +189,96 @@ bool ensureTlsReady() {
   return true;
 }
 
+
+// ============================================================
+// RENDER CONNECTION DIAGNOSTIC
+// DNS + TCP/TLS WITH CA CERTIFICATE VERIFICATION
+// ============================================================
+
+void diagnoseRenderConnection() {
+  const char* host = "mpp-smart-bin.onrender.com";
+
+  Serial.println();
+  Serial.println("====================================");
+  Serial.println("RENDER CONNECTION DIAGNOSTIC");
+  Serial.println("====================================");
+
+  // 1. Wi-Fi information
+
+  Serial.print("Wi-Fi status: ");
+  Serial.println(
+    WiFi.status() == WL_CONNECTED ? "CONNECTED" : "DISCONNECTED"
+  );
+
+  Serial.print("ESP32 IP: ");
+  Serial.println(WiFi.localIP());
+
+  Serial.print("Gateway: ");
+  Serial.println(WiFi.gatewayIP());
+
+  Serial.print("DNS server: ");
+  Serial.println(WiFi.dnsIP(0));
+
+  Serial.print("Wi-Fi RSSI: ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
+
+  // 2. Check system clock
+
+  time_t currentTime = time(nullptr);
+
+  Serial.print("Unix timestamp: ");
+  Serial.println((long)currentTime);
+
+  if (currentTime < 1700000000) {
+    Serial.println("ERROR: TLS clock is not synchronized.");
+    Serial.println("Skipping TLS connection test.");
+    return;
+  }
+
+  // 3. DNS resolution
+
+  Serial.println();
+  Serial.println("Testing DNS resolution...");
+
+  IPAddress resolvedIP;
+
+  int dnsResult = WiFi.hostByName(host, resolvedIP);
+
+  if (dnsResult != 1) {
+    Serial.println("DNS FAILED: ESP32 cannot resolve Render hostname.");
+    return;
+  }
+
+  Serial.print("DNS SUCCESS. Render IP: ");
+  Serial.println(resolvedIP);
+
+  // 4. Verified HTTPS/TLS connection
+
+  Serial.println();
+  Serial.println("Testing verified HTTPS connection on port 443...");
+
+  WiFiClientSecure client;
+  client.setCACert(ROOT_CA_PEM);
+
+  bool connected = client.connect(host, 443);
+
+  if (connected) {
+    Serial.println("TLS SUCCESS: Certificate verification passed.");
+    Serial.println("ESP32 connected to Render over verified HTTPS.");
+
+    client.stop();
+  } else {
+    Serial.println("TLS/CONNECTION FAILED.");
+    Serial.println("Could not establish verified HTTPS connection.");
+  }
+
+  Serial.println("====================================");
+  Serial.println("END OF RENDER DIAGNOSTIC");
+  Serial.println("====================================");
+}
+
+
 // ============================================================
 // 8. SIMPLE JSON STRING FIELD READER
 // ============================================================
@@ -1431,6 +1521,8 @@ void setup() {
     if (!synchronizeClock()) {
       Serial.println("WARNING: TLS clock synchronization failed.");
       Serial.println("HTTPS requests will retry synchronization.");
+    } else {
+      diagnoseRenderConnection();
     }
   }
 
