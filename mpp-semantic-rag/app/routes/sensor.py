@@ -1,4 +1,4 @@
-
+﻿
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -16,7 +16,7 @@ from app.database.models import (
 
 router = APIRouter()
 
-REQUEST_TIMEOUT = timedelta(seconds=90)
+REQUEST_TIMEOUT = timedelta(seconds=180)
 
 
 class WeightReadingRequest(BaseModel):
@@ -30,6 +30,11 @@ class MeasurementRequestBody(BaseModel):
     bin_id: str
 
 
+class ImpactRawSample(BaseModel):
+    t_ms: float = Field(ge=0, le=8000, allow_inf_nan=False)
+    weight_g: float = Field(ge=-100000, le=100000, allow_inf_nan=False)
+
+
 class MeasurementResultBody(BaseModel):
     bin_id: str
     sensor_id: str = "loadcell-01"
@@ -40,6 +45,8 @@ class MeasurementResultBody(BaseModel):
     impact_settling_ms: int | None = Field(default=None, ge=0, le=120000)
     impact_sample_count: int | None = Field(default=None, ge=0, le=1000)
     impact_variation_index: float | None = Field(default=None, ge=0, le=100000)
+    baseline_mean_g: float | None = Field(default=None, ge=-100000, le=100000, allow_inf_nan=False)
+    raw_samples: list[ImpactRawSample] | None = Field(default=None, max_length=100)
 
 
 def utc_now():
@@ -403,6 +410,12 @@ def submit_requested_measurement(
         impact_settling_ms=payload.impact_settling_ms,
         impact_sample_count=payload.impact_sample_count,
         impact_variation_index=payload.impact_variation_index,
+        baseline_mean_g=payload.baseline_mean_g,
+        impact_raw_samples=(
+            [sample.dict() for sample in payload.raw_samples]
+            if payload.raw_samples is not None
+            else None
+        ),
         consumed=False,
         created_at=utc_now(),
     )
@@ -423,6 +436,8 @@ def submit_requested_measurement(
         "impact_settling_ms": reading.impact_settling_ms,
         "impact_sample_count": reading.impact_sample_count,
         "impact_variation_index": reading.impact_variation_index,
+        "baseline_mean_g": reading.baseline_mean_g,
+        "raw_sample_count": len(reading.impact_raw_samples or []),
     }
 
 

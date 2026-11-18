@@ -20,6 +20,8 @@ def ensure_sensor_reading_columns():
         "impact_settling_ms": "INTEGER",
         "impact_sample_count": "INTEGER",
         "impact_variation_index": "FLOAT",
+        "baseline_mean_g": "FLOAT",
+        "impact_raw_samples": "JSON",
     }
 
     with engine.begin() as connection:

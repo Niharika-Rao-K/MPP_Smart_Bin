@@ -41,7 +41,46 @@
     "rate_source_url": "https://scraprates.in/bengaluru/plastic-scrap-price",
     "rate_effective_date": "2026-09-19",
     "region": "Bengaluru, Karnataka, India",
-    "rate_status": "reference"
+    "rate_status": "reference",
+    "mechanical_reference": {
+    "status": "experimental",
+    "feature_version": "V5",
+    "sample_count": 30,
+    "features": {
+            "peak_g": {
+      "min": 1.2602,
+      "p05": 1.3417,
+      "median": 1.6653,
+      "p95": 3.7876,
+      "max": 12.9843,
+      "mad": 0.2738
+    },
+    "early_rms_g": {
+      "min": 0.9811,
+      "p05": 1.0161,
+      "median": 1.2354,
+      "p95": 1.8992,
+      "max": 4.3996,
+      "mad": 0.1539
+    },
+    "area_g_seconds": {
+      "min": 4.6752,
+      "p05": 5.5372,
+      "median": 8.2685,
+      "p95": 11.4100,
+      "max": 14.5636,
+      "mad": 1.3119
+    },
+    "stable_weight_g": {
+      "min": 0.8756,
+      "p05": 0.9454,
+      "median": 1.1339,
+      "p95": 1.3878,
+      "max": 1.5004,
+      "mad": 0.0921
+    }
+  }
+}
   },
   {
     "classifier_label": "diet_coke",
@@ -56,14 +95,53 @@
     "container_type": "Can",
     "volume_ml": 330,
     "typical_empty_weight_g": 14.0,
-    "weight_tolerance_percent": 20,
+    "weight_tolerance_percent": 25,
     "recyclable": true,
     "rate_inr_per_kg": 136.0,
     "rate_source": "ScrapRates.in Bengaluru aluminum scrap reference; UBC beverage-can rate",
     "rate_source_url": "https://scraprates.in/bengaluru/aluminum-scrap-price",
     "rate_effective_date": "2026-09-19",
     "region": "Bengaluru, Karnataka, India",
-    "rate_status": "reference"
+    "rate_status": "reference",
+    "mechanical_reference": {
+  "status": "experimental",
+  "feature_version": "V5",
+  "sample_count": 30,
+  "features": {
+    "peak_g": {
+      "min": 14.8543,
+      "p05": 15.3846,
+      "median": 24.5624,
+      "p95": 70.9593,
+      "max": 86.2722,
+      "mad": 7.1485
+    },
+    "early_rms_g": {
+      "min": 11.6738,
+      "p05": 13.4510,
+      "median": 15.4459,
+      "p95": 28.4130,
+      "max": 39.7540,
+      "mad": 1.2730
+    },
+    "area_g_seconds": {
+      "min": 79.6765,
+      "p05": 86.8280,
+      "median": 110.7268,
+      "p95": 124.9529,
+      "max": 131.5746,
+      "mad": 4.3654
+    },
+    "stable_weight_g": {
+      "min": 9.8478,
+      "p05": 10.4319,
+      "median": 14.0833,
+      "p95": 14.6079,
+      "max": 14.8691,
+      "mad": 0.3277
+    }
+  }
+}
   },
   {
     "classifier_label": "general_metal",
@@ -151,7 +229,62 @@
     "rate_source_url": "https://scraprates.in/bengaluru/e-waste-scrap-price",
     "rate_effective_date": "2026-09-19",
     "region": "Bengaluru, Karnataka, India",
-    "rate_status": "reference"
+    "rate_status": "reference",
+"mechanical_reference": {
+  "status": "experimental",
+  "feature_version": "V5",
+  "sample_count": 50,
+  "features": {
+    "peak_g": {
+      "min": 12.8207,
+      "p05": 14.9038,
+      "median": 17.2007,
+      "p95": 21.8411,
+      "max": 30.1211,
+      "mad": 1.7347
+    },
+    "early_rms_g": {
+      "min": 11.8964,
+      "p05": 13.5675,
+      "median": 14.9391,
+      "p95": 19.4529,
+      "max": 20.2100,
+      "mad": 1.0601
+    },
+    "area_g_seconds": {
+      "min": 82.0084,
+      "p05": 84.5519,
+      "median": 112.6561,
+      "p95": 143.6227,
+      "max": 156.9437,
+      "mad": 9.3097
+    },
+    "stable_weight_g": {
+      "min": 12.3818,
+      "p05": 14.4651,
+      "median": 15.3663,
+      "p95": 19.3744,
+      "max": 19.9902,
+      "mad": 0.6818
+    }
+  },
+  "trial_groups": {
+    "trials_1_35": {
+      "sample_count": 35,
+      "stable_weight_median_g": 15.1019
+    },
+    "trials_36_47": {
+      "sample_count": 12,
+      "stable_weight_median_g": 18.8255
+    },
+    "trials_48_50": {
+      "sample_count": 3,
+      "stable_weight_median_g": 16.5998,
+      "status": "insufficient_samples_for_independent_reference"
+    }
+  },
+  "notes": "Combined reference covers three trial groups with observed measurement shifts. Group 48-50 contains only three trials and is not independently validated."
+}
   },
   {
     "classifier_label": "red_bull_can",

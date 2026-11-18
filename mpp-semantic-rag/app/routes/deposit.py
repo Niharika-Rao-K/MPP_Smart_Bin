@@ -13,17 +13,21 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from app.database.database import get_db
+from app.database.database import get_db, SessionLocal
 from app.database.models import (
     Bin,
     Deposit,
     SensorReading,
     SegregationCommand,
+    MechanicalReferenceAssessment,
 )
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
 from app.services.web3_service import mint_recycling_reward
 from app.services.classifier_selector import classify_image
+from app.services.mechanical_fingerprint_service import (
+    assess_mechanical_fingerprint,
+)
 
 router = APIRouter()
 
@@ -244,6 +248,47 @@ async def deposit_item(
                 ),
             )
 
+        # 5A. Experimental mechanical assessment (SHADOW ONLY).
+        # Snapshot sensor values before the existing transaction commits.
+        # This result is never used by fusion, acceptance, rewards, or routing.
+        mechanical_features = {
+            "stable_weight_g": measured_weight_g,
+            "impact_peak_g": reading.impact_peak_g,
+            "impact_settling_ms": reading.impact_settling_ms,
+            "impact_sample_count": reading.impact_sample_count,
+            "baseline_mean_g": reading.baseline_mean_g,
+            "raw_samples": reading.impact_raw_samples,
+        }
+
+        try:
+            mechanical_assessment = assess_mechanical_fingerprint(
+                image_label=detected_label,
+                stable_weight_g=mechanical_features["stable_weight_g"],
+                impact_peak_g=mechanical_features["impact_peak_g"],
+                impact_settling_ms=mechanical_features["impact_settling_ms"],
+                impact_sample_count=mechanical_features["impact_sample_count"],
+                baseline_mean_g=mechanical_features["baseline_mean_g"],
+                raw_samples=mechanical_features["raw_samples"],
+            )
+        except Exception as exc:
+            # Experimental reference assessment must never interrupt a deposit.
+            mechanical_assessment = {
+                "model_name": "item_specific_mechanical_reference",
+                "model_version": "four_feature_reference_v1",
+                "status": "ASSESSMENT_ERROR",
+                "assessment_mode": "SHADOW_ONLY",
+                "image_label": detected_label.strip().lower(),
+                "image_expected_class": None,
+                "mechanical_agreement": None,
+                "extracted_features": None,
+                "feature_comparisons": None,
+                "matched_feature_count": None,
+                "total_feature_count": 4,
+                "reason": str(exc)[:500],
+            }
+
+        mechanical_assessment["persistence_status"] = "NOT_ATTEMPTED"
+
         # 6. Atomically claim this reading before reward processing.
         # Only one request can change consumed from False to True.
         claimed_count = (
@@ -367,6 +412,76 @@ async def deposit_item(
         db.commit()
         db.refresh(deposit)
 
+        # 9A. Persist the experimental reference assessment independently.
+        # A failure here must not roll back or fail the successful deposit.
+        assessment_db = None
+
+        try:
+            assessment_db = SessionLocal()
+
+            extracted = mechanical_assessment.get("extracted_features") or {}
+
+            assessment_db.add(
+                MechanicalReferenceAssessment(
+                    reading_id=reading_id,
+                    deposit_id=deposit.id,
+                    model_name=mechanical_assessment["model_name"],
+                    model_version=mechanical_assessment["model_version"],
+                    status=mechanical_assessment["status"],
+                    assessment_mode=mechanical_assessment.get(
+                        "assessment_mode", "SHADOW_ONLY"
+                    ),
+                    image_label=mechanical_assessment["image_label"],
+                    image_expected_class=mechanical_assessment.get(
+                        "image_expected_class"
+                    ),
+                    mechanical_agreement=mechanical_assessment.get(
+                        "mechanical_agreement"
+                    ),
+                    stable_weight_g=mechanical_features["stable_weight_g"],
+                    baseline_mean_g=mechanical_features["baseline_mean_g"],
+                    impact_peak_g=mechanical_features["impact_peak_g"],
+                    impact_settling_ms=mechanical_features["impact_settling_ms"],
+                    impact_sample_count=mechanical_features["impact_sample_count"],
+                    peak_g=extracted.get("peak_g"),
+                    early_rms_g=extracted.get("early_rms_g"),
+                    area_g_seconds=extracted.get("area_g_seconds"),
+                    extracted_features=mechanical_assessment.get(
+                        "extracted_features"
+                    ),
+                    feature_comparisons=mechanical_assessment.get(
+                        "feature_comparisons"
+                    ),
+                    matched_feature_count=mechanical_assessment.get(
+                        "matched_feature_count"
+                    ),
+                    total_feature_count=mechanical_assessment.get(
+                        "total_feature_count"
+                    ),
+                    reason=mechanical_assessment.get("reason"),
+                )
+            )
+
+            assessment_db.commit()
+            mechanical_assessment["persistence_status"] = "SAVED"
+
+        except Exception as exc:
+            if assessment_db is not None:
+                try:
+                    assessment_db.rollback()
+                except Exception:
+                    pass
+
+            mechanical_assessment["persistence_status"] = "FAILED"
+            mechanical_assessment["persistence_error"] = str(exc)[:300]
+
+        finally:
+            if assessment_db is not None:
+                try:
+                    assessment_db.close()
+                except Exception:
+                    pass
+
         # 10. Return the evaluation to the frontend.
         return {
             "transaction_id": transaction_id,
@@ -379,6 +494,7 @@ async def deposit_item(
             "submitted_label": label,
             "confidence": confidence,
             "stable_weight_g": stable_weight_g,
+            "mechanical_assessment": mechanical_assessment,
             "hardware_route_signal": route_signal,
             "fusion_result": fusion_result,
             "matched_item": fusion_result.get("matched_item"),

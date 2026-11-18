@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
@@ -195,6 +196,8 @@ class SensorReading(Base):
     impact_settling_ms = Column(Integer, nullable=True)
     impact_sample_count = Column(Integer, nullable=True)
     impact_variation_index = Column(Float, nullable=True)
+    baseline_mean_g = Column(Float, nullable=True)
+    impact_raw_samples = Column(JSON, nullable=True)
 
     consumed = Column(
         Boolean,
@@ -302,4 +305,65 @@ class SegregationCommand(Base):
     completed_at = Column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+
+class MechanicalReferenceAssessment(Base):
+    """
+    Stores exact-image-label mechanical reference comparisons.
+
+    This is a direct experimental reference cross-check, not an ML model.
+    Results remain shadow-only and do not control deposit decisions.
+    """
+
+    __tablename__ = "mechanical_reference_assessments"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    reading_id = Column(
+        String,
+        ForeignKey("sensor_readings.reading_id"),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    deposit_id = Column(
+        Integer,
+        ForeignKey("deposits.id"),
+        nullable=True,
+        index=True,
+    )
+
+    model_name = Column(String(100), nullable=False)
+    model_version = Column(String(100), nullable=False)
+    status = Column(String(40), nullable=False, index=True)
+    assessment_mode = Column(String(30), nullable=False, default="SHADOW_ONLY")
+
+    image_label = Column(String(100), nullable=False)
+    image_expected_class = Column(String(50), nullable=True)
+    mechanical_agreement = Column(Boolean, nullable=True)
+
+    stable_weight_g = Column(Float, nullable=True)
+    baseline_mean_g = Column(Float, nullable=True)
+    impact_peak_g = Column(Float, nullable=True)
+    impact_settling_ms = Column(Integer, nullable=True)
+    impact_sample_count = Column(Integer, nullable=True)
+
+    peak_g = Column(Float, nullable=True)
+    early_rms_g = Column(Float, nullable=True)
+    area_g_seconds = Column(Float, nullable=True)
+
+    extracted_features = Column(JSON, nullable=True)
+    feature_comparisons = Column(JSON, nullable=True)
+
+    matched_feature_count = Column(Integer, nullable=True)
+    total_feature_count = Column(Integer, nullable=True)
+
+    reason = Column(String(500), nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
