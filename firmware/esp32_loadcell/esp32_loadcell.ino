@@ -45,9 +45,9 @@ const unsigned long RELEASE_HOLD_MS = 4000UL;
 // ============================================================
 
 // LOCAL TESTING:
-const char* API_BASE_URL = "https://10.165.119.195:8000";
+//const char* API_BASE_URL = "https://10.165.119.195:8000";
 
-//const char* API_BASE_URL = "https://mpp-smart-bin.onrender.com";
+const char* API_BASE_URL = "https://mpp-smart-bin.onrender.com";
 
 const char* BIN_ID = "BIN001";
 const char* SENSOR_ID = "loadcell-01";
