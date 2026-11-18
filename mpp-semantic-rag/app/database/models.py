@@ -297,3 +297,58 @@ class SegregationCommand(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+
+
+class ImageFingerprint(Base):
+    """Perceptual-hash record of an accepted deposit image (anti-fraud)."""
+    __tablename__ = "image_fingerprints"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    sha256 = Column(
+        String(64),
+        nullable=False,
+        index=True,
+    )
+
+    phash = Column(
+        String(16),
+        nullable=False,
+        index=True,
+    )
+
+    dhash = Column(
+        String(16),
+        nullable=True,
+    )
+
+    wallet_address = Column(
+        String(100),
+        nullable=True,
+        index=True,
+    )
+
+    bin_code = Column(
+        String(50),
+        nullable=True,
+    )
+
+    deposit_id = Column(
+        Integer,
+        ForeignKey("deposits.id"),
+        nullable=True,
+    )
+
+    status = Column(
+        String(10),
+        default="accepted",
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
