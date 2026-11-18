@@ -295,7 +295,6 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
 
             <div class="relative z-10 shrink-0 mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-medium text-slate-400">
               <span><i class="fa-solid fa-network-wire text-emerald-400 mr-1"></i> Signal: <strong id="bin-route-display" class="text-white">Awaiting AI analysis</strong></span>
-              <span><i class="fa-solid fa-coins text-amber-400 mr-1"></i> Dynamic RAG Scoring Active</span>
             </div>
           </div>
 
@@ -387,7 +386,7 @@ class="relative isolate w-full h-[600px] shrink-0 rounded-xl overflow-hidden bg-
     const API_BASE_URL =
         window.location.hostname === "localhost" ||
         window.location.hostname === "127.0.0.1"
-          ? "http://127.0.0.1:8000"
+          ? "https://10.165.119.195:8000"
           : "https://mpp-smart-bin.onrender.com";
 
 
@@ -766,7 +765,6 @@ function updateDetectionPreview(data) {
   const tagElem = document.getElementById('category-tag');
   const routeElem = document.getElementById('bin-route-display');
 
-  // Do not access properties if detection data is missing.
   if (!data || typeof data !== 'object') {
     tagElem.innerText = 'ANALYSIS FAILED';
     routeElem.innerText = 'Unable to analyze image';
@@ -775,23 +773,91 @@ function updateDetectionPreview(data) {
 
   const detectedCategory = data.predicted_label || 'Unknown';
   const route = data.hardware_route_signal || 'R';
-
   const routeNames = {
     P: 'P (Plastic)',
     M: 'M (Metal)',
     E: 'E (E-Waste)',
     R: 'R (Reject)'
   };
-
   const isAccepted = data.status === 'SUCCESS';
 
   tagElem.innerText = isAccepted
     ? detectedCategory.toUpperCase()
     : 'REJECTED';
+  routeElem.innerText = isAccepted
+    ? (routeNames[route] || 'Route pending')
+    : 'R (Reject) — item must be removed manually';
 
-  routeElem.innerText = routeNames[route] || 'R (Reject)';
+  // Render the enforced four-feature mechanical assessment.
+  let panel = document.getElementById('mechanical-assessment-display');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'mechanical-assessment-display';
+    panel.className = 'mt-3 rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm';
+    routeElem.parentElement.appendChild(panel);
+  }
+  panel.replaceChildren();
+
+  const heading = document.createElement('div');
+  heading.className = 'font-bold mb-2';
+  const assessment = data.mechanical_assessment || {};
+  const comparisons = assessment.feature_comparisons || {};
+  const passed = assessment.status === 'MECHANICAL_PASSED' &&
+    assessment.mechanical_agreement === true &&
+    assessment.matched_feature_count === 4;
+  heading.textContent = `Mechanical validation: ${passed ? '4/4 PASSED' : `${assessment.matched_feature_count ?? 0}/4 PASSED — REJECTED`}`;
+  heading.className += passed ? ' text-emerald-400' : ' text-rose-400';
+  panel.appendChild(heading);
+
+  const featureLabels = {
+    peak_g: 'Impact peak (g)',
+    early_rms_g: 'Early RMS (g)',
+    area_g_seconds: 'Impact area (g·s)',
+    stable_weight_g: 'Stable weight (g)'
+  };
+
+  Object.entries(featureLabels).forEach(([key, label]) => {
+    const result = comparisons[key];
+    const row = document.createElement('div');
+    row.className = 'py-1 border-t border-slate-800';
+    if (!result) {
+      row.textContent = `${label}: NOT VERIFIED`;
+    } else {
+      const status = result.within_reference_range ? 'PASS' : 'FAIL';
+      row.textContent =
+        `${status} — ${label}: observed ${Number(result.observed).toFixed(4)}; ` +
+        `allowed ${Number(result.p05).toFixed(4)} to ${Number(result.comparison_upper).toFixed(4)}`;
+      row.className += result.within_reference_range
+        ? ' text-emerald-300'
+        : ' text-rose-300';
+    }
+    panel.appendChild(row);
+  });
+
+  const assessmentReason = assessment.reason ||
+    (passed ? 'All mechanical checks passed.' : 'Mechanical reference data is missing or invalid.');
+
+  const reason = document.createElement('p');
+  reason.className = 'mt-2 text-slate-300';
+  reason.textContent = assessmentReason;
+  panel.appendChild(reason);
+
+  if (!isAccepted && Array.isArray(data.rejection_reasons)) {
+    const uniqueReasons = [...new Set(
+      data.rejection_reasons
+        .filter(message => typeof message === 'string')
+        .map(message => message.trim())
+        .filter(Boolean)
+    )].filter(message => message !== String(assessmentReason).trim());
+
+    uniqueReasons.forEach((message) => {
+      const item = document.createElement('p');
+      item.className = 'mt-1 text-rose-300';
+      item.textContent = message;
+      panel.appendChild(item);
+    });
+  }
 }
-
 
 function setSensorStatus(message, weight = null) {
   const statusElem = document.getElementById('sensor-status');
@@ -1128,9 +1194,24 @@ async function handleDeposit(e) {
     }
 
     if (!isAccepted) {
+      const rawReasons = Array.isArray(data.rejection_reasons)
+        ? data.rejection_reasons
+        : [];
+      // Avoid showing the same rejection explanation more than once.
+      const reasons = [...new Set(
+        rawReasons
+          .filter((message) => typeof message === 'string')
+          .map((message) => message.trim())
+          .filter(Boolean)
+      )];
       alert(
-        data.fusion_result?.action ||
-        'Item rejected. No tokens were minted.'
+        'ITEM REJECTED — NO REWARD MINTED.\n\n' +
+        (reasons.length
+          ? reasons.join('\n')
+          : (data.mechanical_assessment?.reason ||
+             data.fusion_result?.action ||
+             'Mechanical validation or another eligibility check failed.')) +
+        '\n\nPlease remove the item manually from the load-cell tray.'
       );
     } else if (data.web3_reward?.status !== 'SUCCESS' && !txHash) {
       alert(

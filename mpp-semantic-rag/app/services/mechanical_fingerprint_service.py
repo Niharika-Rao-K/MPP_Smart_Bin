@@ -168,31 +168,60 @@ def _compare_with_reference(features: dict, reference: dict) -> dict:
             raise ValueError(f"Missing reference feature: {feature_name}")
 
         lower = statistics.get("p05")
-        upper = statistics.get("p95")
+        empirical_upper = statistics.get("p95")
         median = statistics.get("median")
         mad = statistics.get("mad")
+        configured_upper = statistics.get("upper_limit_g")
 
         if not all(
             _finite_number(value)
-            for value in (lower, upper, median, mad)
+            for value in (lower, empirical_upper, median, mad)
         ):
             raise ValueError(f"Invalid reference statistics: {feature_name}")
 
         lower = float(lower)
-        upper = float(upper)
+        empirical_upper = float(empirical_upper)
         median = float(median)
         mad = float(mad)
 
-        if lower > upper or mad < 0:
+        if lower > empirical_upper or mad < 0:
             raise ValueError(f"Invalid reference range: {feature_name}")
+
+        # Use an operational upper limit only when explicitly configured.
+        # Otherwise, retain the original experimental P95 as the upper bound.
+        if configured_upper is not None:
+            if not _finite_number(configured_upper):
+                raise ValueError(
+                    f"Invalid operational upper limit: {feature_name}"
+                )
+
+            comparison_upper = float(configured_upper)
+
+            if comparison_upper < lower:
+                raise ValueError(
+                    f"Operational upper limit is below P05: {feature_name}"
+                )
+        else:
+            comparison_upper = empirical_upper
 
         comparisons[feature_name] = {
             "observed": round(observed, 6),
             "p05": lower,
             "median": median,
-            "p95": upper,
+            "p95": empirical_upper,
             "mad": mad,
-            "within_reference_range": lower <= observed <= upper,
+            "comparison_upper": comparison_upper,
+            "operational_upper_limit_g": (
+                float(configured_upper)
+                if configured_upper is not None
+                else None
+            ),
+            "within_reference_range": (
+                lower <= observed <= comparison_upper
+            ),
+            "status": (
+                "PASS" if lower <= observed <= comparison_upper else "FAIL"
+            ),
         }
 
     matched_count = sum(
@@ -221,8 +250,8 @@ def assess_mechanical_fingerprint(
     """
     Four-feature, exact-image-label mechanical reference assessment.
 
-    This is SHADOW ONLY. Its result must not control deposit acceptance,
-    rewards, or hardware routing until separately validated and enabled.
+    Enforced four-feature comparison against the exact item's stored reference.
+    A missing reference or invalid measurement is a failed assessment.
     """
 
     normalized_label = str(image_label or "").strip().lower()
@@ -231,7 +260,7 @@ def assess_mechanical_fingerprint(
         "model_name": "item_specific_mechanical_reference",
         "model_version": "four_feature_reference_v1",
         "status": None,
-        "assessment_mode": "SHADOW_ONLY",
+        "assessment_mode": "ENFORCED",
         "image_label": normalized_label,
         "predicted_material_class": None,
         "image_expected_class": SUPPORTED_LABELS.get(normalized_label),
@@ -248,8 +277,11 @@ def assess_mechanical_fingerprint(
     if normalized_label not in SUPPORTED_LABELS:
         return {
             **base_result,
-            "status": "NOT_APPLICABLE",
-            "reason": "Image label is outside the three available mechanical references.",
+            "status": "REFERENCE_NOT_FOUND",
+            "reason": (
+                f"No mechanical reference is configured for '{normalized_label}'. "
+                "This item cannot receive a reward until its reference is validated."
+            ),
         }
 
     try:
@@ -278,7 +310,7 @@ def assess_mechanical_fingerprint(
 
         return {
             **base_result,
-            "status": "SHADOW_ASSESSED",
+            "status": "MECHANICAL_PASSED" if agreement else "MECHANICAL_REJECTED",
             "mechanical_agreement": agreement,
             "extracted_features": {
                 name: round(value, 6)
@@ -286,10 +318,33 @@ def assess_mechanical_fingerprint(
             },
             "feature_comparisons": comparison["feature_comparisons"],
             "matched_feature_count": comparison["matched_feature_count"],
+            "failed_features": [
+                name
+                for name, result in comparison["feature_comparisons"].items()
+                if not result["within_reference_range"]
+            ],
+            "rejection_reasons": [
+                (
+                    f"{name}: observed {result['observed']:.4f}; "
+                    f"allowed {result['p05']:.4f} to "
+                    f"{result['comparison_upper']:.4f}."
+                )
+                for name, result in comparison["feature_comparisons"].items()
+                if not result["within_reference_range"]
+            ],
             "reason": (
-                "All four features are within the stored P5-P95 ranges."
+                "All four mechanical features passed their item-specific limits."
                 if agreement
-                else "One or more features are outside the stored P5-P95 ranges."
+                else "Mechanical validation failed: "
+                     + "; ".join(
+                         f"{name}={comparison['feature_comparisons'][name]['observed']:.4f} "
+                         f"(allowed {comparison['feature_comparisons'][name]['p05']:.4f}-"
+                         f"{comparison['feature_comparisons'][name]['comparison_upper']:.4f})"
+                         for name in (
+                             name for name, result in comparison["feature_comparisons"].items()
+                             if not result["within_reference_range"]
+                         )
+                     )
             ),
         }
 

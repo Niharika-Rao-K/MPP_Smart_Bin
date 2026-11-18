@@ -46,8 +46,8 @@ class MechanicalFingerprintServiceTests(unittest.TestCase):
                 impact_sample_count=10,
             )
 
-        self.assertEqual(result["status"], "SHADOW_ASSESSED")
-        self.assertEqual(result["assessment_mode"], "SHADOW_ONLY")
+        self.assertEqual(result["status"], "MECHANICAL_PASSED")
+        self.assertEqual(result["assessment_mode"], "ENFORCED")
         self.assertEqual(result["image_label"], "diet_coke")
         self.assertEqual(result["image_expected_class"], "Metal")
         self.assertTrue(result["mechanical_agreement"])
@@ -57,6 +57,34 @@ class MechanicalFingerprintServiceTests(unittest.TestCase):
             set(result["extracted_features"]),
             {"peak_g", "early_rms_g", "area_g_seconds", "stable_weight_g"},
         )
+
+    def test_one_feature_outside_reference_rejects_four_feature_assessment(self):
+        reference_features = {
+            "peak_g": 24.5624,
+            "early_rms_g": 15.4459,
+            "area_g_seconds": 110.7268,
+            "stable_weight_g": 14.0833,
+        }
+        reference_features["peak_g"] = 1000.0
+
+        with patch.object(
+            mechanical_service,
+            "_extract_features",
+            return_value=reference_features,
+        ):
+            result = assess_mechanical_fingerprint(
+                image_label="diet_coke",
+                stable_weight_g=14.0833,
+                baseline_mean_g=0.0,
+                raw_samples=[{"t_ms": i * 100, "weight_g": 0.0} for i in range(10)],
+                impact_sample_count=10,
+            )
+
+        self.assertEqual(result["status"], "MECHANICAL_REJECTED")
+        self.assertFalse(result["mechanical_agreement"])
+        self.assertEqual(result["matched_feature_count"], 3)
+        self.assertEqual(result["failed_features"], ["peak_g"])
+        self.assertEqual(len(result["rejection_reasons"]), 1)
 
     def test_ram_stick_uses_its_exact_reference(self):
         reference_median_features = {
@@ -79,8 +107,8 @@ class MechanicalFingerprintServiceTests(unittest.TestCase):
                 impact_sample_count=10,
             )
 
-        self.assertEqual(result["status"], "SHADOW_ASSESSED")
-        self.assertEqual(result["assessment_mode"], "SHADOW_ONLY")
+        self.assertEqual(result["status"], "MECHANICAL_PASSED")
+        self.assertEqual(result["assessment_mode"], "ENFORCED")
         self.assertEqual(result["image_label"], "ram_stick")
         self.assertEqual(result["image_expected_class"], "E-Waste")
         self.assertTrue(result["mechanical_agreement"])
@@ -100,7 +128,7 @@ class MechanicalFingerprintServiceTests(unittest.TestCase):
                     stable_weight_g=14.0,
                     impact_sample_count=72,
                 )
-                self.assertEqual(result["status"], "NOT_APPLICABLE")
+                self.assertEqual(result["status"], "REFERENCE_NOT_FOUND")
 
     def test_missing_raw_samples_is_insufficient_data(self):
         result = assess_mechanical_fingerprint(
@@ -233,8 +261,8 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         return {
             "model_name": "item_specific_mechanical_reference",
             "model_version": "four_feature_reference_v1",
-            "status": "SHADOW_ASSESSED",
-            "assessment_mode": "SHADOW_ONLY",
+            "status": "MECHANICAL_REJECTED",
+            "assessment_mode": "ENFORCED",
             "image_label": "diet_coke",
             "image_expected_class": "Metal",
             "mechanical_agreement": False,
@@ -335,8 +363,8 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         self.assertEqual(body["hardware_route_signal"], "M")
 
         assessment = body["mechanical_assessment"]
-        self.assertEqual(assessment["status"], "SHADOW_ASSESSED")
-        self.assertEqual(assessment["assessment_mode"], "SHADOW_ONLY")
+        self.assertEqual(assessment["status"], "MECHANICAL_PASSED")
+        self.assertEqual(assessment["assessment_mode"], "ENFORCED")
         self.assertTrue(assessment["mechanical_agreement"])
         self.assertEqual(assessment["matched_feature_count"], 4)
         self.assertEqual(assessment["total_feature_count"], 4)
@@ -356,8 +384,8 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
                 .one()
             )
 
-            self.assertEqual(saved.status, "SHADOW_ASSESSED")
-            self.assertEqual(saved.assessment_mode, "SHADOW_ONLY")
+            self.assertEqual(saved.status, "MECHANICAL_PASSED")
+            self.assertEqual(saved.assessment_mode, "ENFORCED")
             self.assertTrue(saved.mechanical_agreement)
             self.assertEqual(saved.matched_feature_count, 4)
             self.assertEqual(saved.total_feature_count, 4)
@@ -409,16 +437,16 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
 
-        self.assertEqual(body["status"], "SUCCESS")
-        self.assertEqual(body["hardware_route_signal"], "M")
+        self.assertEqual(body["status"], "REJECTED")
+        self.assertIsNone(body["segregation_command_id"])
         self.assertEqual(
             body["fusion_result"]["hardware_route_signal"],
             "M",
         )
 
         assessment = body["mechanical_assessment"]
-        self.assertEqual(assessment["status"], "SHADOW_ASSESSED")
-        self.assertEqual(assessment["assessment_mode"], "SHADOW_ONLY")
+        self.assertEqual(assessment["status"], "MECHANICAL_REJECTED")
+        self.assertEqual(assessment["assessment_mode"], "ENFORCED")
         self.assertFalse(assessment["mechanical_agreement"])
         self.assertEqual(assessment["matched_feature_count"], 3)
         self.assertEqual(assessment["total_feature_count"], 4)
@@ -428,7 +456,7 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         try:
             saved_deposit = db.query(Deposit).one()
             saved_assessment = db.query(MechanicalReferenceAssessment).one()
-            command = db.query(SegregationCommand).one()
+            self.assertEqual(db.query(SegregationCommand).count(), 0)
             reading = (
                 db.query(SensorReading)
                 .filter_by(reading_id="TEST-READING-001")
@@ -436,7 +464,6 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
             )
 
             self.assertEqual(saved_deposit.hardware_route_signal, "M")
-            self.assertEqual(command.route_signal, "M")
             self.assertTrue(reading.consumed)
             self.assertEqual(
                 saved_assessment.model_name,
@@ -444,7 +471,7 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
             )
             self.assertEqual(
                 saved_assessment.assessment_mode,
-                "SHADOW_ONLY",
+                "ENFORCED",
             )
             self.assertFalse(saved_assessment.mechanical_agreement)
             self.assertEqual(saved_assessment.matched_feature_count, 3)
@@ -453,6 +480,43 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
                 saved_assessment.deposit_id,
                 saved_deposit.id,
             )
+        finally:
+            db.close()
+
+    def test_mechanical_failure_prevents_reward_and_segregation(self):
+        with (
+            patch.object(
+                deposit_route,
+                "classify_image",
+                return_value={"label": "diet_coke", "confidence": 0.99},
+            ),
+            patch.object(
+                deposit_route,
+                "assess_mechanical_fingerprint",
+                return_value=self.assessment_disagrees_with_image(),
+            ),
+            patch.object(
+                deposit_route,
+                "sensor_fusion",
+                return_value=self.accepted_fusion_result(),
+            ),
+            patch.object(deposit_route, "calculate_reward") as calculate_mock,
+            patch.object(deposit_route, "mint_recycling_reward") as mint_mock,
+        ):
+            response = self.submit_deposit()
+
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertEqual(body["status"], "REJECTED")
+        self.assertEqual(body["calculated_credits"], 0.0)
+        self.assertIsNone(body["segregation_command_id"])
+        self.assertTrue(body["rejection_reasons"])
+        calculate_mock.assert_not_called()
+        mint_mock.assert_not_called()
+
+        db = self.TestSessionLocal()
+        try:
+            self.assertEqual(db.query(SegregationCommand).count(), 0)
         finally:
             db.close()
 
@@ -495,8 +559,8 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
 
-        self.assertEqual(body["status"], "SUCCESS")
-        self.assertEqual(body["hardware_route_signal"], "M")
+        self.assertEqual(body["status"], "REJECTED")
+        self.assertIsNone(body["segregation_command_id"])
         self.assertEqual(
             body["mechanical_assessment"]["status"],
             "ASSESSMENT_ERROR",
@@ -509,10 +573,11 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         db = self.TestSessionLocal()
         try:
             self.assertEqual(db.query(Deposit).count(), 1)
+            self.assertEqual(db.query(SegregationCommand).count(), 0)
             self.assertEqual(db.query(MechanicalReferenceAssessment).count(), 1)
             saved_assessment = db.query(MechanicalReferenceAssessment).one()
             self.assertEqual(saved_assessment.status, "ASSESSMENT_ERROR")
-            self.assertEqual(saved_assessment.assessment_mode, "SHADOW_ONLY")
+            self.assertEqual(saved_assessment.assessment_mode, "ENFORCED")
         finally:
             db.close()
 
@@ -560,8 +625,8 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
 
-        self.assertEqual(body["status"], "SUCCESS")
-        self.assertEqual(body["hardware_route_signal"], "M")
+        self.assertEqual(body["status"], "REJECTED")
+        self.assertIsNone(body["segregation_command_id"])
         self.assertEqual(
             body["mechanical_assessment"]["persistence_status"],
             "FAILED",
@@ -570,7 +635,7 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         db = self.TestSessionLocal()
         try:
             self.assertEqual(db.query(Deposit).count(), 1)
-            self.assertEqual(db.query(SegregationCommand).count(), 1)
+            self.assertEqual(db.query(SegregationCommand).count(), 0)
             self.assertEqual(db.query(MechanicalReferenceAssessment).count(), 0)
         finally:
             db.close()

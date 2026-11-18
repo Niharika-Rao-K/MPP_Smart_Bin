@@ -3,9 +3,12 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <math.h>
+#include <time.h>
+
 #include "HX711.h"
 #include "secrets.h"
 #include <ESP32Servo.h>
+#include "root_ca.h"
 
 // ============================================================
 // 1. HX711 CONNECTIONS
@@ -15,7 +18,7 @@ const int LOADCELL_DOUT_PIN = 4;
 const int LOADCELL_SCK_PIN = 5;
 
 HX711 scale;
-float calibration_factor = 220;
+float calibration_factor = 220.0f;
 
 // ============================================================
 // 2. SEGREGATION SERVOS
@@ -27,14 +30,9 @@ const int TILT_SERVO_PIN = 19;
 Servo panServo;
 Servo tiltServo;
 
-// Physical layout viewed from the front:
-// Metal = left, E-waste = center, Plastic = right.
-//
-// These are INITIAL angles. Calibrate with an empty tray.
-
-const int PAN_LEFT_ANGLE = 60;       // Metal (M)
-const int PAN_CENTER_ANGLE = 90;     // E-waste (E)
-const int PAN_RIGHT_ANGLE = 120;     // Plastic (P)
+const int PAN_LEFT_ANGLE = 60;       // Metal
+const int PAN_CENTER_ANGLE = 90;     // E-waste
+const int PAN_RIGHT_ANGLE = 120;     // Plastic
 
 const int TILT_HOME_ANGLE = 90;
 const int TILT_RELEASE_ANGLE = 130;
@@ -46,10 +44,10 @@ const unsigned long RELEASE_HOLD_MS = 4000UL;
 // 3. BACKEND SETTINGS
 // ============================================================
 
-// Change this if your computer's LAN IP changes.
-// The ESP32 and local backend must be on a reachable network.
+// LOCAL TESTING:
+const char* API_BASE_URL = "https://10.165.119.195:8000";
 
-const char* API_BASE_URL = "https://mpp-smart-bin.onrender.com";
+//const char* API_BASE_URL = "https://mpp-smart-bin.onrender.com";
 
 const char* BIN_ID = "BIN001";
 const char* SENSOR_ID = "loadcell-01";
@@ -60,25 +58,31 @@ const char* SENSOR_ID = "loadcell-01";
 
 const unsigned long WIFI_TIMEOUT_MS = 30000UL;
 const unsigned long POLL_INTERVAL_MS = 3000UL;
+
 const unsigned long MEASUREMENT_DURATION_MS = 30000UL;
-const unsigned long READING_INTERVAL_MS = 300UL;
 const unsigned long HTTP_TIMEOUT_MS = 15000UL;
 
-double totalWeight = 0.0;
-unsigned long validReadingCount = 0;
-
 // ============================================================
-// MECHANICAL IMPACT FINGERPRINTING
+// 5. MECHANICAL IMPACT FINGERPRINTING
+// MATCHED TO EXPERIMENTAL LOGGER
 // ============================================================
 
-// At approximately 9 SPS, 2500 ms should collect around
-// 20–25 readings. The larger array provides some headroom.
-const unsigned long IMPACT_CAPTURE_DURATION_MS = 2500UL;
-const int MAX_IMPACT_SAMPLES = 64;
+const int BASELINE_SAMPLE_COUNT = 20;
 
-// Three consecutive readings must be close to the final
-// 30-second average to count as settled.
+const unsigned long BASELINE_TIMEOUT_MS = 15000UL;
+const unsigned long PLACEMENT_TIMEOUT_MS = 60000UL;
+
+const float MIN_TRIGGER_THRESHOLD_G = 0.5f;
+const float BASELINE_NOISE_MULTIPLIER = 5.0f;
+
+const unsigned long IMPACT_CAPTURE_DURATION_MS = 8000UL;
+const int MAX_IMPACT_SAMPLES = 100;
+
 const int SETTLING_CONSECUTIVE_SAMPLES = 3;
+
+float baselineMean = 0.0f;
+float baselineSD = 0.0f;
+float placementThreshold = 0.5f;
 
 struct ImpactFeatures {
   float peakWeightG;
@@ -91,7 +95,7 @@ float impactWeights[MAX_IMPACT_SAMPLES];
 unsigned long impactTimestamps[MAX_IMPACT_SAMPLES];
 
 // ============================================================
-// 5. WI-FI CONNECTION
+// 6. WI-FI CONNECTION
 // ============================================================
 
 bool connectToWiFi() {
@@ -103,12 +107,13 @@ bool connectToWiFi() {
 
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
+
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  unsigned long start = millis();
+  unsigned long started = millis();
 
   while (WiFi.status() != WL_CONNECTED &&
-         millis() - start < WIFI_TIMEOUT_MS) {
+         millis() - started < WIFI_TIMEOUT_MS) {
     delay(250);
     Serial.print(".");
   }
@@ -117,8 +122,10 @@ bool connectToWiFi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Wi-Fi connected.");
+
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+
     return true;
   }
 
@@ -127,22 +134,81 @@ bool connectToWiFi() {
 }
 
 // ============================================================
-// 6. SIMPLE JSON STRING FIELD READER
+// 7. TLS CLOCK SYNCHRONIZATION
 // ============================================================
 
-// Intended for simple JSON string fields such as status,
-// request_id, command_id and route_signal.
+bool synchronizeClock() {
+  Serial.println("Synchronizing clock for TLS verification...");
+
+  configTime(
+    0,
+    0,
+    "pool.ntp.org",
+    "time.google.com"
+  );
+
+  struct tm timeInfo;
+
+  if (!getLocalTime(&timeInfo, 15000)) {
+    Serial.println("ERROR: Could not synchronize system time.");
+    return false;
+  }
+
+  Serial.print("Synchronized time: ");
+  Serial.println(&timeInfo, "%Y-%m-%d %H:%M:%S");
+
+  return true;
+}
+
+// ============================================================
+// ENSURE WI-FI AND TLS CLOCK ARE READY BEFORE HTTPS
+// ============================================================
+
+bool ensureTlsReady() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Wi-Fi disconnected. Reconnecting...");
+
+    if (!connectToWiFi()) {
+      Serial.println("HTTPS cancelled: Wi-Fi unavailable.");
+      return false;
+    }
+  }
+
+  // 1700000000 corresponds to November 2023.
+  // A clock earlier than this is treated as unsynchronized.
+
+  if (time(nullptr) < 1700000000) {
+    Serial.println("TLS clock is not synchronized.");
+
+    if (!synchronizeClock()) {
+      Serial.println("HTTPS cancelled: TLS clock unavailable.");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// ============================================================
+// 8. SIMPLE JSON STRING FIELD READER
+// ============================================================
+
+// Intended for simple string fields such as:
+// status, request_id, command_id and route_signal.
+//
 // This is not a general-purpose JSON parser.
 
 String getJsonString(String json, const char* key) {
   String searchKey = "\"" + String(key) + "\"";
 
   int keyPosition = json.indexOf(searchKey);
+
   if (keyPosition < 0) {
     return "";
   }
 
   int colonPosition = json.indexOf(':', keyPosition);
+
   if (colonPosition < 0) {
     return "";
   }
@@ -165,6 +231,7 @@ String getJsonString(String json, const char* key) {
   valueStart++;
 
   int valueEnd = json.indexOf('"', valueStart);
+
   if (valueEnd < 0) {
     return "";
   }
@@ -173,18 +240,23 @@ String getJsonString(String json, const char* key) {
 }
 
 // ============================================================
-// 7. HTTP GET HELPER
+// 9. HTTP GET HELPER
+// ALL HTTPS REQUESTS USE CA VERIFICATION
 // ============================================================
 
 bool httpGetJson(const String& url, String& response) {
-  WiFiClientSecure client;
-  client.setInsecure();
-  HTTPClient http;
+  if (!ensureTlsReady()) {
+    return false;
+  }
 
+  WiFiClientSecure client;
+  client.setCACert(ROOT_CA_PEM);
+
+  HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   if (!http.begin(client, url)) {
-    Serial.println("Could not initialize HTTP GET.");
+    Serial.println("Could not initialize HTTPS GET.");
     return false;
   }
 
@@ -212,14 +284,8 @@ bool httpGetJson(const String& url, String& response) {
 }
 
 // ============================================================
-// 8. GET ONE SEGREGATION COMMAND
+// 10. GET ONE SEGREGATION COMMAND
 // ============================================================
-
-// The backend must claim the command and return status="claimed"
-// before the ESP32 is allowed to move either servo.
-//
-// The backend should return only pending commands. Commands
-// already in processing must not be automatically replayed.
 
 bool getSegregationCommand(
     String& commandId,
@@ -236,16 +302,13 @@ bool getSegregationCommand(
   String response;
 
   if (!httpGetJson(url, response)) {
-    Serial.println(
-      "Segregation poll failed. No servo movement."
-    );
+    Serial.println("Segregation poll failed. No servo movement.");
     return false;
   }
 
   String status = getJsonString(response, "status");
 
   if (status != "claimed") {
-    // "waiting" is normal when there is no pending command.
     return false;
   }
 
@@ -254,26 +317,18 @@ bool getSegregationCommand(
 
   if (commandId.length() == 0 ||
       commandId == "null") {
-    Serial.println(
-      "ERROR: Claimed command has no valid command ID."
-    );
-    Serial.println(
-      "Command may remain in processing; inspect backend."
-    );
+    Serial.println("ERROR: Claimed command has no valid ID.");
     return false;
   }
 
   if (routeSignal != "P" &&
       routeSignal != "M" &&
       routeSignal != "E") {
-    Serial.println(
-      "ERROR: Invalid route. Refusing servo movement."
-    );
+    Serial.println("ERROR: Invalid route. Refusing servo movement.");
+
     Serial.print("Route signal: ");
     Serial.println(routeSignal);
-    Serial.println(
-      "Inspect this command before manually recovering it."
-    );
+
     return false;
   }
 
@@ -281,18 +336,14 @@ bool getSegregationCommand(
 }
 
 // ============================================================
-// 9. ACKNOWLEDGE SEGREGATION COMPLETION
+// 11. ACKNOWLEDGE SEGREGATION COMPLETION
 // ============================================================
-
-// Call only after the complete servo movement sequence.
 
 bool acknowledgeSegregationCommand(
     const String& commandId
 ) {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println(
-      "Cannot acknowledge: Wi-Fi disconnected."
-    );
+  if (!ensureTlsReady()) {
+    Serial.println("Cannot acknowledge segregation command.");
     return false;
   }
 
@@ -302,15 +353,13 @@ bool acknowledgeSegregationCommand(
       "/complete";
 
   WiFiClientSecure client;
-  client.setInsecure();
-  HTTPClient http;
+  client.setCACert(ROOT_CA_PEM);
 
+  HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   if (!http.begin(client, url)) {
-    Serial.println(
-      "Could not initialize completion request."
-    );
+    Serial.println("Could not initialize completion request.");
     return false;
   }
 
@@ -318,6 +367,7 @@ bool acknowledgeSegregationCommand(
   http.addHeader("Accept", "application/json");
 
   int code = http.POST("{\"status\":\"completed\"}");
+
   String response = "";
 
   if (code > 0) {
@@ -336,36 +386,19 @@ bool acknowledgeSegregationCommand(
   if (code >= 200 &&
       code < 300 &&
       getJsonString(response, "status") == "completed") {
-    Serial.println(
-      "Segregation command acknowledged as completed."
-    );
+    Serial.println("Segregation command acknowledged.");
     return true;
   }
 
-  Serial.println(
-    "WARNING: Physical movement may have occurred, "
-    "but completion was not confirmed."
-  );
-  Serial.println(
-    "Inspect the item and command record before recovery."
-  );
+  Serial.println("WARNING: Completion was not confirmed.");
   Serial.println(response);
 
   return false;
 }
 
 // ============================================================
-// 10. EXECUTE ONE CLAIMED SEGREGATION COMMAND
+// 12. EXECUTE ONE CLAIMED SEGREGATION COMMAND
 // ============================================================
-
-// Route mapping:
-// M = left compartment (metal)
-// E = center compartment (e-waste)
-// P = right compartment (plastic)
-// R or any unknown signal = no movement
-//
-// This function is called only after a valid command has
-// been claimed by getSegregationCommand().
 
 bool executeSegregation(
     const String& commandId,
@@ -380,32 +413,34 @@ bool executeSegregation(
   } else if (routeSignal == "P") {
     panAngle = PAN_RIGHT_ANGLE;
   } else {
-    Serial.println(
-      "Rejected route. Servos will not move."
-    );
+    Serial.println("Rejected route. Servos will not move.");
     return false;
   }
 
   Serial.println();
   Serial.println("====================================");
   Serial.println("SEGREGATION COMMAND CLAIMED");
+
   Serial.print("Command ID: ");
   Serial.println(commandId);
+
   Serial.print("Route signal: ");
   Serial.println(routeSignal);
+
   Serial.print("Pan angle: ");
   Serial.println(panAngle);
+
   Serial.println("====================================");
 
-  // Step 1: Align pan with the selected compartment.
+  // Step 1: Align pan with selected compartment.
   panServo.write(panAngle);
   delay(SERVO_MOVE_DELAY_MS);
 
-  // Step 2: Move tilt to release position.
+  // Step 2: Release item.
   tiltServo.write(TILT_RELEASE_ANGLE);
   delay(RELEASE_HOLD_MS);
 
-  // Step 3: Return tilt to home position.
+  // Step 3: Return tilt to home.
   tiltServo.write(TILT_HOME_ANGLE);
   delay(SERVO_MOVE_DELAY_MS);
 
@@ -413,12 +448,12 @@ bool executeSegregation(
   panServo.write(PAN_CENTER_ANGLE);
   delay(SERVO_MOVE_DELAY_MS);
 
-  // Step 5: Acknowledge only after motion has finished.
+  // Step 5: Acknowledge after movement is complete.
   return acknowledgeSegregationCommand(commandId);
 }
 
 // ============================================================
-// 11. POLL FOR SEGREGATION
+// 13. POLL FOR SEGREGATION
 // ============================================================
 
 void pollSegregationCommand() {
@@ -433,7 +468,7 @@ void pollSegregationCommand() {
 }
 
 // ============================================================
-// 12. CHECK FOR A DASHBOARD MEASUREMENT REQUEST
+// 14. CHECK FOR A DASHBOARD MEASUREMENT REQUEST
 // ============================================================
 
 bool getMeasurementRequest(String& requestId) {
@@ -444,7 +479,7 @@ bool getMeasurementRequest(String& requestId) {
   String response;
 
   if (!httpGetJson(url, response)) {
-    Serial.println("Could not check for a request.");
+    Serial.println("Could not check for a measurement request.");
     return false;
   }
 
@@ -465,112 +500,174 @@ bool getMeasurementRequest(String& requestId) {
   Serial.println();
   Serial.println("====================================");
   Serial.println("MEASUREMENT REQUEST CLAIMED");
+
   Serial.print("Request ID: ");
   Serial.println(requestId);
+
   Serial.println("====================================");
 
   return true;
 }
 
 // ============================================================
-// 13. TAKE ONE REQUESTED MEASUREMENT
+// 15. COLLECT EMPTY-PLATFORM BASELINE
+// MATCHED TO EXPERIMENTAL LOGGER
 // ============================================================
 
-bool measureAverageWeight(float& averageWeight) {
-  totalWeight = 0.0;
-  validReadingCount = 0;
-
+bool collectBaseline() {
   Serial.println();
-  Serial.println("Starting 30-second measurement.");
-  Serial.println("Keep the item still on the platform.");
+  Serial.println("COLLECTING EMPTY-PLATFORM BASELINE");
+  Serial.println("Keep the platform completely empty.");
 
-  unsigned long measurementStart = millis();
-  unsigned long lastStatus = 0;
+  double sum = 0.0;
+  double sumSquared = 0.0;
 
-  while (millis() - measurementStart <
-         MEASUREMENT_DURATION_MS) {
+  int collected = 0;
 
-    if (scale.is_ready()) {
-      float weight = scale.get_units(10);
+  unsigned long started = millis();
 
-      if (isfinite(weight)) {
-        totalWeight += weight;
-        validReadingCount++;
+  while (collected < BASELINE_SAMPLE_COUNT) {
 
-        Serial.print("Elapsed: ");
-        Serial.print(
-          (millis() - measurementStart) / 1000.0,
-          1
-        );
-        Serial.print(" s | Weight: ");
-        Serial.print(weight, 2);
-        Serial.println(" g");
-      } else {
-        Serial.println("Invalid reading skipped.");
-      }
-    } else if (millis() - lastStatus >= 2000UL) {
-      lastStatus = millis();
-      Serial.println("HX711 temporarily not ready.");
+    if (millis() - started > BASELINE_TIMEOUT_MS) {
+      Serial.println("ERROR: Baseline collection timed out.");
+      return false;
     }
 
-    delay(READING_INTERVAL_MS);
+    if (scale.is_ready()) {
+      float weight = scale.get_units(1);
+
+      if (isfinite(weight)) {
+        sum += weight;
+        sumSquared += (double)weight * weight;
+
+        collected++;
+
+        Serial.print("Baseline ");
+        Serial.print(collected);
+        Serial.print("/");
+        Serial.print(BASELINE_SAMPLE_COUNT);
+        Serial.print(": ");
+
+        Serial.println(weight, 4);
+      }
+    }
+
+    delay(2);
   }
 
-  if (validReadingCount == 0) {
-    Serial.println("ERROR: No valid readings collected.");
-    return false;
+  baselineMean = (float)(sum / collected);
+
+  double variance =
+      (sumSquared / collected) -
+      ((double)baselineMean * baselineMean);
+
+  if (variance < 0.0) {
+    variance = 0.0;
   }
 
-  averageWeight =
-      (float)(totalWeight / validReadingCount);
+  baselineSD = (float)sqrt(variance);
 
-  if (!isfinite(averageWeight) ||
-      averageWeight <= 0.0) {
-    Serial.println("ERROR: Average weight is not positive.");
-    Serial.print("Calculated weight: ");
-    Serial.println(averageWeight, 2);
-    return false;
+  placementThreshold =
+      BASELINE_NOISE_MULTIPLIER * baselineSD;
+
+  if (placementThreshold < MIN_TRIGGER_THRESHOLD_G) {
+    placementThreshold = MIN_TRIGGER_THRESHOLD_G;
   }
 
   Serial.println("------------------------------------");
-  Serial.print("Valid readings: ");
-  Serial.println(validReadingCount);
-  Serial.print("Average weight: ");
-  Serial.print(averageWeight, 2);
-  Serial.println(" g");
+  Serial.println("BASELINE SUMMARY");
+
+  Serial.print("Mean: ");
+  Serial.println(baselineMean, 4);
+
+  Serial.print("Standard deviation: ");
+  Serial.println(baselineSD, 4);
+
+  Serial.print("Placement threshold: ");
+  Serial.println(placementThreshold, 4);
+
   Serial.println("------------------------------------");
 
   return true;
 }
 
 // ============================================================
-// MECHANICAL IMPACT CAPTURE AND FEATURE EXTRACTION
+// 16. WAIT FOR ACTUAL ITEM PLACEMENT
+// MATCHED TO EXPERIMENTAL LOGGER
+// ============================================================
+
+bool waitForObjectPlacement() {
+  Serial.println();
+  Serial.println("WAITING FOR ACTUAL ITEM PLACEMENT");
+  Serial.println("Place the item on the load-cell platform.");
+
+  unsigned long started = millis();
+
+  const float triggerLevel =
+      baselineMean + placementThreshold;
+
+  while (millis() - started < PLACEMENT_TIMEOUT_MS) {
+
+    if (scale.is_ready()) {
+      float weight = scale.get_units(1);
+
+      if (isfinite(weight) && weight > triggerLevel) {
+
+        Serial.println();
+        Serial.println("====================================");
+        Serial.println("ITEM PLACEMENT DETECTED");
+
+        Serial.print("Detected weight: ");
+        Serial.println(weight, 3);
+
+        Serial.print("Trigger level: ");
+        Serial.println(triggerLevel, 3);
+
+        Serial.println("====================================");
+
+        return true;
+      }
+    }
+
+    delay(2);
+  }
+
+  Serial.println("ERROR: Placement timeout.");
+  Serial.println("No item was detected within 60 seconds.");
+
+  return false;
+}
+
+// ============================================================
+// 17. CAPTURE IMPACT BURST
+// 8 SECONDS, MAXIMUM 100 SAMPLES
 // ============================================================
 
 bool captureImpactBurst(ImpactFeatures& features) {
   Serial.println();
-  Serial.println("====================================");
   Serial.println("MECHANICAL IMPACT CAPTURE STARTED");
-  Serial.println("Keep the item still on the platform.");
-  Serial.println("====================================");
 
-  features.peakWeightG = 0.0;
+  features.peakWeightG = 0.0f;
   features.settlingTimeMs = -1;
   features.sampleCount = 0;
-  features.variationIndex = 0.0;
+  features.variationIndex = 0.0f;
 
   const unsigned long captureStart = millis();
 
   double total = 0.0;
   double totalSquared = 0.0;
+
   float peak = -INFINITY;
+  float modelPeak = -INFINITY;
 
   while (millis() - captureStart <
          IMPACT_CAPTURE_DURATION_MS) {
 
     if (scale.is_ready()) {
       float weight = scale.get_units(1);
-      unsigned long elapsed = millis() - captureStart;
+
+      unsigned long elapsed =
+          millis() - captureStart;
 
       if (isfinite(weight) &&
           features.sampleCount < MAX_IMPACT_SAMPLES) {
@@ -587,6 +684,10 @@ bool captureImpactBurst(ImpactFeatures& features) {
           peak = weight;
         }
 
+        if (elapsed <= 2500UL && weight > modelPeak) {
+          modelPeak = weight;
+        }
+
         features.sampleCount++;
 
         Serial.print(elapsed);
@@ -596,17 +697,16 @@ bool captureImpactBurst(ImpactFeatures& features) {
       }
     }
 
-    // Avoid a tight CPU loop. HX711 readiness controls sampling.
     delay(1);
   }
 
   if (features.sampleCount < 3) {
-    Serial.println("ERROR: Too few impact samples collected.");
+    Serial.println("ERROR: Too few impact samples.");
     return false;
   }
 
-  const double count = features.sampleCount;
-  const double mean = total / count;
+  double count = features.sampleCount;
+  double mean = total / count;
 
   double variance =
       (totalSquared / count) - (mean * mean);
@@ -615,37 +715,41 @@ bool captureImpactBurst(ImpactFeatures& features) {
     variance = 0.0;
   }
 
-  const double standardDeviation = sqrt(variance);
+  double standardDeviation = sqrt(variance);
 
-  // Coefficient of variation: standard deviation divided
-  // by the absolute mean. A 0.5 g floor avoids division
-  // by a value close to zero for very light items.
   double denominator = fabs(mean);
 
   if (denominator < 0.5) {
     denominator = 0.5;
   }
 
-  features.peakWeightG = peak;
+  if (!isfinite(modelPeak)) {
+    Serial.println("ERROR: No valid samples in the first 2500 ms.");
+    return false;
+  }
+
+  features.peakWeightG = modelPeak;
+
   features.variationIndex =
       (float)(standardDeviation / denominator);
 
   Serial.println("------------------------------------");
   Serial.println("IMPACT CAPTURE SUMMARY");
+
   Serial.print("Samples: ");
   Serial.println(features.sampleCount);
 
-  Serial.print("Peak apparent weight: ");
-  Serial.print(features.peakWeightG, 3);
-  Serial.println(" g");
+  Serial.print("Model peak (first 2500 ms): ");
+  Serial.println(features.peakWeightG, 3);
 
-  Serial.print("Burst mean: ");
-  Serial.print(mean, 3);
-  Serial.println(" g");
+  Serial.print("Full 8-second peak: ");
+  Serial.println(peak, 3);
 
-  Serial.print("Burst standard deviation: ");
-  Serial.print(standardDeviation, 4);
-  Serial.println(" g");
+  Serial.print("Mean: ");
+  Serial.println(mean, 3);
+
+  Serial.print("Standard deviation: ");
+  Serial.println(standardDeviation, 4);
 
   Serial.print("Variation index: ");
   Serial.println(features.variationIndex, 5);
@@ -655,9 +759,67 @@ bool captureImpactBurst(ImpactFeatures& features) {
   return true;
 }
 
+// ============================================================
+// 18. MEASURE FINAL STABLE WEIGHT
+// 30 SECONDS, MATCHED TO EXPERIMENTAL LOGGER
+// ============================================================
+
+bool measureAverageWeight(float& averageWeight) {
+  double total = 0.0;
+  unsigned long count = 0;
+
+  Serial.println();
+  Serial.println("STARTING 30-SECOND STABLE MEASUREMENT");
+
+  unsigned long started = millis();
+
+  while (millis() - started < MEASUREMENT_DURATION_MS) {
+
+    if (scale.is_ready()) {
+      float weight = scale.get_units(1);
+
+      if (isfinite(weight)) {
+        total += weight;
+        count++;
+
+        Serial.print("Elapsed: ");
+        Serial.print((millis() - started) / 1000.0, 1);
+        Serial.print(" s | Weight: ");
+        Serial.println(weight, 3);
+      }
+    }
+
+    delay(2);
+  }
+
+  if (count == 0) {
+    Serial.println("ERROR: No valid stable readings.");
+    return false;
+  }
+
+  averageWeight = (float)(total / count);
+
+  if (!isfinite(averageWeight) ||
+      averageWeight <= 0.0f) {
+    Serial.println("ERROR: Invalid final average.");
+    return false;
+  }
+
+  Serial.println("------------------------------------");
+
+  Serial.print("Stable sample count: ");
+  Serial.println(count);
+
+  Serial.print("Final average weight: ");
+  Serial.println(averageWeight, 3);
+
+  Serial.println("------------------------------------");
+
+  return true;
+}
 
 // ============================================================
-// ESTIMATE SETTLING TIME USING THE FINAL STABLE WEIGHT
+// 19. CALCULATE IMPACT SETTLING TIME
 // ============================================================
 
 void calculateImpactSettlingTime(
@@ -671,13 +833,15 @@ void calculateImpactSettlingTime(
     return;
   }
 
-  // The acceptable band is the larger of:
-  // 0.5 g, or 5% of the final average weight.
+  // Tolerance = max(5% of final average, 0.5 g).
+
   float tolerance = fabs(finalAverageWeight) * 0.05f;
 
   if (tolerance < 0.5f) {
     tolerance = 0.5f;
   }
+
+  // Find peak index.
 
   int peakIndex = 0;
   float peak = impactWeights[0];
@@ -688,6 +852,9 @@ void calculateImpactSettlingTime(
       peakIndex = i;
     }
   }
+
+  // Find the first set of three consecutive readings
+  // within the acceptable band after the peak.
 
   int consecutive = 0;
   int firstStableIndex = -1;
@@ -724,14 +891,12 @@ void calculateImpactSettlingTime(
     Serial.print(features.settlingTimeMs);
     Serial.println(" ms");
   } else {
-    Serial.println(
-      "Not reached during the impact capture window."
-    );
+    Serial.println("Not reached during impact capture window.");
   }
 }
 
 // ============================================================
-// SUBMIT WEIGHT AND IMPACT FEATURES FOR THE EXACT REQUEST
+// 20. SUBMIT WEIGHT AND IMPACT FEATURES
 // ============================================================
 
 bool submitMeasurement(
@@ -739,8 +904,8 @@ bool submitMeasurement(
     float averageWeight,
     const ImpactFeatures& impact
 ) {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("Cannot submit: Wi-Fi disconnected.");
+  if (!ensureTlsReady()) {
+    Serial.println("Cannot submit: HTTPS is unavailable.");
     return false;
   }
 
@@ -751,6 +916,8 @@ bool submitMeasurement(
 
   String payload = "{";
 
+  payload.reserve(6000);
+
   payload += "\"bin_id\":\"" + String(BIN_ID) + "\",";
   payload += "\"sensor_id\":\"" + String(SENSOR_ID) + "\",";
   payload += "\"weight_g\":" + String(averageWeight, 2) + ",";
@@ -759,31 +926,58 @@ bool submitMeasurement(
       String(impact.peakWeightG, 3) + ",";
 
   payload += "\"impact_settling_ms\":";
+
   if (impact.settlingTimeMs >= 0) {
     payload += String(impact.settlingTimeMs);
   } else {
     payload += "null";
   }
+
   payload += ",";
 
   payload += "\"impact_sample_count\":" +
       String(impact.sampleCount) + ",";
 
   payload += "\"impact_variation_index\":" +
-      String(impact.variationIndex, 5);
+    String(impact.variationIndex, 5) + ",";
+
+// Empty-platform baseline used by the experimental logger.
+payload += "\"baseline_mean_g\":" +
+    String(baselineMean, 4) + ",";
+
+// Send the original impact samples.
+// The backend will independently extract the four features.
+payload += "\"raw_samples\":[";
+
+for (int i = 0; i < impact.sampleCount; i++) {
+
+  if (i > 0) {
+    payload += ",";
+  }
+
+  payload += "{";
+
+  payload += "\"t_ms\":" +
+      String((unsigned long)impactTimestamps[i]) + ",";
+
+  payload += "\"weight_g\":" +
+      String(impactWeights[i], 4);
 
   payload += "}";
+}
+
+payload += "]";
+
+payload += "}";
 
   WiFiClientSecure client;
-  client.setInsecure();
+  client.setCACert(ROOT_CA_PEM);
 
   HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   if (!http.begin(client, url)) {
-    Serial.println(
-      "Could not initialize measurement submission."
-    );
+    Serial.println("Could not initialize measurement submission.");
     return false;
   }
 
@@ -792,6 +986,7 @@ bool submitMeasurement(
 
   Serial.println();
   Serial.println("Submitting measurement and impact features.");
+
   Serial.print("Request ID: ");
   Serial.println(requestId);
 
@@ -816,8 +1011,9 @@ bool submitMeasurement(
   Serial.println("JSON payload:");
   Serial.println(payload);
 
-  // Preserve the existing single-POST behavior.
+  // Preserve single-POST behaviour.
   int code = http.POST(payload);
+
   bool success = false;
 
   if (code > 0) {
@@ -833,28 +1029,19 @@ bool submitMeasurement(
       String status = getJsonString(response, "status");
 
       if (status == "completed") {
-        Serial.println(
-          "SUCCESS: Weight and impact features recorded."
-        );
+        Serial.println("SUCCESS: Measurement recorded.");
         success = true;
       } else {
-        Serial.println(
-          "WARNING: HTTP succeeded but completion "
-          "was not confirmed."
-        );
+        Serial.println("WARNING: Completion was not confirmed.");
       }
     } else {
-      Serial.println(
-        "ERROR: Backend rejected the measurement."
-      );
+      Serial.println("ERROR: Backend rejected measurement.");
     }
   } else {
     Serial.print("POST failed: ");
     Serial.println(http.errorToString(code));
 
-    Serial.println(
-      "No automatic POST retry will occur."
-    );
+    Serial.println("No automatic POST retry will occur.");
   }
 
   http.end();
@@ -864,35 +1051,42 @@ bool submitMeasurement(
 }
 
 // ============================================================
-// 15. MARK THE SCALE REQUEST READY
+// 21. MARK THE SCALE REQUEST READY
 // ============================================================
 
 bool markRequestReady(const String& requestId) {
+  if (!ensureTlsReady()) {
+    Serial.println("Cannot mark request ready.");
+    return false;
+  }
+
   String url = String(API_BASE_URL) +
       "/api/sensor/requests/" +
       requestId +
       "/ready";
 
   WiFiClientSecure client;
-  client.setInsecure();
-  HTTPClient http;
+  client.setCACert(ROOT_CA_PEM);
 
+  HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   if (!http.begin(client, url)) {
-    Serial.println(
-      "Could not connect to backend to mark scale ready."
-    );
+    Serial.println("Could not initialize ready request.");
     return false;
   }
 
   http.addHeader("Accept", "application/json");
 
   int code = http.POST("");
+
   String response = "";
 
   if (code > 0) {
     response = http.getString();
+  } else {
+    Serial.print("Ready POST failed: ");
+    Serial.println(http.errorToString(code));
   }
 
   http.end();
@@ -900,6 +1094,7 @@ bool markRequestReady(const String& requestId) {
 
   Serial.print("Ready response code: ");
   Serial.println(code);
+
   Serial.println(response);
 
   return code >= 200 &&
@@ -908,35 +1103,42 @@ bool markRequestReady(const String& requestId) {
 }
 
 // ============================================================
-// NOTIFY BACKEND THAT IMPACT CAPTURE IS STARTING
+// 22. NOTIFY BACKEND THAT IMPACT WAS DETECTED
 // ============================================================
 
 bool markImpactDetected(const String& requestId) {
+  if (!ensureTlsReady()) {
+    Serial.println("Cannot notify backend of impact detection.");
+    return false;
+  }
+
   String url = String(API_BASE_URL) +
       "/api/sensor/requests/" +
       requestId +
       "/impact-detected";
 
   WiFiClientSecure client;
-  client.setInsecure();
+  client.setCACert(ROOT_CA_PEM);
 
   HTTPClient http;
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   if (!http.begin(client, url)) {
-    Serial.println(
-      "Could not initialize impact-detected request."
-    );
+    Serial.println("Could not initialize impact-detected request.");
     return false;
   }
 
   http.addHeader("Accept", "application/json");
 
   int code = http.POST("");
+
   String response = "";
 
   if (code > 0) {
     response = http.getString();
+  } else {
+    Serial.print("Impact-detected POST failed: ");
+    Serial.println(http.errorToString(code));
   }
 
   http.end();
@@ -944,50 +1146,43 @@ bool markImpactDetected(const String& requestId) {
 
   Serial.print("Impact-detected response code: ");
   Serial.println(code);
+
   Serial.println(response);
 
-  if (code >= 200 && code < 300 &&
+  if (code >= 200 &&
+      code < 300 &&
       getJsonString(response, "status") == "measuring") {
-    Serial.println(
-      "Backend confirmed measuring state."
-    );
+    Serial.println("Backend confirmed measuring state.");
     return true;
   }
 
-  Serial.println(
-    "ERROR: Backend did not confirm impact detection."
-  );
+  Serial.println("ERROR: Backend did not confirm measuring state.");
 
   return false;
 }
 
 // ============================================================
-// 16. WAIT FOR DASHBOARD CONFIRMATION
-// ============================================================
-
-// ============================================================
-// WAIT FOR DASHBOARD CONFIRMATION
+// 23. WAIT FOR DASHBOARD CONFIRMATION
 // ============================================================
 
 bool waitForMeasurementConfirmation(
     const String& requestId
 ) {
-  Serial.println(
-    "Scale is ready. Waiting for dashboard confirmation..."
-  );
+  Serial.println("Scale is ready.");
+  Serial.println("Waiting for dashboard confirmation...");
 
   const unsigned long started = millis();
   const unsigned long timeoutMs = 90000UL;
 
   while (millis() - started < timeoutMs) {
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println(
-        "Wi-Fi disconnected. Reconnecting..."
-      );
 
-      connectToWiFi();
-      delay(1000);
-      continue;
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("Wi-Fi disconnected. Reconnecting...");
+
+      if (!connectToWiFi()) {
+        delay(1000);
+        continue;
+      }
     }
 
     String url = String(API_BASE_URL) +
@@ -1000,22 +1195,15 @@ bool waitForMeasurementConfirmation(
       String status = getJsonString(response, "status");
 
       if (status == "armed") {
-        Serial.println(
-          "Dashboard confirmation received."
-        );
-        Serial.println(
-          "Backend request is armed for impact capture."
-        );
+        Serial.println("Dashboard confirmation received.");
+        Serial.println("Backend request is armed.");
         return true;
       }
 
       if (status == "expired" ||
           status == "completed") {
-        Serial.print(
-          "Request ended before impact capture. Status: "
-        );
+        Serial.print("Request ended. Status: ");
         Serial.println(status);
-
         return false;
       }
     }
@@ -1023,15 +1211,13 @@ bool waitForMeasurementConfirmation(
     delay(1500);
   }
 
-  Serial.println(
-    "Timed out waiting for dashboard confirmation."
-  );
+  Serial.println("Timed out waiting for dashboard confirmation.");
 
   return false;
 }
 
 // ============================================================
-// PROCESS ONE MEASUREMENT REQUEST
+// 24. PROCESS ONE MEASUREMENT REQUEST
 // ============================================================
 
 void processMeasurementRequest(
@@ -1040,108 +1226,95 @@ void processMeasurementRequest(
   Serial.println();
   Serial.println("========================================");
   Serial.println("NEW MEASUREMENT REQUEST");
-  Serial.println("Keep the platform EMPTY while taring.");
+  Serial.println("Keep platform EMPTY.");
   Serial.println("========================================");
 
   // Step 1: Check HX711.
+
   if (!scale.is_ready()) {
     Serial.println("ERROR: HX711 is not ready.");
     return;
   }
 
-  // Step 2: Tare the empty platform.
-  Serial.println(
-    "Taring scale. Keep platform empty..."
-  );
+  // Step 2: Tare empty platform.
+
+  Serial.println("Taring empty platform...");
 
   scale.tare(20);
 
   Serial.println("Tare complete.");
 
-  // Step 3: Tell the backend the scale is ready.
+  // Step 3: Collect experimental baseline.
+
+  if (!collectBaseline()) {
+    Serial.println("Baseline collection failed.");
+    return;
+  }
+
+  // Step 4: Tell backend scale is ready.
+
   if (!markRequestReady(requestId)) {
-    Serial.println(
-      "ERROR: Could not mark request ready."
-    );
-
-    Serial.println(
-      "Check backend logs and request status."
-    );
-
+    Serial.println("ERROR: Could not mark request ready.");
     return;
   }
 
-  Serial.println("Scale tared successfully.");
+  Serial.println("Scale ready.");
+  Serial.println("Waiting for dashboard confirmation.");
 
-  Serial.println(
-    "Place the waste item when the dashboard prompts you."
-  );
+  // Step 5: Wait for dashboard confirmation.
 
-  // Step 4: Wait until the dashboard confirms the user
-  // has started the measurement.
   if (!waitForMeasurementConfirmation(requestId)) {
-    Serial.println(
-      "Measurement cancelled or confirmation timed out."
-    );
-
-    Serial.println(
-      "Returning to request polling."
-    );
-
+    Serial.println("Request cancelled or expired.");
     return;
   }
 
-  // Step 5: Tell the backend that impact capture is starting.
-  if (!markImpactDetected(requestId)) {
-    Serial.println(
-      "ERROR: Could not start impact capture state."
-    );
+  // Step 6: Wait for actual physical placement.
 
-    Serial.println(
-      "Measurement will not be submitted."
-    );
-
+  if (!waitForObjectPlacement()) {
+    Serial.println("No item detected. Measurement cancelled.");
     return;
   }
 
-  // Step 6: Capture the short mechanical impact burst.
+  // Step 7: Capture impact IMMEDIATELY.
+  //
+  // Do not perform an HTTPS request between placement
+  // detection and impact capture.
+
   ImpactFeatures impact;
 
   if (!captureImpactBurst(impact)) {
-    Serial.println(
-      "ERROR: Impact capture failed."
-    );
-
-    Serial.println(
-      "Measurement will not be submitted."
-    );
-
+    Serial.println("Impact capture failed.");
     return;
   }
 
-  // Step 7: Preserve the existing 30-second stable average.
-  float averageWeight = 0.0;
+  // Step 8: Notify backend after impact data is captured.
+  //
+  // Backend transitions armed -> measuring here.
+
+  if (!markImpactDetected(requestId)) {
+    Serial.println("ERROR: Backend did not confirm measuring.");
+    Serial.println("Captured impact data will not be submitted.");
+    return;
+  }
+
+  // Step 9: Measure final stable weight.
+
+  float averageWeight = 0.0f;
 
   if (!measureAverageWeight(averageWeight)) {
-    Serial.println(
-      "ERROR: Stable weight measurement failed."
-    );
-
-    Serial.println(
-      "Request may expire; start a new deposit attempt."
-    );
-
+    Serial.println("Stable weight measurement failed.");
     return;
   }
 
-  // Step 8: Calculate settling time against the final
-  // stable average obtained from the 30-second measurement.
+  // Step 10: Calculate settling time.
+
   calculateImpactSettlingTime(
-    impact,
-    averageWeight
+      impact,
+      averageWeight
   );
 
-  // Step 9: Submit stable weight and all impact features.
+  // Step 11: Submit weight and mechanical features.
+
   if (submitMeasurement(
         requestId,
         averageWeight,
@@ -1149,26 +1322,17 @@ void processMeasurementRequest(
       )) {
 
     Serial.println();
-    Serial.println(
-      "MEASUREMENT REQUEST COMPLETED SUCCESSFULLY."
-    );
+    Serial.println("MEASUREMENT COMPLETED SUCCESSFULLY.");
 
   } else {
-    Serial.println(
-      "Submission was not confirmed. Check backend "
-      "status before attempting another deposit."
-    );
+    Serial.println("Submission not confirmed. Check backend status.");
   }
 
-  Serial.println(
-    "Returning to request polling."
-  );
+  Serial.println("Returning to request polling.");
 }
 
-
-
 // ============================================================
-// 18. SETUP
+// 25. SETUP
 // ============================================================
 
 void setup() {
@@ -1181,7 +1345,10 @@ void setup() {
   Serial.println(" LOAD CELL + SERVO SEGREGATION");
   Serial.println("====================================");
 
-  // Initialize HX711.
+  // ----------------------------------------------------------
+  // Initialize HX711
+  // ----------------------------------------------------------
+
   Serial.println("Initializing HX711...");
 
   scale.begin(
@@ -1197,12 +1364,8 @@ void setup() {
   }
 
   if (!scale.is_ready()) {
-    Serial.println(
-      "ERROR: HX711 is not responding."
-    );
-    Serial.println(
-      "Check DT, SCK, VCC and GND."
-    );
+    Serial.println("ERROR: HX711 is not responding.");
+    Serial.println("Check DT, SCK, VCC and GND.");
 
     while (true) {
       delay(1000);
@@ -1210,23 +1373,28 @@ void setup() {
   }
 
   scale.set_scale(calibration_factor);
+
   Serial.println("HX711 initialized.");
 
-  // IMPORTANT: platform must be empty during startup tare.
+  // ----------------------------------------------------------
+  // Startup tare
+  // ----------------------------------------------------------
+
   Serial.println();
-  Serial.println(
-    "Ensure the weighing platform is EMPTY."
-  );
+  Serial.println("Ensure the weighing platform is EMPTY.");
   Serial.println("Taring in 2 seconds...");
+
   delay(2000);
 
   scale.tare(20);
+
   Serial.println("Tare complete.");
 
-  // Initialize the servos.
-  Serial.println(
-    "Initializing segregation servos..."
-  );
+  // ----------------------------------------------------------
+  // Initialize servos
+  // ----------------------------------------------------------
+
+  Serial.println("Initializing segregation servos...");
 
   panServo.setPeriodHertz(50);
   tiltServo.setPeriodHertz(50);
@@ -1245,45 +1413,54 @@ void setup() {
 
   if (!panServo.attached() ||
       !tiltServo.attached()) {
-    Serial.println(
-      "WARNING: One or both servo attachments failed."
-    );
+    Serial.println("WARNING: Servo attachment issue.");
   }
 
-  // Start at neutral/home positions.
   panServo.write(PAN_CENTER_ANGLE);
   tiltServo.write(TILT_HOME_ANGLE);
 
   delay(SERVO_MOVE_DELAY_MS);
 
-  Serial.println(
-    "Servo initialization commands sent."
-  );
+  Serial.println("Servo initialization commands sent.");
 
-  // Connect to Wi-Fi.
-  connectToWiFi();
+  // ----------------------------------------------------------
+  // Connect to Wi-Fi and synchronize TLS clock
+  // ----------------------------------------------------------
+
+  if (connectToWiFi()) {
+    if (!synchronizeClock()) {
+      Serial.println("WARNING: TLS clock synchronization failed.");
+      Serial.println("HTTPS requests will retry synchronization.");
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Startup complete
+  // ----------------------------------------------------------
 
   Serial.println();
-  Serial.println(
-    "Ready for dashboard requests."
-  );
+  Serial.println("====================================");
+  Serial.println("SMART BIN INITIALIZATION COMPLETE");
+  Serial.println("====================================");
+
+  Serial.println("Ready for dashboard requests.");
+
   Serial.println(
     "Segregation requires a claimed backend command."
   );
+
   Serial.println(
     "No command means no segregation movement."
   );
 }
 
 // ============================================================
-// 19. MAIN LOOP
+// 26. MAIN LOOP
 // ============================================================
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println(
-      "Wi-Fi disconnected; reconnecting..."
-    );
+    Serial.println("Wi-Fi disconnected; reconnecting...");
 
     if (!connectToWiFi()) {
       delay(POLL_INTERVAL_MS);
@@ -1293,18 +1470,20 @@ void loop() {
 
   String requestId;
 
-  // Preserve the existing measurement-request workflow.
+  // ----------------------------------------------------------
+  // Measurement workflow
+  // ----------------------------------------------------------
+
   if (getMeasurementRequest(requestId)) {
     processMeasurementRequest(requestId);
   } else {
-    Serial.println(
-      "No measurement request."
-    );
+    Serial.println("No measurement request.");
   }
 
-  // Poll segregation after measurement processing.
-  // The backend must return status="claimed" before
-  // any physical release can occur.
+  // ----------------------------------------------------------
+  // Segregation workflow
+  // ----------------------------------------------------------
+
   pollSegregationCommand();
 
   delay(POLL_INTERVAL_MS);

@@ -233,7 +233,7 @@ async def deposit_item(
         with image_path.open("wb") as buffer:
             buffer.write(image_bytes)
 
-        # 5. Classify the item using the trained nine-class model.
+        # 5. Classify the item using the configured active classifier.
         classifier_result = classify_image(str(image_path))
         detected_label = str(classifier_result["label"])
         confidence = round(float(classifier_result["confidence"]), 3)
@@ -248,9 +248,8 @@ async def deposit_item(
                 ),
             )
 
-        # 5A. Experimental mechanical assessment (SHADOW ONLY).
-        # Snapshot sensor values before the existing transaction commits.
-        # This result is never used by fusion, acceptance, rewards, or routing.
+        # 5A. Enforced item-specific mechanical reference validation.
+        # Every feature must pass before reward minting or segregation.
         mechanical_features = {
             "stable_weight_g": measured_weight_g,
             "impact_peak_g": reading.impact_peak_g,
@@ -271,12 +270,12 @@ async def deposit_item(
                 raw_samples=mechanical_features["raw_samples"],
             )
         except Exception as exc:
-            # Experimental reference assessment must never interrupt a deposit.
+            # Fail closed: assessment errors must block reward eligibility.
             mechanical_assessment = {
                 "model_name": "item_specific_mechanical_reference",
                 "model_version": "four_feature_reference_v1",
                 "status": "ASSESSMENT_ERROR",
-                "assessment_mode": "SHADOW_ONLY",
+                "assessment_mode": "ENFORCED",
                 "image_label": detected_label.strip().lower(),
                 "image_expected_class": None,
                 "mechanical_agreement": None,
@@ -327,10 +326,31 @@ async def deposit_item(
         route_signal = fusion_result["hardware_route_signal"]
         reward_eligible = fusion_result.get("reward_eligible", False)
 
+        mechanical_passed = (
+            mechanical_assessment.get("status") == "MECHANICAL_PASSED"
+            and mechanical_assessment.get("assessment_mode") == "ENFORCED"
+            and mechanical_assessment.get("mechanical_agreement") is True
+            and mechanical_assessment.get("matched_feature_count") == 4
+            and mechanical_assessment.get("total_feature_count") == 4
+        )
+
         is_accepted = (
             route_signal in {"P", "M", "E"}
             and reward_eligible
+            and mechanical_passed
         )
+
+        rejection_reasons = []
+        if not reward_eligible or route_signal not in {"P", "M", "E"}:
+            rejection_reasons.append(
+                fusion_result.get("action")
+                or "Existing image, weight, or material eligibility checks failed."
+            )
+        if not mechanical_passed:
+            rejection_reasons.append(
+                mechanical_assessment.get("reason")
+                or "Mechanical validation did not pass all four features."
+            )
 
         # 8. Calculate and attempt to mint rewards for accepted items.
         calculated_credits = 0.0
@@ -429,7 +449,7 @@ async def deposit_item(
                     model_version=mechanical_assessment["model_version"],
                     status=mechanical_assessment["status"],
                     assessment_mode=mechanical_assessment.get(
-                        "assessment_mode", "SHADOW_ONLY"
+                        "assessment_mode", "ENFORCED"
                     ),
                     image_label=mechanical_assessment["image_label"],
                     image_expected_class=mechanical_assessment.get(
@@ -495,6 +515,7 @@ async def deposit_item(
             "confidence": confidence,
             "stable_weight_g": stable_weight_g,
             "mechanical_assessment": mechanical_assessment,
+            "rejection_reasons": rejection_reasons if not is_accepted else [],
             "hardware_route_signal": route_signal,
             "fusion_result": fusion_result,
             "matched_item": fusion_result.get("matched_item"),

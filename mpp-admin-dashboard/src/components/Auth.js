@@ -4,7 +4,7 @@ import "./Auth.css";
 const API_BASE =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
-    ? "http://127.0.0.1:8000"
+    ? "https://10.165.119.195:8000"
     : "https://mpp-smart-bin.onrender.com";
 
 const customWalletSrc =
