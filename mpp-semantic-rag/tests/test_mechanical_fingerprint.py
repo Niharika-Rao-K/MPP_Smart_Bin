@@ -348,6 +348,53 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_classify_rejects_exact_duplicate_before_any_sensor_step(self):
+        hashes = compute(self.image_bytes)
+        db = self.TestSessionLocal()
+        try:
+            db.add(
+                ImageFingerprint(
+                    sha256=hashes["sha256"],
+                    phash=hashes["phash"],
+                    dhash=hashes["dhash"],
+                    wallet_address=self.WALLET,
+                    bin_code="BIN001",
+                    status="accepted",
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        with patch.object(deposit_route, "classify_image") as classify_mock:
+            response = self.client.post(
+                "/api/rag/classify",
+                files={
+                    "image": (
+                        "duplicate.png",
+                        self.image_bytes,
+                        "image/png",
+                    ),
+                },
+            )
+
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertIn("already been used", response.json()["detail"].lower())
+        classify_mock.assert_not_called()
+
+        db = self.TestSessionLocal()
+        try:
+            reading = (
+                db.query(SensorReading)
+                .filter_by(reading_id="TEST-READING-001")
+                .one()
+            )
+            self.assertFalse(reading.consumed)
+            self.assertEqual(db.query(Deposit).count(), 0)
+            self.assertEqual(db.query(ImageFingerprint).count(), 1)
+        finally:
+            db.close()
+
     def test_invalid_image_is_rejected_before_reading_is_consumed(self):
         response = self.submit_deposit(b"this is not a real image")
 
