@@ -1,4 +1,5 @@
 
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -32,6 +33,7 @@ from app.services.mechanical_fingerprint_service import (
 from app.services.image_hash import check_duplicate, InvalidImageError
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 UPLOAD_FOLDER = Path("uploads")
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -551,8 +553,11 @@ async def deposit_item(
                         fingerprint_db.rollback()
                     except Exception:
                         pass
+                logger.exception("Failed to persist accepted deposit image fingerprint")
                 image_fingerprint_persistence_status = "FAILED"
-                image_fingerprint_persistence_error = str(exc)[:300]
+                image_fingerprint_persistence_error = (
+                    "Fingerprint could not be saved. Please contact support."
+                )
             finally:
                 if fingerprint_db is not None:
                     try:
