@@ -10,3 +10,5 @@ sqlalchemy
 ultralytics
 pwdlib[argon2]
 psycopg[binary]
+ImageHash==4.3.2
+Pillow

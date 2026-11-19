@@ -367,3 +367,39 @@ class MechanicalReferenceAssessment(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+
+class ImageFingerprint(Base):
+    """Stores image fingerprints for previously rewarded deposits."""
+
+    __tablename__ = "image_fingerprints"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    sha256 = Column(String(64), nullable=False, index=True)
+    phash = Column(String(16), nullable=False, index=True)
+    dhash = Column(String(16), nullable=True)
+
+    wallet_address = Column(String(100), nullable=True, index=True)
+    bin_code = Column(String(50), nullable=True)
+
+    deposit_id = Column(
+        Integer,
+        ForeignKey("deposits.id"),
+        nullable=True,
+        index=True,
+    )
+
+    status = Column(
+        String(10),
+        default="accepted",
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
