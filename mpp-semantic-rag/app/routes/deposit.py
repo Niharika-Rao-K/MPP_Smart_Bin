@@ -52,6 +52,7 @@ ALLOWED_IMAGE_TYPES = {
 @router.post("/classify")
 async def classify_waste_image(
     image: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
     """Classify an uploaded waste image without weighing or rewarding it."""
 
@@ -73,6 +74,32 @@ async def classify_waste_image(
         raise HTTPException(
             status_code=413,
             detail="Image must be 10 MB or smaller.",
+        )
+
+    # Reject previously rewarded exact images before the user is asked
+    # to place anything on the load cell. Perceptual similarity remains
+    # diagnostic only; it must not block a new photograph of similar waste.
+    try:
+        image_check = check_duplicate(db, ImageFingerprint, image_bytes)
+    except InvalidImageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Early duplicate-image verification failed.")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Duplicate-image verification is temporarily unavailable. "
+                "Please try uploading the image again."
+            ),
+        ) from exc
+
+    if image_check.get("exact_match"):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This image has already been used for a rewarded deposit. "
+                "Please upload a new image."
+            ),
         )
 
     suffix = Path(image.filename or "upload.jpg").suffix.lower()
