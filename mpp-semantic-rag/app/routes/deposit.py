@@ -20,6 +20,7 @@ from app.database.models import (
     SensorReading,
     SegregationCommand,
     MechanicalReferenceAssessment,
+    ImageFingerprint,
 )
 from app.services.fusion_service import sensor_fusion
 from app.services.reward_service import calculate_reward
@@ -28,6 +29,7 @@ from app.services.classifier_selector import classify_image
 from app.services.mechanical_fingerprint_service import (
     assess_mechanical_fingerprint,
 )
+from app.services.image_hash import check_duplicate, InvalidImageError
 
 router = APIRouter()
 
@@ -213,6 +215,9 @@ async def deposit_item(
     transaction_id = str(uuid4())
     suffix = Path(image.filename or "upload.jpg").suffix.lower() or ".jpg"
     image_path = UPLOAD_FOLDER / f"{transaction_id}{suffix}"
+    image_check = None
+    image_fingerprint_persistence_status = "NOT_ATTEMPTED"
+    image_fingerprint_persistence_error = None
 
     try:
         # 4. Save and validate the uploaded image.
@@ -228,6 +233,19 @@ async def deposit_item(
             raise HTTPException(
                 status_code=413,
                 detail="Image must be 10 MB or smaller.",
+            )
+
+        # 4A. Check whether this image has already earned a reward.
+        # Exact matches are rejected; perceptual matches remain diagnostic.
+        try:
+            image_check = check_duplicate(db, ImageFingerprint, image_bytes)
+        except InvalidImageError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        if image_check.get("exact_match"):
+            raise HTTPException(
+                status_code=409,
+                detail="This exact image has already been used for a rewarded deposit.",
             )
 
         with image_path.open("wb") as buffer:
@@ -502,6 +520,46 @@ async def deposit_item(
                 except Exception:
                     pass
 
+        # 9B. Save the image fingerprint independently after a successful mint.
+        # A fingerprint persistence failure must not undo an accepted deposit.
+        if (
+            is_accepted
+            and reward_result.get("status") == "SUCCESS"
+            and tx_hash
+            and image_check is not None
+        ):
+            fingerprint_db = None
+            try:
+                fingerprint_db = SessionLocal()
+                hashes = image_check["hashes"]
+                fingerprint_db.add(
+                    ImageFingerprint(
+                        sha256=hashes["sha256"],
+                        phash=hashes["phash"],
+                        dhash=hashes["dhash"],
+                        wallet_address=wallet_address,
+                        bin_code=bin_record.bin_code,
+                        deposit_id=deposit.id,
+                        status="accepted",
+                    )
+                )
+                fingerprint_db.commit()
+                image_fingerprint_persistence_status = "SAVED"
+            except Exception as exc:
+                if fingerprint_db is not None:
+                    try:
+                        fingerprint_db.rollback()
+                    except Exception:
+                        pass
+                image_fingerprint_persistence_status = "FAILED"
+                image_fingerprint_persistence_error = str(exc)[:300]
+            finally:
+                if fingerprint_db is not None:
+                    try:
+                        fingerprint_db.close()
+                    except Exception:
+                        pass
+
         # 10. Return the evaluation to the frontend.
         return {
             "transaction_id": transaction_id,
@@ -515,6 +573,14 @@ async def deposit_item(
             "confidence": confidence,
             "stable_weight_g": stable_weight_g,
             "mechanical_assessment": mechanical_assessment,
+            "image_check": {
+                "verdict": image_check.get("verdict"),
+                "match_type": image_check.get("match_type"),
+                "exact_match": image_check.get("exact_match"),
+                "distance": image_check.get("distance"),
+            } if image_check else None,
+            "image_fingerprint_persistence_status": image_fingerprint_persistence_status,
+            "image_fingerprint_persistence_error": image_fingerprint_persistence_error,
             "rejection_reasons": rejection_reasons if not is_accepted else [],
             "hardware_route_signal": route_signal,
             "fusion_result": fusion_result,

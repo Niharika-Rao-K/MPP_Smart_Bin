@@ -1,9 +1,11 @@
+import io
 import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -15,8 +17,10 @@ from app.database.models import (
     SensorReading,
     SegregationCommand,
     MechanicalReferenceAssessment,
+    ImageFingerprint,
 )
 from app.routes import deposit as deposit_route
+from app.services.image_hash import compute
 from app.services import mechanical_fingerprint_service as mechanical_service
 from app.services.mechanical_fingerprint_service import (
     assess_mechanical_fingerprint,
@@ -183,6 +187,12 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
             bind=self.engine,
         )
 
+        image_buffer = io.BytesIO()
+        Image.new("RGB", (64, 64), (100, 120, 140)).save(
+            image_buffer, format="PNG"
+        )
+        self.image_bytes = image_buffer.getvalue()
+
         self.app = FastAPI()
         self.app.include_router(
             deposit_route.router,
@@ -278,7 +288,7 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
             "reason": "Test disagreement.",
         }
 
-    def submit_deposit(self):
+    def submit_deposit(self, image_bytes=None):
         return self.client.post(
             "/api/rag/evaluate",
             data={
@@ -290,11 +300,71 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
             files={
                 "image": (
                     "test.png",
-                    b"test-image-content",
+                    image_bytes if image_bytes is not None else self.image_bytes,
                     "image/png",
                 ),
             },
         )
+
+    def test_exact_duplicate_image_is_rejected_before_reading_is_consumed(self):
+        hashes = compute(self.image_bytes)
+        db = self.TestSessionLocal()
+        try:
+            db.add(
+                ImageFingerprint(
+                    sha256=hashes["sha256"],
+                    phash=hashes["phash"],
+                    dhash=hashes["dhash"],
+                    wallet_address=self.WALLET,
+                    bin_code="BIN001",
+                    status="accepted",
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        with (
+            patch.object(deposit_route, "classify_image") as classify_mock,
+            patch.object(deposit_route, "mint_recycling_reward") as mint_mock,
+        ):
+            response = self.submit_deposit()
+
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertIn("exact image", response.json()["detail"].lower())
+        classify_mock.assert_not_called()
+        mint_mock.assert_not_called()
+
+        db = self.TestSessionLocal()
+        try:
+            reading = (
+                db.query(SensorReading)
+                .filter_by(reading_id="TEST-READING-001")
+                .one()
+            )
+            self.assertFalse(reading.consumed)
+            self.assertEqual(db.query(Deposit).count(), 0)
+            self.assertEqual(db.query(ImageFingerprint).count(), 1)
+        finally:
+            db.close()
+
+    def test_invalid_image_is_rejected_before_reading_is_consumed(self):
+        response = self.submit_deposit(b"this is not a real image")
+
+        self.assertEqual(response.status_code, 422, response.text)
+
+        db = self.TestSessionLocal()
+        try:
+            reading = (
+                db.query(SensorReading)
+                .filter_by(reading_id="TEST-READING-001")
+                .one()
+            )
+            self.assertFalse(reading.consumed)
+            self.assertEqual(db.query(Deposit).count(), 0)
+            self.assertEqual(db.query(ImageFingerprint).count(), 0)
+        finally:
+            db.close()
 
     def test_real_reference_assessment_uses_saved_sensor_samples(self):
         raw_samples = [
@@ -361,6 +431,10 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
 
         self.assertEqual(body["status"], "SUCCESS")
         self.assertEqual(body["hardware_route_signal"], "M")
+        self.assertEqual(body["image_check"]["verdict"], "ok")
+        self.assertEqual(
+            body["image_fingerprint_persistence_status"], "SAVED"
+        )
 
         assessment = body["mechanical_assessment"]
         self.assertEqual(assessment["status"], "MECHANICAL_PASSED")
@@ -394,6 +468,15 @@ class MechanicalFingerprintDepositShadowTests(unittest.TestCase):
             self.assertAlmostEqual(saved.stable_weight_g, 14.4458, places=4)
             self.assertEqual(len(saved.extracted_features), 4)
             self.assertEqual(len(saved.feature_comparisons), 4)
+
+            fingerprint = db.query(ImageFingerprint).one()
+            expected_hashes = compute(self.image_bytes)
+            self.assertEqual(fingerprint.sha256, expected_hashes["sha256"])
+            self.assertEqual(fingerprint.phash, expected_hashes["phash"])
+            self.assertEqual(fingerprint.dhash, expected_hashes["dhash"])
+            self.assertEqual(fingerprint.wallet_address, self.WALLET)
+            self.assertEqual(fingerprint.bin_code, "BIN001")
+            self.assertEqual(fingerprint.status, "accepted")
         finally:
             db.close()
 
